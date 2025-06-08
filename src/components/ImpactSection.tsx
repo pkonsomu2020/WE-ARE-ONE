@@ -31,7 +31,7 @@ const ImpactSection = () => {
       description: "Individuals who have found hope and healing through our programs"
     },
     {
-      number: 1000,
+      number: 80,
       suffix: "+",
       label: "Counseling Sessions",
       description: "Professional therapy sessions provided to community members"
@@ -43,7 +43,7 @@ const ImpactSection = () => {
       description: "Peer support group meetings fostering connection and understanding"
     },
     {
-      number: 50,
+      number: 1000,
       suffix: "+",
       label: "Volunteers",
       description: "Dedicated community members supporting our mission"
@@ -55,7 +55,7 @@ const ImpactSection = () => {
       description: "Round-the-clock availability for those in immediate need"
     },
     {
-      number: 5,
+      number: 1,
       suffix: "+",
       label: "Years of Service",
       description: "Continuous commitment to mental health advocacy and support"

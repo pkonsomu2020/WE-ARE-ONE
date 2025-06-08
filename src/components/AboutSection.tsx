@@ -62,7 +62,7 @@ const AboutSection = () => {
             <div className="grid grid-cols-3 gap-6 pt-8">
               <div className="text-center group">
                 <AnimatedCounter 
-                  end={5} 
+                  end={1} 
                   suffix="+"
                   className="text-3xl font-bold text-ngo-orange group-hover:scale-110 transition-transform duration-300"
                 />
@@ -78,7 +78,7 @@ const AboutSection = () => {
               </div>
               <div className="text-center group">
                 <AnimatedCounter 
-                  end={50} 
+                  end={1000} 
                   suffix="+"
                   className="text-3xl font-bold text-ngo-orange group-hover:scale-110 transition-transform duration-300"
                 />
