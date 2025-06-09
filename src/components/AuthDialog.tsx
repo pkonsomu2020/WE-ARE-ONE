@@ -24,7 +24,7 @@ interface AuthDialogProps {
 }
 
 const AuthDialog = ({ trigger }: AuthDialogProps) => {
-  const [isLogin, setIsLogin] = useState(true);
+  // const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
@@ -66,51 +66,56 @@ const AuthDialog = ({ trigger }: AuthDialogProps) => {
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setMessage('');
+  e.preventDefault();
+  setIsSubmitting(true);
+  setMessage('');
 
-    const formData = new FormData(e.currentTarget);
+  const form = e.currentTarget;
+  const formData = new FormData(form);
 
-    formData.append('support_categories', selectedSupport.join(', '));
-    if (selectedSupport.includes('Other') && otherSupportText) {
-      formData.append('other_support_details', otherSupportText);
+  // Append custom fields
+  formData.append('support_categories', selectedSupport.join(', '));
+
+  if (selectedSupport.includes('Other') && otherSupportText.trim()) {
+    formData.append('other_support_details', otherSupportText.trim());
+  }
+
+  if (personalStatement?.trim()) {
+    formData.append('personal_statement', personalStatement.trim());
+  }
+
+  try {
+    const response = await fetch('https://getform.io/f/bnlxngnb', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        Accept: 'application/json',
+      },
+    });
+
+    if (response.ok) {
+      setMessage('Registration successful! You can now join our WhatsApp community.');
+      localStorage.setItem('hasSignedUp', 'true');
+
+      // Reset form and state
+      form.reset();
+      setSelectedSupport([]);
+      setOtherSupportText('');
+      setPersonalStatement('');
+      // 👇 Redirect to the #join-whatsapp-group section on the same page
+      setTimeout(() => {
+        window.location.hash = '#join-whatsapp-group';
+      }, 1000); // Optional delay
+    } else {
+      setMessage('Something went wrong. Please try again.');
     }
-
-    if (personalStatement) {
-      formData.append('personal_statement', personalStatement);
-    }
-
-    try {
-      const response = await fetch('https://getform.io/f/bnlxngnb', {
-        method: 'POST',
-        body: formData,
-        headers: {
-          Accept: 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        setMessage(
-          isLogin
-            ? 'Login successful!'
-            : 'Registration successful! You can now join our WhatsApp community.'
-        );
-        if (!isLogin) localStorage.setItem('hasSignedUp', 'true');
-
-        (e.target as HTMLFormElement).reset();
-        setSelectedSupport([]);
-        setOtherSupportText('');
-        setPersonalStatement('');
-      } else {
-        setMessage('Something went wrong. Please try again.');
-      }
-    } catch (error) {
-      setMessage('Network error. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  } catch (error) {
+    setMessage('Network error. Please try again.');
+    console.error('Form submission error:', error);
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   const [liveLocation, setLiveLocation] = useState('');
   const [loadingLocation, setLoadingLocation] = useState(false);
@@ -154,12 +159,10 @@ const AuthDialog = ({ trigger }: AuthDialogProps) => {
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-center text-ngo-orange">
-            {isLogin ? 'Welcome Back' : 'Join Our Community'}
+            Join Our Community
           </DialogTitle>
           <DialogDescription className="text-center">
-            {isLogin
-              ? 'Sign in to access your account and connect with our support community.'
-              : 'Create an account to join our mental health support community and access resources.'}
+            Join Our Community
           </DialogDescription>
         </DialogHeader>
 
@@ -168,7 +171,6 @@ const AuthDialog = ({ trigger }: AuthDialogProps) => {
           method="POST"
           className="space-y-4"
 >
-  {!isLogin && (
     <>
       {/* Basic Information */}
       <div className="space-y-4">
@@ -335,10 +337,9 @@ const AuthDialog = ({ trigger }: AuthDialogProps) => {
 
 <input type="hidden" name="live_location" value={liveLocation} />
 
-    </>
-  )}
+</>
 
-  {isLogin && (
+  {/* {isLogin && (
     <div className="relative">
       <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
       <input
@@ -349,7 +350,7 @@ const AuthDialog = ({ trigger }: AuthDialogProps) => {
         className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ngo-orange"
       />
     </div>
-  )}
+  )} */}
 
   {/* Password field (common for both) */}
   <div className="relative">
@@ -373,7 +374,7 @@ const AuthDialog = ({ trigger }: AuthDialogProps) => {
 
   {/* Hidden fields for FormSubmit */}
   <input type="hidden" name="_captcha" value="false" />
-  <input type="hidden" name="_next" value="https://httpsweareone.kreativestores.shop/communities/we-are-one2" />
+  <input type="hidden" name="_next" value="http://localhost:8080/#community" />
   <input type="hidden" name="support_categories" value={selectedSupport.join(', ')} />
   {selectedSupport.includes('Other') && (
     <input type="hidden" name="other_support_details" value={otherSupportText} />
@@ -385,11 +386,11 @@ const AuthDialog = ({ trigger }: AuthDialogProps) => {
     type="submit"
     className="w-full bg-ngo-orange hover:bg-ngo-orange/90 text-white font-bold py-2 rounded-lg"
   >
-    {isSubmitting ? (isLogin ? 'Logging in...' : 'Signing up...') : (isLogin ? 'Login' : 'Sign Up')}
+    {isSubmitting ? 'Signing up...' : 'Sign Up'}
   </Button>
 
   {/* Switch Auth Mode */}
-  <div className="text-center text-sm text-gray-600">
+  {/* <div className="text-center text-sm text-gray-600">
     {isLogin ? "Don't have an account?" : 'Already have an account?'}{' '}
     <button
       type="button"
@@ -398,7 +399,7 @@ const AuthDialog = ({ trigger }: AuthDialogProps) => {
     >
       {isLogin ? 'Sign up here' : 'Login here'}
     </button>
-  </div>
+  </div> */}
 
   {/* Feedback message */}
   {message && (

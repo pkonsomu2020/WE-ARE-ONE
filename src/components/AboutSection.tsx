@@ -111,7 +111,7 @@ const AboutSection = () => {
                   F
                 </div>
                 <div>
-                  <div className="font-semibold hover:text-ngo-orange transition-colors duration-300">Eltone Cruz</div>
+                  <div className="font-semibold hover:text-ngo-orange transition-colors duration-300">Eltone Cruzz</div>
                   <div className="text-gray-600">Mental Health Advocate</div>
                 </div>
               </div>

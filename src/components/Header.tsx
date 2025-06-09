@@ -64,7 +64,7 @@ const Header = () => {
                   className="border-ngo-orange text-ngo-orange hover:bg-ngo-orange hover:text-white transition-all duration-300"
                 >
                   <UserPlus className="w-4 h-4 mr-2" />
-                  Sign In
+                  Sign up
                 </Button>
               }
             />
@@ -126,7 +126,7 @@ const Header = () => {
                     className="border-ngo-orange text-ngo-orange hover:bg-ngo-orange hover:text-white w-full"
                   >
                     <UserPlus className="w-4 h-4 mr-2" />
-                    Sign In
+                    Sign up
                   </Button>
                 }
               />

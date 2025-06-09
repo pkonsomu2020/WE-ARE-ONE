@@ -1,3 +1,4 @@
+
 import { Button } from '@/components/ui/button';
 import { Heart, Users, Lightbulb, Shield } from 'lucide-react';
 import { useState } from 'react';
@@ -9,7 +10,7 @@ const DonationSection = () => {
 
   const handleDonate = async (amount?: number) => {
     if (!amount) {
-      const customAmount = prompt('Enter donation amount (KES):');
+      const customAmount = prompt('Enter donation amount (USD):');
       if (!customAmount || isNaN(Number(customAmount))) {
         toast({
           title: "Invalid Amount",
@@ -21,11 +22,10 @@ const DonationSection = () => {
       amount = Number(customAmount);
     }
 
-    const phoneNumber = prompt('Enter your M-Pesa phone number (format: 254XXXXXXXXX):');
-    if (!phoneNumber) {
+    if (amount < 1) {
       toast({
-        title: "Phone Number Required",
-        description: "Please enter your M-Pesa phone number",
+        title: "Invalid Amount",
+        description: "Minimum donation amount is $1 USD",
         variant: "destructive"
       });
       return;
@@ -35,26 +35,25 @@ const DonationSection = () => {
     
     try {
       // Replace with your actual backend URL
-      const response = await fetch('http://localhost:3000/api/mpesa/stkpush', {
+      const response = await fetch('http://localhost:3000/api/paypal/create-payment', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           amount: amount,
-          phoneNumber: phoneNumber,
-          accountReference: `DONATION-${Date.now()}`,
-          transactionDesc: `Donation of KES ${amount}`
+          currency: 'USD',
+          description: `Donation of $${amount} USD`,
+          return_url: `${window.location.origin}/donation-success`,
+          cancel_url: `${window.location.origin}/donation-cancelled`
         }),
       });
 
       const data = await response.json();
 
       if (response.ok && data.success) {
-        toast({
-          title: "Payment Request Sent",
-          description: "Please check your phone for the M-Pesa prompt",
-        });
+        // Redirect to PayPal checkout
+        window.location.href = data.approval_url;
       } else {
         throw new Error(data.message || 'Payment initiation failed');
       }
@@ -62,10 +61,9 @@ const DonationSection = () => {
       console.error('Payment error:', error);
       toast({
         title: "Payment Failed",
-        description: error instanceof Error ? error.message : "Failed to initiate payment",
+        description: error instanceof Error ? error.message : "Failed to initiate PayPal payment",
         variant: "destructive"
       });
-    } finally {
       setIsLoading(false);
     }
   };
@@ -128,7 +126,7 @@ const DonationSection = () => {
                       <tier.icon className="w-8 h-8 text-white" />
                     </div>
                     <div className="text-3xl font-bold text-ngo-orange mb-2">
-                      KES {tier.amount}
+                      ${tier.amount}
                     </div>
                     <div className="font-semibold text-gray-800 mb-2">{tier.title}</div>
                     <p className="text-sm text-gray-600">{tier.description}</p>
@@ -140,11 +138,11 @@ const DonationSection = () => {
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Button 
                     size="lg"
-                    onClick={() => handleDonate(100)}
+                    onClick={() => handleDonate(50)}
                     disabled={isLoading}
                     className="bg-ngo-orange hover:bg-orange-600 text-white px-8 py-4 text-lg"
                   >
-                    {isLoading ? 'Processing...' : 'Donate KES 100'}
+                    {isLoading ? 'Processing...' : 'Donate $50'}
                   </Button>
                   <Button 
                     size="lg"
@@ -158,7 +156,7 @@ const DonationSection = () => {
                 </div>
                 
                 <p className="text-gray-600">
-                  Secure M-Pesa payments. You'll receive an SMS prompt on your phone.
+                  Secure PayPal payments. You'll be redirected to PayPal to complete your donation.
                 </p>
               </div>
             </div>

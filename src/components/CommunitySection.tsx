@@ -1,19 +1,18 @@
 import { Button } from '@/components/ui/button';
 import AuthDialog from './AuthDialog';
-import { UserPlus } from 'lucide-react';
+import { useEffect } from 'react';
 
 const CommunitySection = () => {
   const handleJoinWhatsApp = () => {
     const hasSignedUp = localStorage.getItem('hasSignedUp');
-    
+
     if (hasSignedUp === 'true') {
-      // User has signed up, redirect to WhatsApp
-      const whatsappLink = "https://chat.whatsapp.com/BDZplgM7X0fHlVlZZ9Lndf";
-      window.open(whatsappLink, '_blank');
+      // User has signed up, redirect to the WhatsApp community page
+      window.location.href = 'https://httpsweareone.kreativestores.shop/communities/we-are-one2';
     } else {
-      // User hasn't signed up, show signup dialog
+      // User hasn't signed up, show signup alert
       alert('Please sign up first to join our WhatsApp community!');
-      // You could also trigger the signup dialog here
+      // Optionally, you can trigger the signup dialog here if you want
     }
   };
 
