@@ -103,7 +103,7 @@ const AboutSection = () => {
               <p className="text-gray-700 leading-relaxed">
                 Our founder's personal journey through mental health challenges inspired the creation 
                 of WE ARE ONE. Having experienced firsthand the power of community support and 
-                professional guidance, they envisioned a place where others could find the same 
+                professional guidance, he envisioned a place where others could find the same 
                 hope and healing that transformed their life.
               </p>
               <div className="mt-6 flex items-center space-x-4">
