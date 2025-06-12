@@ -374,7 +374,7 @@ const AuthDialog = ({ trigger }: AuthDialogProps) => {
 
   {/* Hidden fields for FormSubmit */}
   <input type="hidden" name="_captcha" value="false" />
-  <input type="hidden" name="_next" value="http://localhost:8080/#community" />
+  <input type="hidden" name="_next" value="https://weareone1.netlify.app/" />
   <input type="hidden" name="support_categories" value={selectedSupport.join(', ')} />
   {selectedSupport.includes('Other') && (
     <input type="hidden" name="other_support_details" value={otherSupportText} />
