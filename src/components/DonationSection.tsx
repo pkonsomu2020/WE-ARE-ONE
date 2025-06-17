@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button';
 import { Heart, Users, Lightbulb, Shield } from 'lucide-react';
 import { useState } from 'react';
@@ -32,10 +31,13 @@ const DonationSection = () => {
     }
 
     setIsLoading(true);
-    
+
     try {
-      // Replace with your actual backend URL
-      const response = await fetch('http://localhost:3000/api/paypal/create-payment', {
+      // Only use local backend for API call
+      // const apiUrl = 'http://localhost:3000/api/paypal/create-payment';
+      const apiUrl = 'https://weareone.co.ke/api/paypal/create-payment';
+
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -52,7 +54,6 @@ const DonationSection = () => {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        // Redirect to PayPal checkout
         window.location.href = data.approval_url;
       } else {
         throw new Error(data.message || 'Payment initiation failed');

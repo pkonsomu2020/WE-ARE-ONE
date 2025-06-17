@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,19 +19,19 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { User, Mail, Lock, Eye, EyeOff, Phone } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AuthDialogProps {
   trigger: React.ReactNode;
 }
 
 const AuthDialog = ({ trigger }: AuthDialogProps) => {
-  // const [isLogin, setIsLogin] = useState(true);
+  const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
-  const [selectedSupport, setSelectedSupport] = useState<string[]>([]);
-  const [otherSupportText, setOtherSupportText] = useState('');
-  const [personalStatement, setPersonalStatement] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
+  const { login } = useAuth();
 
   const supportOptions = [
     'Mental Health',
@@ -43,7 +44,7 @@ const AuthDialog = ({ trigger }: AuthDialogProps) => {
     'LGBTQ+ Support',
     'Disability Support',
     'Relationship/Family Counseling',
-    'Other',
+    'Other'
   ];
 
   const kenyanCounties = [
@@ -53,359 +54,475 @@ const AuthDialog = ({ trigger }: AuthDialogProps) => {
     'Makueni', 'Mandera', 'Marsabit', 'Meru', 'Migori', 'Mombasa', 'Murang\'a',
     'Nairobi', 'Nakuru', 'Nandi', 'Narok', 'Nyamira', 'Nyandarua', 'Nyeri',
     'Samburu', 'Siaya', 'Taita-Taveta', 'Tana River', 'Tharaka-Nithi', 'Trans Nzoia',
-    'Turkana', 'Uasin Gishu', 'Vihiga', 'Wajir', 'West Pokot',
+    'Turkana', 'Uasin Gishu', 'Vihiga', 'Wajir', 'West Pokot'
   ];
+
+  const [selectedSupport, setSelectedSupport] = useState<string[]>([]);
+  const [otherSupportText, setOtherSupportText] = useState('');
+  const [personalStatement, setPersonalStatement] = useState('');
+  const [liveLocation, setLiveLocation] = useState('');
+  const [locationError, setLocationError] = useState('');
+  const [loadingLocation, setLoadingLocation] = useState(false);
+
+  // API URL configuration - Try same origin first to avoid CORS
+  // const getApiUrl = () => {
+  //   const hostname = window.location.hostname;
+  //   const protocol = window.location.protocol;
+  //   const origin = window.location.origin;
+    
+  //   console.log('Current location:', { hostname, protocol, origin });
+    
+  //   if (hostname === 'localhost' || hostname === '127.0.0.1') {
+  //     return 'http://localhost:3000/api';
+  //     return 'https://weareone.co.ke/api';
+  //   }
+
+  //   if (hostname === 'weareone.co.ke' || hostname === 'www.weareone.co.ke') {
+  //     return `${origin}/api`;
+  //   }
+    
+  //   return 'https://www.weareone.co.ke/api';
+  // };
+
+  const getApiUrl = () => {
+  const hostname = window.location.hostname;
+
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:3000/api';
+  }
+
+  // Default to live production
+  return 'https://weareone.co.ke/api';
+};
 
   const handleSupportChange = (option: string, checked: boolean) => {
     if (checked) {
       setSelectedSupport([...selectedSupport, option]);
     } else {
       setSelectedSupport(selectedSupport.filter(item => item !== option));
-      if (option === 'Other') setOtherSupportText('');
+      if (option === 'Other') {
+        setOtherSupportText('');
+      }
     }
   };
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
-  setIsSubmitting(true);
-  setMessage('');
-
-  const form = e.currentTarget;
-  const formData = new FormData(form);
-
-  // Append custom fields
-  formData.append('support_categories', selectedSupport.join(', '));
-
-  if (selectedSupport.includes('Other') && otherSupportText.trim()) {
-    formData.append('other_support_details', otherSupportText.trim());
-  }
-
-  if (personalStatement?.trim()) {
-    formData.append('personal_statement', personalStatement.trim());
-  }
-
-  try {
-    const response = await fetch('https://getform.io/f/bnlxngnb', {
-      method: 'POST',
-      body: formData,
-      headers: {
-        Accept: 'application/json',
-      },
-    });
-
-    if (response.ok) {
-      setMessage('Registration successful! You can now join our WhatsApp community.');
-      localStorage.setItem('hasSignedUp', 'true');
-
-      // Reset form and state
-      form.reset();
-      setSelectedSupport([]);
-      setOtherSupportText('');
-      setPersonalStatement('');
-      // 👇 Redirect to the #join-whatsapp-group section on the same page
-      setTimeout(() => {
-        window.location.hash = '#join-whatsapp-group';
-      }, 1000); // Optional delay
-    } else {
-      setMessage('Something went wrong. Please try again.');
-    }
-  } catch (error) {
-    setMessage('Network error. Please try again.');
-    console.error('Form submission error:', error);
-  } finally {
-    setIsSubmitting(false);
-  }
-};
-
-  const [liveLocation, setLiveLocation] = useState('');
-  const [loadingLocation, setLoadingLocation] = useState(false);
-  const [locationError, setLocationError] = useState('');
 
   const handleGetLocation = () => {
   setLoadingLocation(true);
   setLocationError('');
-  navigator.geolocation.getCurrentPosition(
-    async position => {
-      const { latitude, longitude } = position.coords;
 
+  if (!navigator.geolocation) {
+    setLocationError('Geolocation is not supported by this browser');
+    setLoadingLocation(false);
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    async (position) => {
       try {
-        // Nominatim reverse geocoding
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
-        );
-        const data = await response.json();
-        const address = data.display_name || 'Unknown location';
-      
-        setLiveLocation(address);
+        const { latitude, longitude } = position.coords;
+
+        // Reverse geocoding using Nominatim
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`);
+        const data = await res.json();
+
+        if (data && data.display_name) {
+          setLiveLocation(data.display_name);
+        } else {
+          setLiveLocation(`${latitude}, ${longitude}`);
+        }
       } catch (error) {
-        setLocationError('Failed to get address from coordinates.');
+        console.error('Geocoding error:', error);
+        setLiveLocation(`${position.coords.latitude}, ${position.coords.longitude}`);
       } finally {
         setLoadingLocation(false);
       }
     },
-    error => {
+    (error) => {
+      setLocationError('Unable to retrieve location');
       setLoadingLocation(false);
-      setLocationError('Location access denied or unavailable.');
-    },
-    { enableHighAccuracy: true, timeout: 10000 }
+    }
   );
 };
 
-  
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setMessage('');
+
+    const formData = new FormData(e.currentTarget);
+    const apiBaseUrl = getApiUrl();
+    
+    console.log('API Base URL:', apiBaseUrl);
+    console.log('Current origin:', window.location.origin);
+    
+    try {
+      if (isLogin) {
+        // Login request
+        const loginData = {
+          email: formData.get('email'),
+          password: formData.get('password')
+        };
+
+        const loginUrl = `${apiBaseUrl}/auth/login`;
+        console.log('Attempting login to:', loginUrl);
+
+        const response = await fetch(loginUrl, {
+          method: 'POST',
+          mode: 'cors',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(loginData)
+        });
+
+        console.log('Login response status:', response.status);
+        console.log('Login response headers:', Object.fromEntries(response.headers.entries()));
+
+        // Check if response is actually JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          const responseText = await response.text();
+          console.error('Non-JSON response received:', responseText);
+          
+          if (responseText.includes('It works!') || responseText.includes('Apache')) {
+            setMessage('Backend configuration error: API requests are not being routed to the Node.js server. Please check your server configuration.');
+          } else {
+            setMessage('Server configuration error: Expected JSON response but got HTML/text. Please check backend setup.');
+          }
+          return;
+        }
+
+        const result = await response.json();
+
+        if (response.ok) {
+          setMessage('Login successful!');
+          login(result.data.user, result.data.token);
+          setTimeout(() => {
+            setIsOpen(false);
+            window.location.href = '/'; // Redirect to homepage
+          }, 1000);
+        } else {
+          setMessage(result.message || 'Login failed');
+        }
+      } else {
+        // Registration request
+        const registrationData = {
+          fullName: formData.get('fullName'),
+          email: formData.get('email'),
+          phone: formData.get('phone'),
+          gender: formData.get('gender'),
+          age: formData.get('age'),
+          location: formData.get('location'),
+          password: formData.get('password'),
+          emergencyContactName: formData.get('emergencyContactName'),
+          emergencyContactPhone: formData.get('emergencyContactPhone'),
+          emergencyContactRelationship: formData.get('emergencyContactRelationship'),
+          liveLocation: liveLocation,
+          personalStatement: personalStatement,
+          supportCategories: selectedSupport,
+          otherSupportDetails: selectedSupport.includes('Other') ? otherSupportText : null
+        };
+
+        const registerUrl = `${apiBaseUrl}/auth/register`;
+        console.log('Attempting registration to:', registerUrl);
+
+        const response = await fetch(registerUrl, {
+          method: 'POST',
+          mode: 'cors',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(registrationData)
+        });
+
+        // Check if response is actually JSON for registration too
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          const responseText = await response.text();
+          console.error('Non-JSON response received:', responseText);
+          
+          if (responseText.includes('It works!') || responseText.includes('Apache')) {
+            setMessage('Backend configuration error: API requests are not being routed to the Node.js server. Please check your server configuration.');
+          } else {
+            setMessage('Server configuration error: Expected JSON response but got HTML/text. Please check backend setup.');
+          }
+          return;
+        }
+
+        const result = await response.json();
+
+        if (response.ok) {
+          setMessage('Registration successful! Please sign in.');
+          // Switch to login mode after successful registration
+          setTimeout(() => {
+            setIsLogin(true);
+            setMessage('');
+          }, 2000);
+        } else {
+          setMessage(result.message || 'Registration failed');
+        }
+      }
+    } catch (error) {
+      console.error('Auth error details:', error);
+      
+      if (error instanceof SyntaxError && error.message.includes('JSON')) {
+        setMessage('Server configuration error: The API endpoint is not configured correctly. Please check that your Node.js backend is properly set up and accessible.');
+      } else if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        setMessage('Network error: Unable to connect to server. Please check if the backend is running and accessible.');
+      } else {
+        setMessage('Network error. Please try again.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
-    <Dialog>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild onClick={() => setIsOpen(true)}>
+        {trigger}
+      </DialogTrigger>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-center text-ngo-orange">
-            Join Our Community
+            {isLogin ? 'Welcome Back' : 'Join Our Community'}
           </DialogTitle>
           <DialogDescription className="text-center">
-            Join Our Community
+            {isLogin 
+              ? 'Sign in to access your account and connect with our support community.' 
+              : 'Create an account to join our mental health support community and access resources.'
+            }
           </DialogDescription>
         </DialogHeader>
 
-        <form
-          action="https://formsubmit.co/weareone0624@gmail.com"
-          method="POST"
-          className="space-y-4"
->
-    <>
-      {/* Basic Information */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-ngo-orange">Basic Information</h3>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {!isLogin && (
+            <>
+              {/* Basic Information */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-ngo-orange">Basic Information</h3>
+                
+                <div className="relative">
+                  <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    name="fullName"
+                    placeholder="Full Name"
+                    required
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ngo-orange focus:border-transparent outline-none transition-all"
+                  />
+                </div>
 
-        <div className="relative">
-          <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-          <input
-            type="text"
-            name="fullName"
-            placeholder="Full Name"
-            required
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ngo-orange"
-          />
-        </div>
-        <div className="relative">
-          <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-          <input
-            type="email"
-            name="email"
-            placeholder="Email Address"
-            required
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ngo-orange"
-          />
-        </div>
-        <div className="relative">
-          <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-          <input
-            type="tel"
-            name="phone"
-            placeholder="Phone Number"
-            required
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ngo-orange"
-          />
-        </div>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="Email Address"
+                    required
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ngo-orange focus:border-transparent outline-none transition-all"
+                  />
+                </div>
 
-        <Select name="gender" required>
-          <SelectTrigger>
-            <SelectValue placeholder="Select Gender" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="male">Male</SelectItem>
-            <SelectItem value="female">Female</SelectItem>
-            <SelectItem value="other">Other</SelectItem>
-            <SelectItem value="prefer_not_to_say">Prefer not to say</SelectItem>
-          </SelectContent>
-        </Select>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <input
+                    type="tel"
+                    name="phone"
+                    placeholder="Phone Number"
+                    required
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ngo-orange focus:border-transparent outline-none transition-all"
+                  />
+                </div>
 
-        <input
-          type="number"
-          name="age"
-          placeholder="Age"
-          min={1}
-          max={120}
-          required
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ngo-orange"
-        />
+                <Select name="gender" required>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Gender" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="male">Male</SelectItem>
+                    <SelectItem value="female">Female</SelectItem>
+                  </SelectContent>
+                </Select>
 
-        <Select name="location" required>
-          <SelectTrigger>
-            <SelectValue placeholder="Select County (Kenya)" />
-          </SelectTrigger>
-          <SelectContent>
-            {kenyanCounties.map(county => (
-              <SelectItem key={county} value={county}>
-                {county}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+                <input
+                  type="number"
+                  name="age"
+                  placeholder="Age"
+                  required
+                  min="1"
+                  max="120"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ngo-orange focus:border-transparent outline-none transition-all"
+                />
 
-      {/* Support Categories */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-ngo-orange">Support Category</h3>
-        <p className="text-sm text-gray-600">What type of support are you looking for? (Select all that apply)</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {supportOptions.map(option => (
-            <div key={option} className="flex items-center space-x-2">
-              <Checkbox
-                id={option}
-                checked={selectedSupport.includes(option)}
-                onCheckedChange={checked => handleSupportChange(option, checked as boolean)}
+                <Select name="location" required>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select County (Kenya)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {kenyanCounties.map((county) => (
+                      <SelectItem key={county} value={county}>{county}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Support Category */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-ngo-orange">Support Category</h3>
+                <p className="text-sm text-gray-600">What type of support are you looking for? (Select all that apply)</p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {supportOptions.map((option) => (
+                    <div key={option} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={option}
+                        checked={selectedSupport.includes(option)}
+                        onCheckedChange={(checked) => handleSupportChange(option, checked as boolean)}
+                      />
+                      <label htmlFor={option} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        {option}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+
+                {selectedSupport.includes('Other') && (
+                  <Textarea
+                    placeholder="Please specify other support needed (e.g., educational support, career guidance) - max 100 characters"
+                    value={otherSupportText}
+                    onChange={(e) => setOtherSupportText(e.target.value.slice(0, 100))}
+                    maxLength={100}
+                    className="focus:ring-2 focus:ring-ngo-orange focus:border-transparent"
+                  />
+                )}
+              </div>
+
+              {/* Personal Statement */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-ngo-orange">Personal Statement (Optional)</h3>
+                <Textarea
+                  placeholder="Tell us more about your situation or what kind of support you're seeking (e.g., struggling with anxiety and need peer support) - max 200 characters"
+                  value={personalStatement}
+                  onChange={(e) => setPersonalStatement(e.target.value.slice(0, 200))}
+                  maxLength={200}
+                  className="focus:ring-2 focus:ring-ngo-orange focus:border-transparent"
+                />
+              </div>
+
+              {/* Emergency Contact */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-ngo-orange">Emergency Contact</h3>
+                <div className="relative">
+                  <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    name="emergencyContactName"
+                    placeholder="Contact Name"
+                    required
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ngo-orange focus:border-transparent outline-none transition-all"
+                  />
+                </div>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <input
+                    type="tel"
+                    name="emergencyContactPhone"
+                    placeholder="Contact Phone Number"
+                    required
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ngo-orange focus:border-transparent outline-none transition-all"
+                  />
+                </div>
+                <input
+                  type="text"
+                  name="emergencyContactRelationship"
+                  placeholder="Relationship (e.g. Parent, Sibling)"
+                  required
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ngo-orange focus:border-transparent outline-none transition-all"
+                />
+              </div>
+
+              {/* Live Location */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Live Location</label>
+                <button
+                  type="button"
+                  onClick={handleGetLocation}
+                  className="px-4 py-2 bg-ngo-orange text-white rounded hover:bg-ngo-orange/90 transition-colors"
+                >
+                  {loadingLocation ? 'Detecting...' : 'Use Live Location'}
+                </button>
+
+                {liveLocation && (
+                  <p className="text-sm text-gray-600">Detected: {liveLocation}</p>
+                )}
+                {locationError && (
+                  <p className="text-sm text-red-600">{locationError}</p>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* Login fields */}
+          {isLogin && (
+            <div className="relative">
+              <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <input
+                type="email"
+                name="email"
+                placeholder="Email Address"
+                required
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ngo-orange focus:border-transparent outline-none transition-all"
               />
-              <label htmlFor={option} className="text-sm font-medium">
-                {option}
-              </label>
             </div>
-          ))}
-        </div>
-        {selectedSupport.includes('Other') && (
-          <Textarea
-            placeholder="Please specify other support needed (max 100 characters)"
-            value={otherSupportText}
-            onChange={e => setOtherSupportText(e.target.value.slice(0, 100))}
-            maxLength={100}
-            className="focus:ring-2 focus:ring-ngo-orange"
-          />
-        )}
-      </div>
+          )}
 
-      {/* Personal Statement */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-ngo-orange">Personal Statement (Optional)</h3>
-        <Textarea
-          name="personalStatement"
-          placeholder="Tell us more (max 200 characters)"
-          value={personalStatement}
-          onChange={e => setPersonalStatement(e.target.value.slice(0, 200))}
-          maxLength={200}
-          className="focus:ring-2 focus:ring-ngo-orange"
-        />
-      </div>
+          <div className="relative">
+            <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+            <input
+              type={showPassword ? 'text' : 'password'}
+              name="password"
+              placeholder="Password"
+              required
+              className="w-full pl-10 pr-12 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ngo-orange focus:border-transparent outline-none transition-all"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-3 h-4 w-4 text-gray-400 hover:text-gray-600"
+            >
+              {showPassword ? <EyeOff /> : <Eye />}
+            </button>
+          </div>
 
-      {/* Emergency Contact */}
-<div className="space-y-4">
-  <h3 className="text-lg font-semibold text-ngo-orange">Emergency Contact</h3>
-  <div className="relative">
-    <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-    <input
-      type="text"
-      name="emergencyContactName"
-      placeholder="Contact Name"
-      required
-      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ngo-orange"
-    />
-  </div>
-  <div className="relative">
-    <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-    <input
-      type="tel"
-      name="emergencyContactPhone"
-      placeholder="Contact Phone Number"
-      required
-      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ngo-orange"
-    />
-  </div>
-  <input
-    type="text"
-    name="emergencyContactRelationship"
-    placeholder="Relationship (e.g. Parent, Sibling)"
-    required
-    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ngo-orange"
-  />
-</div>
+          {message && (
+            <div className={`text-sm text-center p-2 rounded ${
+              message.includes('successful') ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'
+            }`}>
+              {message}
+            </div>
+          )}
 
-<div className="space-y-2">
-  <label className="text-sm font-medium text-gray-700">Live Location</label>
-  <button
-    type="button"
-    onClick={handleGetLocation}
-    className="px-4 py-2 bg-ngo-orange text-white rounded hover:bg-ngo-orange/90"
-  >
-    {loadingLocation ? 'Detecting...' : 'Use Live Location'}
-  </button>
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full bg-ngo-orange hover:bg-orange-600 text-white py-2 rounded-lg transition-all duration-300 hover:shadow-lg"
+          >
+            {isSubmitting ? 'Please wait...' : (isLogin ? 'Sign In' : 'Create Account')}
+          </Button>
 
-  {liveLocation && (
-    <p className="text-sm text-gray-600">Detected: {liveLocation}</p>
-  )}
-  {locationError && (
-    <p className="text-sm text-red-600">{locationError}</p>
-  )}
-</div>
-
-<input type="hidden" name="live_location" value={liveLocation} />
-
-</>
-
-  {/* {isLogin && (
-    <div className="relative">
-      <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-      <input
-        type="email"
-        name="email"
-        placeholder="Email Address"
-        required
-        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ngo-orange"
-      />
-    </div>
-  )} */}
-
-  {/* Password field (common for both) */}
-  <div className="relative">
-    <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-    <input
-      type={showPassword ? 'text' : 'password'}
-      name="password"
-      placeholder="Password"
-      required
-      className="w-full pl-10 pr-12 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ngo-orange"
-    />
-    <button
-      type="button"
-      onClick={() => setShowPassword(!showPassword)}
-      className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
-      aria-label={showPassword ? 'Hide password' : 'Show password'}
-    >
-      {showPassword ? <EyeOff /> : <Eye />}
-    </button>
-  </div>
-
-  {/* Hidden fields for FormSubmit */}
-  <input type="hidden" name="_captcha" value="false" />
-  <input type="hidden" name="_next" value="https://weareone1.netlify.app/" />
-  <input type="hidden" name="support_categories" value={selectedSupport.join(', ')} />
-  {selectedSupport.includes('Other') && (
-    <input type="hidden" name="other_support_details" value={otherSupportText} />
-  )}
-  <input type="hidden" name="personal_statement" value={personalStatement} />
-
-  {/* Submit Button */}
-  <Button
-    type="submit"
-    className="w-full bg-ngo-orange hover:bg-ngo-orange/90 text-white font-bold py-2 rounded-lg"
-  >
-    {isSubmitting ? 'Signing up...' : 'Sign Up'}
-  </Button>
-
-  {/* Switch Auth Mode */}
-  {/* <div className="text-center text-sm text-gray-600">
-    {isLogin ? "Don't have an account?" : 'Already have an account?'}{' '}
-    <button
-      type="button"
-      onClick={() => setIsLogin(!isLogin)}
-      className="text-ngo-orange hover:underline font-medium"
-    >
-      {isLogin ? 'Sign up here' : 'Login here'}
-    </button>
-  </div> */}
-
-  {/* Feedback message */}
-  {message && (
-    <p className="text-center text-sm font-medium text-ngo-orange">{message}</p>
-  )}
-</form>
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => setIsLogin(!isLogin)}
+              className="text-ngo-orange hover:text-orange-600 text-sm transition-colors"
+            >
+              {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
+            </button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

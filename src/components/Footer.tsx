@@ -5,7 +5,7 @@ const Footer = () => {
   const currentYear = new Date().getFullYear();
 
   const handleJoinWhatsApp = () => {
-    const whatsappLink = "https://chat.whatsapp.com/your-group-invite-link";
+    const whatsappLink = "https://httpsweareone.kreativestores.shop/communities/we-are-one2";
     window.open(whatsappLink, '_blank');
   };
 
@@ -101,8 +101,9 @@ const Footer = () => {
             <h4 className="text-lg font-semibold">Contact Us</h4>
             <div className="space-y-2 text-gray-400">
               <div>📞 Crisis Hotline: +254 7118 53928</div>
+              <div>📞 Therapist: +254 79567 65298</div>
               <div>📧 weareone0624@gmail.com</div>
-              <div>📍 123 Support Street<br />Community City, CC 12345</div>
+              <div>📍 Online Community</div>
               <div>🕒 24/7 Crisis Support Available</div>
             </div>
           </div>

@@ -1,18 +1,21 @@
 import { Button } from '@/components/ui/button';
 import AuthDialog from './AuthDialog';
-import { useEffect } from 'react';
+import { UserPlus } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useState } from 'react';
 
 const CommunitySection = () => {
-  const handleJoinWhatsApp = () => {
-    const hasSignedUp = localStorage.getItem('hasSignedUp');
+  const { isAuthenticated } = useAuth();
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
 
-    if (hasSignedUp === 'true') {
-      // User has signed up, redirect to the WhatsApp community page
-      window.location.href = 'https://httpsweareone.kreativestores.shop/communities/we-are-one2';
+  const handleJoinWhatsApp = () => {
+    if (isAuthenticated) {
+      // User is logged in, redirect to WhatsApp
+      const whatsappLink = "https://httpsweareone.kreativestores.shop/communities/we-are-one2";
+      window.open(whatsappLink, '_blank');
     } else {
-      // User hasn't signed up, show signup alert
-      alert('Please sign up first to join our WhatsApp community!');
-      // Optionally, you can trigger the signup dialog here if you want
+      // User is not logged in, show sign-in dialog
+      setShowAuthDialog(true);
     }
   };
 
@@ -27,7 +30,7 @@ const CommunitySection = () => {
           <div className="bg-gradient-to-br from-orange-50 to-white rounded-3xl p-8 lg:p-12 shadow-lg">
             <div className="mb-8">
               <img
-                src="https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=800&q=80"
+                src="./community_img.jpg"
                 alt="Community members supporting each other"
                 className="w-full h-64 object-cover rounded-2xl shadow-lg"
               />
@@ -107,16 +110,18 @@ const CommunitySection = () => {
                   📱 Join WhatsApp Group
                 </Button>
                 
-                <p className="text-sm text-gray-600">
-                  Haven't signed up yet? 
-                  <AuthDialog
-                    trigger={
-                      <button className="text-ngo-orange hover:text-orange-600 ml-1 underline">
-                        Create your account here
-                      </button>
-                    }
-                  />
-                </p>
+                {!isAuthenticated && (
+                  <p className="text-sm text-gray-600">
+                    Signin first to join the community. 
+                    <AuthDialog
+                      trigger={
+                        <button className="text-ngo-orange hover:text-orange-600 ml-1 underline">
+                          Create your account here
+                        </button>
+                      }
+                    />
+                  </p>
+                )}
               </div>
               
               <p className="text-sm text-gray-500">
@@ -126,6 +131,13 @@ const CommunitySection = () => {
           </div>
         </div>
       </div>
+
+      {/* AuthDialog for non-authenticated users */}
+      {showAuthDialog && (
+        <AuthDialog
+          trigger={<div />}
+        />
+      )}
     </section>
   );
 };

@@ -1,64 +1,87 @@
-const express = require('express');
+require('dotenv').config();
 const cors = require('cors');
+const express = require('express');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const paypalRoutes = require('./routes/paypal');
-require('dotenv').config();
-const paypal = require('paypal-rest-sdk');
+const authRoutes = require('./routes/auth');
+const { testConnection } = require('./config/database');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ✅ Define allowed origins at the top
-const allowedOrigins = ['http://localhost:8080', 'http://localhost:5173'];
+// ✅ Centralized CORS options (first!)
+const allowedOrigins = [
+  'http://weareone.co.ke',
+  'https://weareone.co.ke',
+  'http://www.weareone.co.ke',
+  'https://www.weareone.co.ke',
+  'http://localhost:5173',
+  'http://localhost:8080',
+  'http://localhost:8081',
+  'http://localhost:3000'
+];
 
-// ✅ Security middleware
-app.use(helmet());
-
-// ✅ Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: 'Too many requests from this IP, please try again later.',
-});
-app.use(limiter);
-
-// ✅ CORS middleware
-app.use(cors({
+const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (like Postman) or matching ones
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true
-}));
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'Origin',
+    'X-Requested-With',
+    'Accept'
+  ]
+};
 
-// ✅ Body parsing
+// ✅ Apply CORS before anything else
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Preflight for all routes
+
+// ✅ Body parsing (still before routes)
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// ✅ Health check
+// ✅ Security middleware
+app.use(helmet());
+
+// ✅ Rate limiting middleware
+app.use(rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: 'Too many requests from this IP, please try again later.'
+}));
+
+// ✅ Test database connection
+testConnection();
+
+// ✅ Health check route
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'OK',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV,
+    environment: process.env.NODE_ENV
   });
 });
 
-// ✅ Routes
+// ✅ API routes
 app.use('/api/paypal', paypalRoutes);
+app.use('/api/auth', authRoutes);
 
-// ✅ Error handler
+// ✅ Global error handler
 app.use((err, req, res, next) => {
   console.error('Error:', err);
   res.status(500).json({
     success: false,
     message: 'Internal server error',
-    ...(process.env.NODE_ENV === 'development' && { error: err.message }),
+    ...(process.env.NODE_ENV === 'development' && { error: err.message })
   });
 });
 
@@ -66,21 +89,11 @@ app.use((err, req, res, next) => {
 app.use('*', (req, res) => {
   res.status(404).json({
     success: false,
-    message: 'Endpoint not found',
+    message: 'Endpoint not found'
   });
 });
 
-console.log('PayPal Mode:', process.env.PAYPAL_MODE);
-console.log('Client ID:', process.env.PAYPAL_CLIENT_ID ? '✅ Loaded' : '❌ Missing');
-console.log('Client Secret:', process.env.PAYPAL_CLIENT_SECRET ? '✅ Loaded' : '❌ Missing');
-
-paypal.configure({
-  mode: process.env.PAYPAL_MODE || 'sandbox',
-  client_id: process.env.PAYPAL_CLIENT_ID,
-  client_secret: process.env.PAYPAL_CLIENT_SECRET,
-});
-
-
+// ✅ Start the server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV}`);
