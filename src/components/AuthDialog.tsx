@@ -63,6 +63,7 @@ const AuthDialog = ({ trigger }: AuthDialogProps) => {
   const [liveLocation, setLiveLocation] = useState('');
   const [locationError, setLocationError] = useState('');
   const [loadingLocation, setLoadingLocation] = useState(false);
+  const [locationTouched, setLocationTouched] = useState(false);
 
   // API URL configuration - Try same origin first to avoid CORS
   // const getApiUrl = () => {
@@ -109,6 +110,7 @@ const AuthDialog = ({ trigger }: AuthDialogProps) => {
   const handleGetLocation = () => {
   setLoadingLocation(true);
   setLocationError('');
+  setLocationTouched(true); // ensure this exists
 
   if (!navigator.geolocation) {
     setLocationError('Geolocation is not supported by this browser');
@@ -118,21 +120,25 @@ const AuthDialog = ({ trigger }: AuthDialogProps) => {
 
   navigator.geolocation.getCurrentPosition(
     async (position) => {
+      const { latitude, longitude } = position.coords;
+
       try {
-        const { latitude, longitude } = position.coords;
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
+        );
 
-        // Reverse geocoding using Nominatim
-        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`);
-        const data = await res.json();
-
-        if (data && data.display_name) {
-          setLiveLocation(data.display_name);
-        } else {
-          setLiveLocation(`${latitude}, ${longitude}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch address');
         }
+
+        const data = await response.json();
+        const address = data.display_name;
+
+        setLiveLocation(address || `${latitude}, ${longitude}`);
       } catch (error) {
-        console.error('Geocoding error:', error);
-        setLiveLocation(`${position.coords.latitude}, ${position.coords.longitude}`);
+        console.error('Error during reverse geocoding:', error);
+        setLiveLocation(`${latitude}, ${longitude}`);
+        setLocationError('Unable to get readable location');
       } finally {
         setLoadingLocation(false);
       }
@@ -446,7 +452,7 @@ const AuthDialog = ({ trigger }: AuthDialogProps) => {
 
               {/* Live Location */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Live Location</label>
+                <label className="text-sm font-medium text-gray-700">Live Location <span className="text-red-500">*</span></label>
                 <button
                   type="button"
                   onClick={handleGetLocation}
