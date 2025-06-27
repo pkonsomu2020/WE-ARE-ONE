@@ -11,7 +11,7 @@ const CommunitySection = () => {
   const handleJoinWhatsApp = () => {
     if (isAuthenticated) {
       // User is logged in, redirect to WhatsApp
-      const whatsappLink = "https://httpsweareone.kreativestores.shop/communities/we-are-one2";
+      const whatsappLink = "https://httpsweareone.kreativestores.shop/communities/we-are-one-20";
       window.open(whatsappLink, '_blank');
     } else {
       // User is not logged in, show sign-in dialog

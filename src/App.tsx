@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import DonationSuccess from "./pages/DonationSuccess";
+import DonationCancelled from "./pages/DonationCancelled";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -21,6 +22,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/donation-success" element={<DonationSuccess />} />
+            <Route path="/donation-cancelled" element={<DonationCancelled />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

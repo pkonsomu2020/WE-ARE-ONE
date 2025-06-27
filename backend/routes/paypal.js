@@ -1,18 +1,13 @@
-
 const express = require('express');
 const router = express.Router();
-const { createPayment, executePayment, cancelPayment } = require('../controllers/paypalController');
+const paypalController = require('../controllers/paypalController');
 
-console.log('PayPal credentials:', process.env.PAYPAL_CLIENT_ID, process.env.PAYPAL_MODE);
+// Route to create a payment
+router.post('/create-payment', paypalController.createPayment);
 
+// Optional routes for PayPal
+router.get('/callback', paypalController.handleCallback);
+router.get('/cancel', paypalController.handleCancel);
+router.post('/webhook', express.json(), paypalController.handleWebhook);
 
-// Create payment route
-router.post('/create-payment', createPayment);
-
-// Execute payment route
-router.get('/execute-payment', executePayment);
-
-// Cancel payment route
-router.get('/cancel-payment', cancelPayment);
-
-module.exports = router;
+module.exports = router; 

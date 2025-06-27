@@ -3,8 +3,9 @@ const cors = require('cors');
 const express = require('express');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const paypalRoutes = require('./routes/paypal');
+const paydRoutes = require('./routes/payd');
 const authRoutes = require('./routes/auth');
+const paypalRoutes = require('./routes/paypal');
 const { testConnection } = require('./config/database');
 
 const app = express();
@@ -72,6 +73,7 @@ app.get('/health', (req, res) => {
 });
 
 // ✅ API routes
+app.use('/api/payd', paydRoutes);
 app.use('/api/paypal', paypalRoutes);
 app.use('/api/auth', authRoutes);
 
@@ -97,5 +99,5 @@ app.use('*', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV}`);
-  console.log(`PayPal Mode: ${process.env.PAYPAL_MODE}`);
+  console.log(`Payd Mode: ${process.env.PAYD_MODE}`);
 });

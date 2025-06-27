@@ -1,167 +1,95 @@
+const paypal = require('@paypal/checkout-server-sdk');
 
-const paypal = require('paypal-rest-sdk');
+// PayPal environment setup
+function environment() {
+  const clientId = process.env.PAYPAL_CLIENT_ID;
+  const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
+  if (process.env.PAYPAL_MODE === 'live') {
+    return new paypal.core.LiveEnvironment(clientId, clientSecret);
+  }
+  return new paypal.core.SandboxEnvironment(clientId, clientSecret);
+}
+function client() {
+  return new paypal.core.PayPalHttpClient(environment());
+}
 
-// Configure PayPal SDK
-paypal.configure({
-  mode: process.env.PAYPAL_MODE || 'sandbox',
-  client_id: process.env.PAYPAL_CLIENT_ID,
-  client_secret: process.env.PAYPAL_CLIENT_SECRET
-});
-
-// Create payment
+// Create payment (order)
 const createPayment = async (req, res) => {
   try {
-    const { amount, currency = 'USD', description, return_url, cancel_url } = req.body;
-
-    // Validation
-    if (!amount || amount < 1) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid amount. Minimum amount is $1 USD'
-      });
+    const { amount, currency = 'USD', reason } = req.body;
+    if (!amount) {
+      return res.status(400).json({ success: false, message: 'Amount is required' });
     }
 
-    if (!return_url || !cancel_url) {
-      return res.status(400).json({
-        success: false,
-        message: 'Return URL and Cancel URL are required'
-      });
-    }
-
-    const create_payment_json = {
-      intent: 'sale',
-      payer: {
-        payment_method: 'paypal'
-      },
-      redirect_urls: {
-        return_url: `${req.protocol}://${req.get('host')}/api/paypal/execute-payment`,
-        cancel_url: `${req.protocol}://${req.get('host')}/api/paypal/cancel-payment`
-      },
-      transactions: [{
-        item_list: {
-          items: [{
-            name: 'Donation',
-            sku: 'donation',
-            price: amount.toString(),
-            currency: currency,
-            quantity: 1
-          }]
-        },
+    const request = new paypal.orders.OrdersCreateRequest();
+    request.prefer('return=representation');
+    request.requestBody({
+      intent: 'CAPTURE',
+      purchase_units: [{
         amount: {
-          currency: currency,
-          total: amount.toString()
+          currency_code: currency,
+          value: amount
         },
-        description: description || `Donation of $${amount} ${currency}`
-      }]
-    };
-
-    paypal.payment.create(create_payment_json, (error, payment) => {
-      if (error) {
-        console.error('PayPal Error:', error);
-        return res.status(500).json({
-          success: false,
-          message: 'Failed to create PayPal payment',
-          error: process.env.NODE_ENV === 'development' ? error : undefined
-        });
-      } else {
-        // Find approval URL
-        const approval_url = payment.links.find(link => link.rel === 'approval_url');
-        
-        if (!approval_url) {
-          return res.status(500).json({
-            success: false,
-            message: 'Failed to get PayPal approval URL'
-          });
-        }
-
-        // Store payment details in session or database for later execution
-        // For now, we'll include necessary data in the approval URL
-        const modifiedApprovalUrl = `${approval_url.href}&frontend_return=${encodeURIComponent(return_url)}&frontend_cancel=${encodeURIComponent(cancel_url)}`;
-
-        res.json({
-          success: true,
-          payment_id: payment.id,
-          approval_url: modifiedApprovalUrl,
-          message: 'Payment created successfully'
-        });
+        description: reason || 'Donation'
+      }],
+      application_context: {
+        return_url: `${process.env.FRONTEND_URL}/paypal-callback`,
+        cancel_url: `${process.env.FRONTEND_URL}/donation-cancelled`
       }
     });
 
-  } catch (error) {
-    console.error('Create payment error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error'
+    const order = await client().execute(request);
+    const approvalUrl = order.result.links.find(link => link.rel === 'approve').href;
+
+    res.json({
+      success: true,
+      approval_url: approvalUrl,
+      orderID: order.result.id
     });
+  } catch (error) {
+    console.error('PayPal createPayment error:', error);
+    res.status(500).json({ success: false, message: 'Failed to create PayPal payment', error: error.message });
   }
 };
 
-// Execute payment
-const executePayment = async (req, res) => {
+// Handle payment callback (success)
+const handleCallback = async (req, res) => {
   try {
-    const { paymentId, PayerID, frontend_return } = req.query;
-
-    if (!paymentId || !PayerID) {
-      const cancelUrl = req.query.frontend_cancel || process.env.FRONTEND_URL;
-      return res.redirect(`${cancelUrl}?error=missing_payment_data`);
+    const { token } = req.query; // PayPal returns 'token' as the order ID
+    if (!token) {
+      return res.redirect(`${process.env.FRONTEND_URL}/donation-cancelled?provider=paypal&error=missing_token`);
     }
 
-    const execute_payment_json = {
-      payer_id: PayerID
-    };
+    // Capture the order
+    const request = new paypal.orders.OrdersCaptureRequest(token);
+    request.requestBody({});
+    const capture = await client().execute(request);
 
-    paypal.payment.execute(paymentId, execute_payment_json, (error, payment) => {
-      if (error) {
-        console.error('PayPal Execute Error:', error);
-        const cancelUrl = req.query.frontend_cancel || process.env.FRONTEND_URL;
-        return res.redirect(`${cancelUrl}?error=payment_execution_failed`);
-      } else {
-        if (payment.state === 'approved') {
-          // Payment successful
-          console.log('Payment completed:', {
-            payment_id: payment.id,
-            payer_email: payment.payer.payer_info.email,
-            amount: payment.transactions[0].amount.total,
-            currency: payment.transactions[0].amount.currency
-          });
+    // You can save capture.result to your DB here
 
-          // Here you would typically:
-          // 1. Save payment details to your database
-          // 2. Send confirmation email
-          // 3. Update donation records
-
-          const returnUrl = frontend_return || `${process.env.FRONTEND_URL}/donation-success`;
-          res.redirect(`${returnUrl}?payment_id=${payment.id}&status=completed`);
-        } else {
-          const cancelUrl = req.query.frontend_cancel || process.env.FRONTEND_URL;
-          res.redirect(`${cancelUrl}?error=payment_not_approved`);
-        }
-      }
-    });
-
+    // Redirect to success page
+    res.redirect(`${process.env.FRONTEND_URL}/donation-success?provider=paypal&orderID=${token}`);
   } catch (error) {
-    console.error('Execute payment error:', error);
-    const cancelUrl = req.query.frontend_cancel || process.env.FRONTEND_URL;
-    res.redirect(`${cancelUrl}?error=internal_error`);
+    console.error('PayPal handleCallback error:', error);
+    res.redirect(`${process.env.FRONTEND_URL}/donation-cancelled?provider=paypal&error=${encodeURIComponent(error.message)}`);
   }
 };
 
-// Cancel payment
-const cancelPayment = async (req, res) => {
-  try {
-    console.log('Payment cancelled by user');
-    
-    const cancelUrl = req.query.frontend_cancel || `${process.env.FRONTEND_URL}/donation-cancelled`;
-    res.redirect(`${cancelUrl}?status=cancelled`);
+// Handle payment cancellation
+const handleCancel = async (req, res) => {
+  res.redirect(`${process.env.FRONTEND_URL}/donation-cancelled?provider=paypal&status=cancelled`);
+};
 
-  } catch (error) {
-    console.error('Cancel payment error:', error);
-    res.redirect(`${process.env.FRONTEND_URL}?error=cancel_error`);
-  }
+// Webhook handler for PayPal notifications (optional, for advanced use)
+const handleWebhook = async (req, res) => {
+  // For most donation flows, you may not need this unless you want to process PayPal webhooks
+  console.log('PayPal webhook received:', req.body);
+  res.status(200).json({ received: true });
 };
 
 module.exports = {
   createPayment,
-  executePayment,
-  cancelPayment
-};
+  handleCallback,
+  handleCancel,
+  handleWebhook
+}; 
