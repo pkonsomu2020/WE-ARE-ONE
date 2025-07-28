@@ -17,7 +17,8 @@ const UserProfile = () => {
 
   if (!user) return null;
 
-  const getInitials = (name: string) => {
+  const getInitials = (name?: string) => {
+    if (!name) return '';
     return name
       .split(' ')
       .map(n => n[0])
@@ -36,13 +37,13 @@ const UserProfile = () => {
       <DropdownMenuTrigger asChild>
         <button className="flex items-center space-x-2 p-1 rounded-full hover:bg-gray-100 transition-colors">
           <Avatar className="h-8 w-8">
-            <AvatarImage src="" alt={user.fullName} />
+            <AvatarImage src="" alt={user.fullName || ''} />
             <AvatarFallback className="bg-ngo-orange text-white text-sm font-medium">
               {getInitials(user.fullName)}
             </AvatarFallback>
           </Avatar>
           <span className="hidden md:block text-sm font-medium text-gray-700">
-            {user.fullName.split(' ')[0]}
+            {(user.fullName || '').split(' ')[0]}
           </span>
         </button>
       </DropdownMenuTrigger>
@@ -51,10 +52,10 @@ const UserProfile = () => {
         <DropdownMenuSeparator />
         <DropdownMenuItem className="flex items-center">
           <User className="mr-2 h-4 w-4" />
-          <span>{user.fullName}</span>
+          <span>{user.fullName || ''}</span>
         </DropdownMenuItem>
         <DropdownMenuItem className="flex items-center text-gray-600">
-          <span className="ml-6 text-sm">{user.email}</span>
+          <span className="ml-6 text-sm">{user.email || ''}</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout} className="flex items-center text-red-600">

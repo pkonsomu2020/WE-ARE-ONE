@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import AuthDialog from './AuthDialog';
 import UserProfile from './UserProfile';
 import { useAuth } from '@/contexts/AuthContext';
+import { Link } from 'react-router-dom';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -34,36 +35,42 @@ const Header = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
-            <button 
-              onClick={() => scrollToSection('home')}
+            <Link 
+              to="/"
               className="text-gray-600 hover:text-ngo-orange transition-colors"
             >
               Home
-            </button>
-            <button 
-              onClick={() => scrollToSection('about')}
+            </Link>
+            <Link 
+              to="/#about"
               className="text-gray-600 hover:text-ngo-orange transition-colors"
             >
               About
-            </button>
-            <button 
-              onClick={() => scrollToSection('mission')}
+            </Link>
+            <Link 
+              to="/#mission"
               className="text-gray-600 hover:text-ngo-orange transition-colors"
             >
               Our Mission
-            </button>
-            <button 
-              onClick={() => scrollToSection('impact')}
+            </Link>
+            <Link 
+              to="/#impact"
               className="text-gray-600 hover:text-ngo-orange transition-colors"
             >
               Impact
-            </button>
-            <button 
-              onClick={() => scrollToSection('community')}
+            </Link>
+            <Link 
+              to="/#community"
               className="text-gray-600 hover:text-ngo-orange transition-colors"
             >
               Community
-            </button>
+            </Link>
+            <Link
+              to="/events"
+              className="text-gray-600 hover:text-ngo-orange transition-colors"
+            >
+              Events
+            </Link>
             
             {isAuthenticated ? (
               <UserProfile />
@@ -81,12 +88,12 @@ const Header = () => {
               />
             )}
             
-            <Button 
-              onClick={() => scrollToSection('donate')}
-              className="bg-ngo-orange hover:bg-orange-600 text-white"
+            <Link 
+              to="/#donate"
+              className="bg-ngo-orange hover:bg-orange-600 text-white px-4 py-2 rounded transition-colors"
             >
               Donate Now
-            </Button>
+            </Link>
           </nav>
 
           {/* Mobile Menu Button */}
@@ -102,36 +109,42 @@ const Header = () => {
         {isMenuOpen && (
           <nav className="md:hidden mt-4 pb-4 border-t border-gray-200">
             <div className="flex flex-col space-y-4 pt-4">
-              <button 
-                onClick={() => scrollToSection('home')}
+              <Link 
+                to="/"
                 className="text-gray-600 hover:text-ngo-orange transition-colors text-left"
               >
                 Home
-              </button>
-              <button 
-                onClick={() => scrollToSection('about')}
+              </Link>
+              <Link 
+                to="/#about"
                 className="text-gray-600 hover:text-ngo-orange transition-colors text-left"
               >
                 About
-              </button>
-              <button 
-                onClick={() => scrollToSection('mission')}
+              </Link>
+              <Link 
+                to="/#mission"
                 className="text-gray-600 hover:text-ngo-orange transition-colors text-left"
               >
                 Our Mission
-              </button>
-              <button 
-                onClick={() => scrollToSection('impact')}
+              </Link>
+              <Link 
+                to="/#impact"
                 className="text-gray-600 hover:text-ngo-orange transition-colors text-left"
               >
                 Impact
-              </button>
-              <button 
-                onClick={() => scrollToSection('community')}
+              </Link>
+              <Link 
+                to="/#community"
                 className="text-gray-600 hover:text-ngo-orange transition-colors text-left"
               >
                 Community
-              </button>
+              </Link>
+              <Link
+                to="/events"
+                className="text-gray-600 hover:text-ngo-orange transition-colors text-left"
+              >
+                Events
+              </Link>
               
               {isAuthenticated ? (
                 <div className="flex items-center justify-start">
@@ -151,12 +164,12 @@ const Header = () => {
                 />
               )}
               
-              <Button 
-                onClick={() => scrollToSection('donate')}
-                className="bg-ngo-orange hover:bg-orange-600 text-white w-full"
+              <Link 
+                to="/#donate"
+                className="bg-ngo-orange hover:bg-orange-600 text-white w-full text-center py-2 rounded transition-colors"
               >
                 Donate Now
-              </Button>
+              </Link>
             </div>
           </nav>
         )}

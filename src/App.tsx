@@ -9,6 +9,14 @@ import Index from "./pages/Index";
 import DonationSuccess from "./pages/DonationSuccess";
 import DonationCancelled from "./pages/DonationCancelled";
 import NotFound from "./pages/NotFound";
+import Events from "./pages/Events";
+import EventDetails from "./pages/EventDetails";
+import ChatPage from "./pages/ChatPage";
+import ChatHome from "./pages/ChatHome";
+import ChatMood from "./pages/ChatMood";
+import ChatJournal from "./pages/ChatJournal";
+import ChatSettings from "./pages/ChatSettings";
+import ChatAI from "./pages/ChatAI";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +31,15 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/donation-success" element={<DonationSuccess />} />
             <Route path="/donation-cancelled" element={<DonationCancelled />} />
+            <Route path="/events/:id" element={<EventDetails />} />
+            <Route path="/events" element={<Events />} />
+            <Route path="/chat/*" element={<ChatPage />}>
+              <Route index element={<ChatAI />} />
+              <Route path="home" element={<ChatHome />} />
+              <Route path="mood" element={<ChatMood />} />
+              <Route path="journal" element={<ChatJournal />} />
+              <Route path="settings" element={<ChatSettings />} />
+            </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

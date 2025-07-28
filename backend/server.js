@@ -6,6 +6,11 @@ const rateLimit = require('express-rate-limit');
 const paydRoutes = require('./routes/payd');
 const authRoutes = require('./routes/auth');
 const paypalRoutes = require('./routes/paypal');
+const moodRoutes = require('./routes/mood');
+const journalRoutes = require('./routes/journal');
+const settingsRoutes = require('./routes/settings');
+const chatRoutes = require('./routes/chat');
+const chatHistoryRoutes = require('./routes/chatHistory');
 const { testConnection } = require('./config/database');
 
 const app = express();
@@ -76,6 +81,11 @@ app.get('/health', (req, res) => {
 app.use('/api/payd', paydRoutes);
 app.use('/api/paypal', paypalRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/mood', moodRoutes);
+app.use('/api/journal', journalRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/chat', chatRoutes);
+app.use('/api/chat-history', chatHistoryRoutes);
 
 // ✅ Global error handler
 app.use((err, req, res, next) => {
