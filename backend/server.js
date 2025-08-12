@@ -11,6 +11,7 @@ const journalRoutes = require('./routes/journal');
 const settingsRoutes = require('./routes/settings');
 const chatRoutes = require('./routes/chat');
 const chatHistoryRoutes = require('./routes/chatHistory');
+const eventsRoutes = require('./routes/events');
 const { testConnection } = require('./config/database');
 
 const app = express();
@@ -86,6 +87,7 @@ app.use('/api/journal', journalRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/chat-history', chatHistoryRoutes);
+app.use('/api/events', eventsRoutes);
 
 // ✅ Global error handler
 app.use((err, req, res, next) => {

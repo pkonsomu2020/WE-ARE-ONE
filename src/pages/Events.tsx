@@ -2,25 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-
-const events = [
-  {
-    id: 'food-drive',
-    title: 'WAO Food Drive',
-    image: '/EVENTS/WAO_Food Drive.jpg',
-    date: 'JUNE 1ST - JULY 31ST 2025',
-    location: 'Community Center, Nairobi',
-    price: 'KES 0',
-  },
-  {
-    id: 'movie-night',
-    title: 'WAO Movie Night',
-    image: '/EVENTS/WAO_Movie Night.jpg',
-    date: 'SAT 2ND AUGUST 2025 4:00PM - 7:00PM',
-    location: 'Anga Cinema Diamond Plaza, Parklands',
-    price: 'KES 800',
-  },
-];
+import { events } from '@/data/events';
 
 const Events: React.FC = () => {
   return (

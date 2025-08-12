@@ -4,7 +4,7 @@ require('dotenv').config();
 
 // Ollama API configuration
 const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen3:0.6b';
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'llama3:8b';
 
 // System prompt for comprehensive AI assistant
 const systemPrompt = `You are WAO-CHAT, a comprehensive AI assistant designed to help with a wide range of topics. Your capabilities include:

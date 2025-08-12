@@ -8,16 +8,16 @@ import CommunitySection from '@/components/CommunitySection';
 import DonationSection from '@/components/DonationSection';
 import Footer from '@/components/Footer';
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { MessageCircle } from 'lucide-react';
 
 const nextEvent = {
-  title: 'WAO Movie Night',
-  date: 'SAT 2ND AUGUST 2025 4:00PM - 7:00PM',
-  venue: 'Anga Cinema Diamond Plaza, Parklands',
-  image: '/EVENTS/WAO_Movie Night.jpg',
+  title: 'WE ARE ONE MEET-UP, MOMBASA',
+  date: 'SAT 16TH AUGUST, 2025 10:00AM - 7:00PM',
+  venue: 'MAMA NGINA WATERFRONT',
+  image: '/EVENTS/WAO_MombasaMeetup.jpg',
   // Set the event start date/time for countdown (ISO format)
-  startDate: new Date('2025-08-02T16:00:00'),
+  startDate: new Date('2025-08-16T10:00:00'),
 };
 
 const UpcomingEventSection: React.FC = () => {
@@ -49,11 +49,11 @@ const UpcomingEventSection: React.FC = () => {
         <div className="md:w-1/2 flex flex-col justify-center items-center p-8 bg-ngo-orange text-white">
           <div className="mb-6 text-center">
             <div className="uppercase tracking-widest text-sm mb-2">Upcoming Event</div>
-            <div className="text-4xl md:text-5xl font-extrabold mb-2 text-white">WAO Movie Night</div>
-            <div className="text-xl mb-1 text-white font-semibold">SAT 2ND AUGUST 2025 4:00PM - 7:00PM</div>
-            <div className="text-lg mb-4 text-white">Anga Cinema Diamond Plaza, Parklands</div>
+            <div className="text-4xl md:text-5xl font-extrabold mb-2 text-white">WE ARE ONE MEET-UP, MOMBASA</div>
+            <div className="text-xl mb-1 text-white font-semibold">SAT 16TH AUGUST, 2025 10:00AM - 7:00PM</div>
+            <div className="text-lg mb-4 text-white">MAMA NGINA WATERFRONT</div>
             <Link
-              to="/events/movie-night"
+              to="/events/mombasa-meetup"
               className="inline-block mt-4 px-8 py-3 bg-white text-ngo-orange font-bold text-lg rounded shadow hover:bg-orange-100 transition"
             >
               Join Now
@@ -94,6 +94,7 @@ const UpcomingEventSection: React.FC = () => {
 
 const Index = () => {
   const [showFloatingChat, setShowFloatingChat] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -105,6 +106,58 @@ const Index = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Handle hash navigation when coming from other pages
+  useEffect(() => {
+    const handleHashNavigation = () => {
+      const hash = window.location.hash;
+      if (hash) {
+        // Remove the # symbol
+        const sectionId = hash.substring(1);
+        
+        // Wait for the page to fully render
+        setTimeout(() => {
+          const element = document.getElementById(sectionId);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
+          }
+        }, 100);
+      }
+    };
+
+    handleHashNavigation();
+  }, []);
+
+  // Handle hash changes when navigating between sections
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      if (hash) {
+        const sectionId = hash.substring(1);
+        const element = document.getElementById(sectionId);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // Handle location changes (when navigating from other pages)
+  useEffect(() => {
+    const hash = location.hash;
+    if (hash) {
+      const sectionId = hash.substring(1);
+      setTimeout(() => {
+        const element = document.getElementById(sectionId);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+    }
+  }, [location.hash]);
 
   return (
     <div className="min-h-screen">

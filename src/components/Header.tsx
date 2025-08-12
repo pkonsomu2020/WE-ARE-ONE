@@ -5,19 +5,52 @@ import { Button } from '@/components/ui/button';
 import AuthDialog from './AuthDialog';
 import UserProfile from './UserProfile';
 import { useAuth } from '@/contexts/AuthContext';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
   const { isAuthenticated } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
   const scrollToSection = (id: string) => {
-    const element = document.getElementById(id);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
+    // Prevent multiple rapid clicks
+    if (isNavigating) return;
+    
+    setIsNavigating(true);
+    
+    // Check if we're on the homepage
+    const isHomePage = location.pathname === '/';
+    
+    if (id === 'home') {
+      if (isHomePage) {
+        // Scroll to top of page if already on homepage
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        // Navigate to homepage if on another page
+        navigate('/');
+      }
       setIsMenuOpen(false);
+      setTimeout(() => setIsNavigating(false), 500);
+      return;
+    }
+    
+    if (isHomePage) {
+      // If on homepage, try to scroll to section
+      const element = document.getElementById(id);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+        setIsMenuOpen(false);
+      }
+      setTimeout(() => setIsNavigating(false), 500);
+    } else {
+      // If not on homepage, navigate to homepage with section hash
+      navigate(`/#${id}`);
+      setIsMenuOpen(false);
+      setTimeout(() => setIsNavigating(false), 500);
     }
   };
 
@@ -35,36 +68,51 @@ const Header = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
-            <Link 
-              to="/"
-              className="text-gray-600 hover:text-ngo-orange transition-colors"
+            <button 
+              onClick={() => scrollToSection('home')}
+              disabled={isNavigating}
+              className={`text-gray-600 hover:text-ngo-orange transition-colors bg-transparent border-none cursor-pointer ${
+                isNavigating ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             >
-              Home
-            </Link>
-            <Link 
-              to="/#about"
-              className="text-gray-600 hover:text-ngo-orange transition-colors"
+              {isNavigating ? 'Loading...' : 'Home'}
+            </button>
+            <button 
+              onClick={() => scrollToSection('about')}
+              disabled={isNavigating}
+              className={`text-gray-600 hover:text-ngo-orange transition-colors bg-transparent border-none cursor-pointer ${
+                isNavigating ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             >
-              About
-            </Link>
-            <Link 
-              to="/#mission"
-              className="text-gray-600 hover:text-ngo-orange transition-colors"
+              {isNavigating ? 'Loading...' : 'About'}
+            </button>
+            <button 
+              onClick={() => scrollToSection('mission')}
+              disabled={isNavigating}
+              className={`text-gray-600 hover:text-ngo-orange transition-colors bg-transparent border-none cursor-pointer ${
+                isNavigating ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             >
-              Our Mission
-            </Link>
-            <Link 
-              to="/#impact"
-              className="text-gray-600 hover:text-ngo-orange transition-colors"
+              {isNavigating ? 'Loading...' : 'Our Mission'}
+            </button>
+            <button 
+              onClick={() => scrollToSection('impact')}
+              disabled={isNavigating}
+              className={`text-gray-600 hover:text-ngo-orange transition-colors bg-transparent border-none cursor-pointer ${
+                isNavigating ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             >
-              Impact
-            </Link>
-            <Link 
-              to="/#community"
-              className="text-gray-600 hover:text-ngo-orange transition-colors"
+              {isNavigating ? 'Loading...' : 'Impact'}
+            </button>
+            <button 
+              onClick={() => scrollToSection('community')}
+              disabled={isNavigating}
+              className={`text-gray-600 hover:text-ngo-orange transition-colors bg-transparent border-none cursor-pointer ${
+                isNavigating ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             >
-              Community
-            </Link>
+              {isNavigating ? 'Loading...' : 'Community'}
+            </button>
             <Link
               to="/events"
               className="text-gray-600 hover:text-ngo-orange transition-colors"
@@ -88,12 +136,15 @@ const Header = () => {
               />
             )}
             
-            <Link 
-              to="/#donate"
-              className="bg-ngo-orange hover:bg-orange-600 text-white px-4 py-2 rounded transition-colors"
+            <button 
+              onClick={() => scrollToSection('donate')}
+              disabled={isNavigating}
+              className={`bg-ngo-orange hover:bg-orange-600 text-white px-4 py-2 rounded transition-colors border-none cursor-pointer ${
+                isNavigating ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             >
-              Donate Now
-            </Link>
+              {isNavigating ? 'Loading...' : 'Donate Now'}
+            </button>
           </nav>
 
           {/* Mobile Menu Button */}
@@ -109,36 +160,51 @@ const Header = () => {
         {isMenuOpen && (
           <nav className="md:hidden mt-4 pb-4 border-t border-gray-200">
             <div className="flex flex-col space-y-4 pt-4">
-              <Link 
-                to="/"
-                className="text-gray-600 hover:text-ngo-orange transition-colors text-left"
+              <button 
+                onClick={() => scrollToSection('home')}
+                disabled={isNavigating}
+                className={`text-gray-600 hover:text-ngo-orange transition-colors text-left bg-transparent border-none cursor-pointer text-left ${
+                  isNavigating ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               >
-                Home
-              </Link>
-              <Link 
-                to="/#about"
-                className="text-gray-600 hover:text-ngo-orange transition-colors text-left"
+                {isNavigating ? 'Loading...' : 'Home'}
+              </button>
+              <button 
+                onClick={() => scrollToSection('about')}
+                disabled={isNavigating}
+                className={`text-gray-600 hover:text-ngo-orange transition-colors text-left bg-transparent border-none cursor-pointer text-left ${
+                  isNavigating ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               >
-                About
-              </Link>
-              <Link 
-                to="/#mission"
-                className="text-gray-600 hover:text-ngo-orange transition-colors text-left"
+                {isNavigating ? 'Loading...' : 'About'}
+              </button>
+              <button 
+                onClick={() => scrollToSection('mission')}
+                disabled={isNavigating}
+                className={`text-gray-600 hover:text-ngo-orange transition-colors text-left bg-transparent border-none cursor-pointer text-left ${
+                  isNavigating ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               >
-                Our Mission
-              </Link>
-              <Link 
-                to="/#impact"
-                className="text-gray-600 hover:text-ngo-orange transition-colors text-left"
+                {isNavigating ? 'Loading...' : 'Our Mission'}
+              </button>
+              <button 
+                onClick={() => scrollToSection('impact')}
+                disabled={isNavigating}
+                className={`text-gray-600 hover:text-ngo-orange transition-colors text-left bg-transparent border-none cursor-pointer text-left ${
+                  isNavigating ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               >
-                Impact
-              </Link>
-              <Link 
-                to="/#community"
-                className="text-gray-600 hover:text-ngo-orange transition-colors text-left"
+                {isNavigating ? 'Loading...' : 'Impact'}
+              </button>
+              <button 
+                onClick={() => scrollToSection('community')}
+                disabled={isNavigating}
+                className={`text-gray-600 hover:text-ngo-orange transition-colors text-left bg-transparent border-none cursor-pointer text-left ${
+                  isNavigating ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               >
-                Community
-              </Link>
+                {isNavigating ? 'Loading...' : 'Community'}
+              </button>
               <Link
                 to="/events"
                 className="text-gray-600 hover:text-ngo-orange transition-colors text-left"
@@ -155,7 +221,7 @@ const Header = () => {
                   trigger={
                     <Button 
                       variant="outline"
-                      className="border-ngo-orange text-ngo-orange hover:bg-ngo-orange hover:text-white w-full"
+                      className="border-ngo-orange text-ngo-orange hover:bg-orange-600 hover:text-white w-full"
                     >
                       <UserPlus className="w-4 h-4 mr-2" />
                       Sign In
@@ -164,12 +230,15 @@ const Header = () => {
                 />
               )}
               
-              <Link 
-                to="/#donate"
-                className="bg-ngo-orange hover:bg-orange-600 text-white w-full text-center py-2 rounded transition-colors"
+              <button 
+                onClick={() => scrollToSection('donate')}
+                disabled={isNavigating}
+                className={`bg-ngo-orange hover:bg-orange-600 text-white w-full text-center py-2 rounded transition-colors border-none cursor-pointer ${
+                  isNavigating ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               >
-                Donate Now
-              </Link>
+                {isNavigating ? 'Loading...' : 'Donate Now'}
+              </button>
             </div>
           </nav>
         )}

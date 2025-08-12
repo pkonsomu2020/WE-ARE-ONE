@@ -23,6 +23,18 @@ CREATE TABLE IF NOT EXISTS users (
   INDEX idx_phone (phone)
 );
 
+-- Password reset tokens table
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  token VARCHAR(255) NOT NULL UNIQUE,
+  expires_at TIMESTAMP NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_token (token),
+  INDEX idx_expires (expires_at)
+);
+
 -- Support categories table
 CREATE TABLE IF NOT EXISTS support_categories (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -108,16 +120,17 @@ INSERT IGNORE INTO support_categories (name) VALUES
 ('Relationship/Family Counseling'),
 ('Other');
 
-
--- User Settings table
-CREATE TABLE IF NOT EXISTS user_settings (
+-- Event registrations
+CREATE TABLE IF NOT EXISTS event_registrations (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL,
-  dark_mode BOOLEAN DEFAULT FALSE,
-  mood_reminders BOOLEAN DEFAULT FALSE,
-  data_retention_days INT DEFAULT 30,
+  event_id VARCHAR(100) NOT NULL,
+  full_name VARCHAR(255) NOT NULL,
+  email VARCHAR(255) NOT NULL,
+  phone VARCHAR(50) NOT NULL,
+  experience_text TEXT,
+  accept_terms TINYINT(1) DEFAULT 0,
+  accept_updates TINYINT(1) DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  UNIQUE KEY unique_user (user_id)
+  INDEX idx_event_id (event_id),
+  INDEX idx_email_event (email, event_id)
 );

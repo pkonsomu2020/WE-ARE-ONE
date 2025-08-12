@@ -11,6 +11,7 @@ import DonationCancelled from "./pages/DonationCancelled";
 import NotFound from "./pages/NotFound";
 import Events from "./pages/Events";
 import EventDetails from "./pages/EventDetails";
+import EventPoster from "./pages/EventPoster";
 import ChatPage from "./pages/ChatPage";
 import ChatHome from "./pages/ChatHome";
 import ChatMood from "./pages/ChatMood";
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/donation-success" element={<DonationSuccess />} />
             <Route path="/donation-cancelled" element={<DonationCancelled />} />
             <Route path="/events/:id" element={<EventDetails />} />
+            <Route path="/events/:id/attending" element={<EventPoster />} />
             <Route path="/events" element={<Events />} />
             <Route path="/chat/*" element={<ChatPage />}>
               <Route index element={<ChatAI />} />

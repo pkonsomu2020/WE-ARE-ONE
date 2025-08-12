@@ -1,4 +1,16 @@
-const API_BASE_URL = 'http://localhost:3000';
+const getApiBaseUrl = () => {
+  const hostname = window.location.hostname;
+  
+  // Development environment
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:3000';
+  }
+  
+  // Production environment
+  return 'https://weareone.co.ke';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 export const api = {
   get: async (url: string) => {
@@ -34,4 +46,7 @@ export const api = {
     if (!res.ok) throw new Error(await res.text());
     return res.json();
   },
+  
+  // Helper method to get the base URL
+  getBaseUrl: () => API_BASE_URL,
 }; 

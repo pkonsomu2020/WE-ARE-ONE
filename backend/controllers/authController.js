@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
+const crypto = require('crypto');
 const { pool } = require('../config/database');
 
 // Email transporter setup
@@ -21,6 +22,84 @@ const generateToken = (userId) => {
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
   );
+};
+
+// Generate password reset token
+const generateResetToken = () => {
+  return crypto.randomBytes(32).toString('hex');
+};
+
+// Send password reset email
+const sendPasswordResetEmail = async (userEmail, resetToken, resetUrl) => {
+  try {
+    const resetEmailContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+          .logo { text-align: center; margin-bottom: 30px; }
+          .logo h1 { color: #ff6b35; font-size: 28px; margin: 0; }
+          .reset-text { margin-bottom: 20px; }
+          .cta-button { display: inline-block; background-color: #ff6b35; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+          .warning { background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0; }
+          .signature { margin-top: 30px; }
+          .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 14px; color: #666; }
+        </style>
+      </head>
+      <body>
+        <div class="logo">
+          <h1>We Are One (WAO)</h1>
+        </div>
+        
+        <div class="reset-text">
+          <p>Hello,</p>
+          
+          <p>We received a request to reset your password for your We Are One account. If you didn't make this request, you can safely ignore this email.</p>
+          
+          <p>To reset your password, click the button below:</p>
+          
+          <div style="text-align: center;">
+            <a href="${resetUrl}" class="cta-button">Reset Password</a>
+          </div>
+          
+          <p>Or copy and paste this link into your browser:</p>
+          <p style="word-break: break-all; color: #666;">${resetUrl}</p>
+          
+          <div class="warning">
+            <strong>⚠️ Important:</strong> This link will expire in 1 hour for security reasons.
+          </div>
+          
+          <p>If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
+        </div>
+        
+        <div class="signature">
+          <p>With support and understanding,<br>
+          <strong>The We Are One Team</strong></p>
+        </div>
+        
+        <div class="footer">
+          <p>This email was sent to ${userEmail} because you requested a password reset for your We Are One account.</p>
+          <p>If you didn't request this reset, please ignore this email or contact us if you have concerns.</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    await transporter.sendMail({
+      from: process.env.EMAIL_FROM,
+      to: userEmail,
+      subject: 'Reset Your Password - We Are One',
+      html: resetEmailContent
+    });
+
+    console.log('✅ Password reset email sent successfully to:', userEmail);
+    return true;
+  } catch (error) {
+    console.error('❌ Password reset email failed:', error.message);
+    return false;
+  }
 };
 
 // Send welcome email to new user
@@ -127,6 +206,146 @@ const sendEmailNotification = async (userData) => {
     console.log('✅ Admin notification email sent successfully');
   } catch (error) {
     console.error('❌ Admin notification email failed:', error.message);
+  }
+};
+
+// Forgot password - send reset email
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required'
+      });
+    }
+
+    // Check if user exists
+    const [users] = await pool.execute(
+      'SELECT id, full_name, email FROM users WHERE email = ?',
+      [email]
+    );
+
+    if (users.length === 0) {
+      // Don't reveal if email exists or not for security
+      return res.json({
+        success: true,
+        message: 'If an account with that email exists, a password reset link has been sent.'
+      });
+    }
+
+    const user = users[0];
+
+    // Generate reset token
+    const resetToken = generateResetToken();
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+
+    // Store reset token in database
+    await pool.execute(
+      'INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES (?, ?, ?)',
+      [user.id, resetToken, expiresAt]
+    );
+
+    // Create reset URL - Use the correct frontend port
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
+    const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
+    
+    // Enhanced debug logging
+    console.log('🔍 DEBUG INFO:');
+    console.log('🌐 process.env.FRONTEND_URL:', process.env.FRONTEND_URL);
+    console.log('🌐 process.env.NODE_ENV:', process.env.NODE_ENV);
+    console.log('🌐 frontendUrl variable:', frontendUrl);
+    console.log('🔗 Generated reset URL:', resetUrl);
+    console.log('📧 Sending reset email to:', user.email);
+    console.log('📅 Token expires at:', expiresAt);
+
+    // Send reset email
+    const emailSent = await sendPasswordResetEmail(user.email, resetToken, resetUrl);
+
+    if (emailSent) {
+      res.json({
+        success: true,
+        message: 'If an account with that email exists, a password reset link has been sent.'
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to send reset email. Please try again.'
+      });
+    }
+
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to process request. Please try again.'
+    });
+  }
+};
+
+// Reset password with token
+const resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Token and new password are required'
+      });
+    }
+
+    // Validate password strength
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters long'
+      });
+    }
+
+    // Find valid reset token
+    const [tokens] = await pool.execute(
+      'SELECT user_id, expires_at FROM password_reset_tokens WHERE token = ? AND expires_at > NOW()',
+      [token]
+    );
+
+    if (tokens.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired reset token'
+      });
+    }
+
+    const resetToken = tokens[0];
+
+    // Hash new password
+    const saltRounds = 12;
+    const passwordHash = await bcrypt.hash(newPassword, saltRounds);
+
+    // Update user password
+    await pool.execute(
+      'UPDATE users SET password_hash = ? WHERE id = ?',
+      [passwordHash, resetToken.user_id]
+    );
+
+    // Delete used reset token
+    await pool.execute(
+      'DELETE FROM password_reset_tokens WHERE token = ?',
+      [token]
+    );
+
+    res.json({
+      success: true,
+      message: 'Password reset successful. You can now login with your new password.'
+    });
+
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to reset password. Please try again.'
+    });
   }
 };
 
@@ -385,5 +604,7 @@ const getProfile = async (req, res) => {
 module.exports = {
   register,
   login,
-  getProfile
+  getProfile,
+  forgotPassword,
+  resetPassword
 };

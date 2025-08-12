@@ -1,44 +1,59 @@
-import React from 'react';
-import { useParams, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-
-const events = [
-  {
-    id: 'food-drive',
-    title: 'WAO Food Drive',
-    image: '/EVENTS/WAO_Food Drive.jpg',
-    date: 'JUNE 1ST - JULY 31ST 2025',
-    location: 'Community Center, Nairobi',
-    price: 'KES 0',
-    description: 'Join us for the WAO Food Drive to support our community with essential food supplies. Everyone is welcome!',
-    host: 'WE ARE ONE',
-    tickets: [
-      { name: 'General Admission', price: 'KES 0', status: 'Available' },
-    ],
-    photos: ['/EVENTS/WAO_Food Drive.jpg'],
-    mapEmbed: 'https://maps.google.com/maps?q=Nairobi&t=&z=13&ie=UTF8&iwloc=&output=embed',
-  },
-  {
-    id: 'movie-night',
-    title: 'WAO Movie Night',
-    image: '/EVENTS/WAO_Movie Night.jpg',
-    date: 'SAT 2ND AUGUST 2025 4:00PM - 7:00PM',
-    location: 'Anga Cinema Diamond Plaza, Parklands',
-    price: 'KES 800',
-    description: 'Enjoy a fun-filled evening under the stars with great movies and company at the WAO Movie Night.',
-    host: 'WE ARE ONE',
-    tickets: [
-      { name: 'Advanced Ticket', price: 'KES 800', status: 'Available' },
-    ],
-    photos: ['/EVENTS/WAO_Movie Night.jpg'],
-    mapEmbed: 'https://www.google.com/maps?q=Anga+Cinema+Diamond+Plaza,+Parklands&output=embed',
-  },
-];
+import { getEventById } from '@/data/events';
+import { useAuth } from '@/contexts/AuthContext';
+import { api } from '@/lib/api';
 
 const EventDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const event = events.find(e => e.id === id);
+  const event = getEventById(id);
+  const { isAuthenticated, user } = useAuth();
+  const navigate = useNavigate();
+
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [formRef, setFormRef] = useState<HTMLFormElement | null>(null);
+
+  // Monitor form reference
+  useEffect(() => {
+    console.log('🔄 Form reference updated:', formRef);
+  }, [formRef]);
+
+  // Robust form reset function
+  const resetForm = () => {
+    try {
+      // Method 1: Use stored form reference
+      if (formRef) {
+        formRef.reset();
+        console.log('✅ Form reset via stored reference');
+        return;
+      }
+      
+      // Method 2: Use document.querySelector
+      const form = document.querySelector('form');
+      if (form) {
+        form.reset();
+        console.log('✅ Form reset via document.querySelector');
+        return;
+      }
+      
+      // Method 3: Manual input clearing
+      const inputs = document.querySelectorAll('input[type="text"], input[type="email"], input[type="tel"], textarea');
+      inputs.forEach((input: any) => {
+        if (input.type === 'checkbox') {
+          input.checked = false;
+        } else {
+          input.value = '';
+        }
+      });
+      console.log('✅ Form reset via manual input clearing');
+      
+    } catch (error) {
+      console.error('❌ Form reset failed:', error);
+    }
+  };
 
   if (!event) {
     return (
@@ -52,6 +67,116 @@ const EventDetails: React.FC = () => {
       </>
     );
   }
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setMessage(null);
+
+    const form = new FormData(e.currentTarget);
+    const fullName = String(form.get('fullName') || '').trim();
+    const email = String(form.get('email') || '').trim();
+    const phone = String(form.get('phone') || '').trim();
+    const experience = String(form.get('experience') || '').trim();
+    const acceptTerms = form.get('acceptTerms') === 'on';
+    const acceptUpdates = form.get('acceptUpdates') === 'on';
+
+    if (!fullName || !email || !phone || !acceptTerms) {
+      setSubmitting(false);
+      setMessage({ type: 'error', text: 'Please fill in Full Name, Email, Phone and accept Terms.' });
+      return;
+    }
+
+    try {
+      const apiBase = api.getBaseUrl();
+      console.log('🌐 API Base URL:', apiBase);
+      
+      // Test backend connectivity first
+      try {
+        const healthCheck = await fetch(`${apiBase}/health`, { 
+          method: 'GET',
+          timeout: 5000 
+        });
+        console.log('🏥 Backend Health Check:', healthCheck.status);
+        
+        // Test events endpoint
+        const eventsTest = await fetch(`${apiBase}/api/events/test`, { 
+          method: 'GET',
+          timeout: 5000 
+        });
+        console.log('🎯 Events Endpoint Test:', eventsTest.status);
+        
+        if (eventsTest.ok) {
+          const testData = await eventsTest.json();
+          console.log('✅ Events Test Response:', testData);
+        }
+      } catch (healthErr) {
+        console.warn('⚠️ Backend health check failed:', healthErr);
+      }
+      
+      console.log('📝 Form Data:', {
+        eventId: event.id,
+        fullName,
+        email,
+        phone,
+        experience,
+        acceptTerms,
+        acceptUpdates,
+      });
+      
+      // Use the centralized API utility
+      try {
+        const data = await api.post('/api/events/register', {
+          eventId: event.id,
+          fullName,
+          email,
+          phone,
+          experience,
+          acceptTerms,
+          acceptUpdates,
+        });
+        
+        console.log('✅ Success Response:', data);
+        setMessage({ type: 'success', text: 'Registration received! We have emailed a confirmation.' });
+        resetForm();
+        
+      } catch (apiErr) {
+        console.warn('⚠️ Centralized API failed, trying direct fetch:', apiErr);
+        
+        // Fallback to direct fetch
+        const res = await fetch(`${apiBase}/api/events/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            eventId: event.id,
+            fullName,
+            email,
+            phone,
+            experience,
+            acceptTerms,
+            acceptUpdates,
+          }),
+        });
+
+        if (res.ok) {
+          const data = await res.json().catch(() => ({}));
+          console.log('✅ Direct Fetch Success:', data);
+          setMessage({ type: 'success', text: 'Registration received! We have emailed a confirmation.' });
+          resetForm();
+        } else {
+          const errText = await res.text();
+          throw new Error(errText || `HTTP ${res.status}: ${res.statusText}`);
+        }
+      }
+      
+    } catch (err) {
+      console.error('🚨 API Error:', err);
+      setMessage({ type: 'error', text: `Registration failed: ${err instanceof Error ? err.message : 'Please try again.'}` });
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <>
@@ -123,19 +248,50 @@ const EventDetails: React.FC = () => {
                   </div>
                 ))}
               </div>
-              <form className="space-y-3">
-                <input type="text" placeholder="Full Name" className="w-full border rounded px-3 py-2" />
-                <input type="email" placeholder="Email address" className="w-full border rounded px-3 py-2" />
-                <input type="tel" placeholder="Phone Number" className="w-full border rounded px-3 py-2" />
+              {event.id === 'movie-night' && (
+                <a
+                  href="https://inbranded.co/c/WAO_MovieNight"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full bg-ngo-orange text-white py-2 rounded font-semibold mb-3 text-center block hover:bg-orange-600 transition-colors"
+                >
+                  Create "I will be attending" Poster
+                </a>
+              )}
+              {event.id === 'mombasa-meetup' && (
+                <a
+                  href="https://inbranded.co/c/wao_mombasa-meetup"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full bg-ngo-orange text-white py-2 rounded font-semibold mb-3 text-center block hover:bg-orange-600 transition-colors"
+                >
+                  Create "I will be attending" Poster
+                </a>
+              )}
+              {message && (
+                <div className={`mb-3 text-sm px-3 py-2 rounded ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                  {message.text}
+                </div>
+              )}
+              <form className="space-y-3" onSubmit={handleSubmit} ref={setFormRef}>
+                <input defaultValue={user?.fullName || ''} name="fullName" type="text" placeholder="Full Name" className="w-full border rounded px-3 py-2" />
+                <input defaultValue={user?.email || ''} name="email" type="email" placeholder="Email address" className="w-full border rounded px-3 py-2" />
+                <input name="phone" type="tel" placeholder="Phone Number" className="w-full border rounded px-3 py-2" />
+                <div>
+                  <label className="block text-sm font-medium mb-1">What are you hoping to experience during this event?</label>
+                  <textarea name="experience" className="w-full border rounded px-3 py-2 h-24 resize-none" placeholder="Tell us your expectation (optional)"></textarea>
+                </div>
                 <div className="flex items-center space-x-2">
-                  <input type="checkbox" id="privacy" />
+                  <input name="acceptTerms" type="checkbox" id="privacy" />
                   <label htmlFor="privacy" className="text-xs">I have read and agree to <a href="#" className="underline text-ngo-orange">Privacy Policy</a>, <a href="#" className="underline text-ngo-orange">Terms and Conditions</a></label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <input type="checkbox" id="updates" />
+                  <input name="acceptUpdates" type="checkbox" id="updates" />
                   <label htmlFor="updates" className="text-xs">I accept to receive news & updates</label>
                 </div>
-                <button type="submit" className="w-full bg-ngo-orange text-white py-2 rounded font-semibold mt-2">Book Now</button>
+                <button disabled={submitting} type="submit" className="w-full bg-ngo-orange text-white py-2 rounded font-semibold mt-2 disabled:opacity-50">
+                  {submitting ? 'Submitting...' : 'Book Now'}
+                </button>
               </form>
             </div>
             <Link to="/events" className="block text-center text-ngo-orange underline">Back to Events</Link>

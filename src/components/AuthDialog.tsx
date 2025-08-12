@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { User, Mail, Lock, Eye, EyeOff, Phone } from 'lucide-react';
+import { User, Mail, Lock, Eye, EyeOff, Phone, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface AuthDialogProps {
@@ -31,6 +31,10 @@ const AuthDialog = ({ trigger }: AuthDialogProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
   const [isOpen, setIsOpen] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [forgotPasswordMessage, setForgotPasswordMessage] = useState('');
+  const [isForgotPasswordSubmitting, setIsForgotPasswordSubmitting] = useState(false);
   const { login } = useAuth();
 
   const supportOptions = [
@@ -149,6 +153,44 @@ const AuthDialog = ({ trigger }: AuthDialogProps) => {
     }
   );
 };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsForgotPasswordSubmitting(true);
+    setForgotPasswordMessage('');
+
+    try {
+      const response = await fetch(`${getApiUrl()}/auth/forgot-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: forgotPasswordEmail
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setForgotPasswordMessage(result.message);
+        // Clear email field after successful submission
+        setForgotPasswordEmail('');
+        // Close forgot password modal after 3 seconds
+        setTimeout(() => {
+          setShowForgotPassword(false);
+          setForgotPasswordMessage('');
+        }, 3000);
+      } else {
+        setForgotPasswordMessage(result.message || 'Failed to send reset email');
+      }
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      setForgotPasswordMessage('Network error. Please try again.');
+    } finally {
+      setIsForgotPasswordSubmitting(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -285,6 +327,15 @@ const AuthDialog = ({ trigger }: AuthDialogProps) => {
     }
   };
 
+  // Reset form when switching between login/register
+  const handleModeSwitch = () => {
+    setIsLogin(!isLogin);
+    setMessage('');
+    setShowForgotPassword(false);
+    setForgotPasswordMessage('');
+    setForgotPasswordEmail('');
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild onClick={() => setIsOpen(true)}>
@@ -293,242 +344,306 @@ const AuthDialog = ({ trigger }: AuthDialogProps) => {
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-center text-ngo-orange">
-            {isLogin ? 'Welcome Back' : 'Join Our Community'}
+            {showForgotPassword 
+              ? 'Forgot Password' 
+              : (isLogin ? 'Welcome Back' : 'Join Our Community')
+            }
           </DialogTitle>
           <DialogDescription className="text-center">
-            {isLogin 
-              ? 'Sign in to access your account and connect with our support community.' 
-              : 'Create an account to join our mental health support community and access resources.'
+            {showForgotPassword 
+              ? 'Enter your email address and we\'ll send you a link to reset your password.'
+              : (isLogin 
+                ? 'Sign in to access your account and connect with our support community.' 
+                : 'Create an account to join our mental health support community and access resources.'
+              )
             }
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {!isLogin && (
-            <>
-              {/* Basic Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-ngo-orange">Basic Information</h3>
-                
-                <div className="relative">
-                  <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <input
-                    type="text"
-                    name="fullName"
-                    placeholder="Full Name"
-                    required
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ngo-orange focus:border-transparent outline-none transition-all"
-                  />
-                </div>
-
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <input
-                    type="email"
-                    name="email"
-                    placeholder="Email Address"
-                    required
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ngo-orange focus:border-transparent outline-none transition-all"
-                  />
-                </div>
-
-                <div className="relative">
-                  <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <input
-                    type="tel"
-                    name="phone"
-                    placeholder="Phone Number"
-                    required
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ngo-orange focus:border-transparent outline-none transition-all"
-                  />
-                </div>
-
-                <Select name="gender" required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Gender" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="male">Male</SelectItem>
-                    <SelectItem value="female">Female</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <input
-                  type="number"
-                  name="age"
-                  placeholder="Age"
-                  required
-                  min="1"
-                  max="120"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ngo-orange focus:border-transparent outline-none transition-all"
-                />
-
-                <Select name="location" required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select County (Kenya)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {kenyanCounties.map((county) => (
-                      <SelectItem key={county} value={county}>{county}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Support Category */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-ngo-orange">Support Category</h3>
-                <p className="text-sm text-gray-600">What type of support are you looking for? (Select all that apply)</p>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {supportOptions.map((option) => (
-                    <div key={option} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={option}
-                        checked={selectedSupport.includes(option)}
-                        onCheckedChange={(checked) => handleSupportChange(option, checked as boolean)}
-                      />
-                      <label htmlFor={option} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                        {option}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-
-                {selectedSupport.includes('Other') && (
-                  <Textarea
-                    placeholder="Please specify other support needed (e.g., educational support, career guidance) - max 100 characters"
-                    value={otherSupportText}
-                    onChange={(e) => setOtherSupportText(e.target.value.slice(0, 100))}
-                    maxLength={100}
-                    className="focus:ring-2 focus:ring-ngo-orange focus:border-transparent"
-                  />
-                )}
-              </div>
-
-              {/* Personal Statement */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-ngo-orange">Personal Statement (Optional)</h3>
-                <Textarea
-                  placeholder="Tell us more about your situation or what kind of support you're seeking (e.g., struggling with anxiety and need peer support) - max 200 characters"
-                  value={personalStatement}
-                  onChange={(e) => setPersonalStatement(e.target.value.slice(0, 200))}
-                  maxLength={200}
-                  className="focus:ring-2 focus:ring-ngo-orange focus:border-transparent"
-                />
-              </div>
-
-              {/* Emergency Contact */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-ngo-orange">Emergency Contact</h3>
-                <div className="relative">
-                  <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <input
-                    type="text"
-                    name="emergencyContactName"
-                    placeholder="Contact Name"
-                    required
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ngo-orange focus:border-transparent outline-none transition-all"
-                  />
-                </div>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <input
-                    type="tel"
-                    name="emergencyContactPhone"
-                    placeholder="Contact Phone Number"
-                    required
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ngo-orange focus:border-transparent outline-none transition-all"
-                  />
-                </div>
-                <input
-                  type="text"
-                  name="emergencyContactRelationship"
-                  placeholder="Relationship (e.g. Parent, Sibling)"
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ngo-orange focus:border-transparent outline-none transition-all"
-                />
-              </div>
-
-              {/* Live Location */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Live Location <span className="text-red-500">*</span></label>
-                <button
-                  type="button"
-                  onClick={handleGetLocation}
-                  className="px-4 py-2 bg-ngo-orange text-white rounded hover:bg-ngo-orange/90 transition-colors"
-                >
-                  {loadingLocation ? 'Detecting...' : 'Use Live Location'}
-                </button>
-
-                {liveLocation && (
-                  <p className="text-sm text-gray-600">Detected: {liveLocation}</p>
-                )}
-                {locationError && (
-                  <p className="text-sm text-red-600">{locationError}</p>
-                )}
-              </div>
-            </>
-          )}
-
-          {/* Login fields */}
-          {isLogin && (
+        {showForgotPassword ? (
+          // Forgot Password Form
+          <form onSubmit={handleForgotPassword} className="space-y-4">
             <div className="relative">
               <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
               <input
                 type="email"
-                name="email"
                 placeholder="Email Address"
+                value={forgotPasswordEmail}
+                onChange={(e) => setForgotPasswordEmail(e.target.value)}
                 required
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ngo-orange focus:border-transparent outline-none transition-all"
               />
             </div>
-          )}
 
-          <div className="relative">
-            <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-            <input
-              type={showPassword ? 'text' : 'password'}
-              name="password"
-              placeholder="Password"
-              required
-              className="w-full pl-10 pr-12 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ngo-orange focus:border-transparent outline-none transition-all"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-3 h-4 w-4 text-gray-400 hover:text-gray-600"
+            {forgotPasswordMessage && (
+              <div className={`text-sm text-center p-2 rounded ${
+                forgotPasswordMessage.includes('sent') ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'
+              }`}>
+                {forgotPasswordMessage}
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              disabled={isForgotPasswordSubmitting}
+              className="w-full bg-ngo-orange hover:bg-orange-600 text-white py-2 rounded-lg transition-all duration-300 hover:shadow-lg"
             >
-              {showPassword ? <EyeOff /> : <Eye />}
-            </button>
-          </div>
+              {isForgotPasswordSubmitting ? 'Sending...' : 'Send Reset Link'}
+            </Button>
 
-          {message && (
-            <div className={`text-sm text-center p-2 rounded ${
-              message.includes('successful') ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'
-            }`}>
-              {message}
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(false)}
+                className="text-ngo-orange hover:text-orange-600 text-sm transition-colors flex items-center justify-center mx-auto"
+              >
+                <ArrowLeft className="w-4 h-4 mr-1" />
+                Back to Sign In
+              </button>
             </div>
-          )}
+          </form>
+        ) : (
+          // Main Auth Form (Login/Register)
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {!isLogin && (
+              <>
+                {/* Basic Information */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-ngo-orange">Basic Information</h3>
+                  
+                  <div className="relative">
+                    <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <input
+                      type="text"
+                      name="fullName"
+                      placeholder="Full Name"
+                      required
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ngo-orange focus:border-transparent outline-none transition-all"
+                    />
+                  </div>
 
-          <Button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full bg-ngo-orange hover:bg-orange-600 text-white py-2 rounded-lg transition-all duration-300 hover:shadow-lg"
-          >
-            {isSubmitting ? 'Please wait...' : (isLogin ? 'Sign In' : 'Create Account')}
-          </Button>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <input
+                      type="email"
+                      name="email"
+                      placeholder="Email Address"
+                      required
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ngo-orange focus:border-transparent outline-none transition-all"
+                    />
+                  </div>
 
-          <div className="text-center">
-            <button
-              type="button"
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-ngo-orange hover:text-orange-600 text-sm transition-colors"
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <input
+                      type="tel"
+                      name="phone"
+                      placeholder="Phone Number"
+                      required
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ngo-orange focus:border-transparent outline-none transition-all"
+                    />
+                  </div>
+
+                  <Select name="gender" required>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Gender" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="male">Male</SelectItem>
+                      <SelectItem value="female">Female</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <input
+                    type="number"
+                    name="age"
+                    placeholder="Age"
+                    required
+                    min="1"
+                    max="120"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ngo-orange focus:border-transparent outline-none transition-all"
+                  />
+
+                  <Select name="location" required>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select County (Kenya)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {kenyanCounties.map((county) => (
+                        <SelectItem key={county} value={county}>{county}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Support Category */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-ngo-orange">Support Category</h3>
+                  <p className="text-sm text-gray-600">What type of support are you looking for? (Select all that apply)</p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {supportOptions.map((option) => (
+                      <div key={option} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={option}
+                          checked={selectedSupport.includes(option)}
+                          onCheckedChange={(checked) => handleSupportChange(option, checked as boolean)}
+                        />
+                        <label htmlFor={option} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                          {option}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+
+                  {selectedSupport.includes('Other') && (
+                    <Textarea
+                      placeholder="Please specify other support needed (e.g., educational support, career guidance) - max 100 characters"
+                      value={otherSupportText}
+                      onChange={(e) => setOtherSupportText(e.target.value.slice(0, 100))}
+                      maxLength={100}
+                      className="focus:ring-2 focus:ring-ngo-orange focus:border-transparent"
+                    />
+                  )}
+                </div>
+
+                {/* Personal Statement */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-ngo-orange">Personal Statement (Optional)</h3>
+                  <Textarea
+                    placeholder="Tell us more about your situation or what kind of support you're seeking (e.g., struggling with anxiety and need peer support) - max 200 characters"
+                    value={personalStatement}
+                    onChange={(e) => setPersonalStatement(e.target.value.slice(0, 100))}
+                    maxLength={200}
+                    className="focus:ring-2 focus:ring-ngo-orange focus:border-transparent"
+                  />
+                </div>
+
+                {/* Emergency Contact */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-ngo-orange">Emergency Contact</h3>
+                  <div className="relative">
+                    <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <input
+                      type="text"
+                      name="emergencyContactName"
+                      placeholder="Contact Name"
+                      required
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ngo-orange focus:border-transparent outline-none transition-all"
+                    />
+                  </div>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <input
+                      type="tel"
+                      name="emergencyContactPhone"
+                      placeholder="Contact Phone Number"
+                      required
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ngo-orange focus:border-transparent outline-none transition-all"
+                    />
+                  </div>
+                  <input
+                    type="text"
+                    name="emergencyContactRelationship"
+                    placeholder="Relationship (e.g. Parent, Sibling)"
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ngo-orange focus:border-transparent outline-none transition-all"
+                  />
+                </div>
+
+                {/* Live Location */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Live Location <span className="text-red-500">*</span></label>
+                  <button
+                    type="button"
+                    onClick={handleGetLocation}
+                    className="px-4 py-2 bg-ngo-orange text-white rounded hover:bg-ngo-orange/90 transition-colors"
+                  >
+                    {loadingLocation ? 'Detecting...' : 'Use Live Location'}
+                  </button>
+
+                  {liveLocation && (
+                    <p className="text-sm text-gray-600">Detected: {liveLocation}</p>
+                  )}
+                  {locationError && (
+                    <p className="text-sm text-red-600">{locationError}</p>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Login fields */}
+            {isLogin && (
+              <div className="relative">
+                <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="Email Address"
+                  required
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ngo-orange focus:border-transparent outline-none transition-all"
+                />
+              </div>
+            )}
+
+            <div className="relative">
+              <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <input
+                type={showPassword ? 'text' : 'password'}
+                name="password"
+                placeholder="Password"
+                required
+                className="w-full pl-10 pr-12 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ngo-orange focus:border-transparent outline-none transition-all"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-3 h-4 w-4 text-gray-400 hover:text-gray-600"
+              >
+                {showPassword ? <EyeOff /> : <Eye />}
+              </button>
+            </div>
+
+            {/* Forgot Password Link - Only show on login */}
+            {isLogin && (
+              <div className="text-right">
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPassword(true)}
+                  className="text-ngo-orange hover:text-orange-600 text-sm transition-colors"
+                >
+                  Forgot Password?
+                </button>
+              </div>
+            )}
+
+            {message && (
+              <div className={`text-sm text-center p-2 rounded ${
+                message.includes('successful') ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'
+              }`}>
+                {message}
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full bg-ngo-orange hover:bg-orange-600 text-white py-2 rounded-lg transition-all duration-300 hover:shadow-lg"
             >
-              {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
-            </button>
-          </div>
-        </form>
+              {isSubmitting ? 'Please wait...' : (isLogin ? 'Sign In' : 'Create Account')}
+            </Button>
+
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={handleModeSwitch}
+                className="text-ngo-orange hover:text-orange-600 text-sm transition-colors"
+              >
+                {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
+              </button>
+            </div>
+          </form>
+        )}
       </DialogContent>
     </Dialog>
   );
