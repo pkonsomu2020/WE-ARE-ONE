@@ -17,7 +17,7 @@ Create a `.env` file in the backend folder with these variables:
 
 ```env
 # Database Configuration
-DB_HOST=localhost
+DB_HOST=your_production_db_host
 DB_USER=your_db_user
 DB_PASSWORD=your_db_password
 DB_NAME=your_database_name
@@ -57,7 +57,7 @@ NODE_ENV=development
 npm start
 
 # Test OpenAI health check
-curl http://localhost:3000/api/chat/health
+curl https://weareone.co.ke/api/chat/health
 ```
 
 ### 5. Frontend Integration

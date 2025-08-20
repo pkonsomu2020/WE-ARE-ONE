@@ -115,6 +115,54 @@ OLLAMA_MODEL=qwen3:0.6b
 # Server Configuration
 PORT=3000
 JWT_SECRET=your_jwt_secret
+
+# Production Configuration
+FRONTEND_URL=https://weareone.co.ke
+NODE_ENV=production
+```
+
+### Production Environment Variables (.env.production)
+
+```env
+# Database Configuration
+DB_HOST=your_production_db_host
+DB_USER=your_production_db_user
+DB_PASSWORD=your_production_db_password
+DB_NAME=your_production_db_name
+
+# PayPal Configuration (Live Mode)
+PAYPAL_CLIENT_ID=your_live_client_id
+PAYPAL_CLIENT_SECRET=your_live_client_secret
+PAYPAL_MODE=live
+
+# Ollama Configuration (Production Server)
+OLLAMA_BASE_URL=https://your-ollama-server.com
+OLLAMA_MODEL=qwen3:0.6b
+
+# Server Configuration
+PORT=3000
+JWT_SECRET=your_secure_jwt_secret
+
+# Production URLs
+FRONTEND_URL=https://weareone.co.ke
+NODE_ENV=production
+
+# Email Configuration
+EMAIL_HOST=your_smtp_host
+EMAIL_PORT=587
+EMAIL_USER=your_email_user
+EMAIL_PASS=your_email_password
+EMAIL_FROM=noreply@weareone.co.ke
+
+# Admin Configuration
+ADMIN_API_KEY=your_admin_api_key
+ADMIN_JWT_SECRET=your_admin_jwt_secret
+ADMIN_DEFAULT_EMAIL=admin@weareone.co.ke
+ADMIN_DEFAULT_PASSWORD=secure_admin_password
+ADMIN_DEFAULT_NAME=WAO Admin
+
+# Events Configuration
+EVENTS_ADMIN_EMAIL=events@weareone.co.ke
 ```
 
 ### Database Setup
@@ -148,7 +196,7 @@ npm run dev
 npm run dev
 ```
 
-Visit `http://localhost:8080` to access the application.
+Visit `https://weareone.co.ke` to access the application in production.
 
 ---
 

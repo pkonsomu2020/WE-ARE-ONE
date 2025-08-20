@@ -30,28 +30,18 @@ const Header = () => {
         // Scroll to top of page if already on homepage
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
-        // Navigate to homepage if on another page
-        navigate('/');
+        // Navigate to homepage with hash for consistency
+        navigate('/#home');
       }
       setIsMenuOpen(false);
-      setTimeout(() => setIsNavigating(false), 500);
+      setTimeout(() => setIsNavigating(false), 400);
       return;
     }
     
-    if (isHomePage) {
-      // If on homepage, try to scroll to section
-      const element = document.getElementById(id);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
-        setIsMenuOpen(false);
-      }
-      setTimeout(() => setIsNavigating(false), 500);
-    } else {
-      // If not on homepage, navigate to homepage with section hash
-      navigate(`/#${id}`);
-      setIsMenuOpen(false);
-      setTimeout(() => setIsNavigating(false), 500);
-    }
+    // Always navigate via hash so Index page handles smooth scrolling reliably
+    navigate(`/#${id}`);
+    setIsMenuOpen(false);
+    setTimeout(() => setIsNavigating(false), 400);
   };
 
   return (
@@ -71,7 +61,7 @@ const Header = () => {
             <button 
               onClick={() => scrollToSection('home')}
               disabled={isNavigating}
-              className={`text-gray-600 hover:text-ngo-orange transition-colors bg-transparent border-none cursor-pointer ${
+              className={`px-3 py-2 rounded transition-colors ${location.pathname === '/' ? 'bg-ngo-orange text-white' : 'text-gray-600 hover:text-ngo-orange'} bg-transparent border-none cursor-pointer ${
                 isNavigating ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
@@ -115,7 +105,7 @@ const Header = () => {
             </button>
             <Link
               to="/events"
-              className="text-gray-600 hover:text-ngo-orange transition-colors"
+              className={`px-3 py-2 rounded transition-colors ${location.pathname.startsWith('/events') ? 'bg-ngo-orange text-white' : 'text-gray-600 hover:text-ngo-orange'}`}
             >
               Events
             </Link>
@@ -163,7 +153,7 @@ const Header = () => {
               <button 
                 onClick={() => scrollToSection('home')}
                 disabled={isNavigating}
-                className={`text-gray-600 hover:text-ngo-orange transition-colors text-left bg-transparent border-none cursor-pointer text-left ${
+                className={`px-3 py-2 rounded transition-colors ${location.pathname === '/' ? 'bg-ngo-orange text-white' : 'text-gray-600 hover:text-ngo-orange'} text-left bg-transparent border-none cursor-pointer ${
                   isNavigating ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
@@ -172,7 +162,7 @@ const Header = () => {
               <button 
                 onClick={() => scrollToSection('about')}
                 disabled={isNavigating}
-                className={`text-gray-600 hover:text-ngo-orange transition-colors text-left bg-transparent border-none cursor-pointer text-left ${
+                className={`text-gray-600 hover:text-ngo-orange transition-colors text-left bg-transparent border-none cursor-pointer ${
                   isNavigating ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
@@ -181,7 +171,7 @@ const Header = () => {
               <button 
                 onClick={() => scrollToSection('mission')}
                 disabled={isNavigating}
-                className={`text-gray-600 hover:text-ngo-orange transition-colors text-left bg-transparent border-none cursor-pointer text-left ${
+                className={`text-gray-600 hover:text-ngo-orange transition-colors text-left bg-transparent border-none cursor-pointer ${
                   isNavigating ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
@@ -190,7 +180,7 @@ const Header = () => {
               <button 
                 onClick={() => scrollToSection('impact')}
                 disabled={isNavigating}
-                className={`text-gray-600 hover:text-ngo-orange transition-colors text-left bg-transparent border-none cursor-pointer text-left ${
+                className={`text-gray-600 hover:text-ngo-orange transition-colors text-left bg-transparent border-none cursor-pointer ${
                   isNavigating ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
@@ -199,7 +189,7 @@ const Header = () => {
               <button 
                 onClick={() => scrollToSection('community')}
                 disabled={isNavigating}
-                className={`text-gray-600 hover:text-ngo-orange transition-colors text-left bg-transparent border-none cursor-pointer text-left ${
+                className={`text-gray-600 hover:text-ngo-orange transition-colors text-left bg-transparent border-none cursor-pointer ${
                   isNavigating ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
@@ -207,7 +197,7 @@ const Header = () => {
               </button>
               <Link
                 to="/events"
-                className="text-gray-600 hover:text-ngo-orange transition-colors text-left"
+                className={`px-3 py-2 rounded transition-colors ${location.pathname.startsWith('/events') ? 'bg-ngo-orange text-white' : 'text-gray-600 hover:text-ngo-orange'}`}
               >
                 Events
               </Link>

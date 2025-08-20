@@ -12,6 +12,7 @@ const settingsRoutes = require('./routes/settings');
 const chatRoutes = require('./routes/chat');
 const chatHistoryRoutes = require('./routes/chatHistory');
 const eventsRoutes = require('./routes/events');
+const adminRoutes = require('./routes/admin');
 const { testConnection } = require('./config/database');
 
 const app = express();
@@ -23,9 +24,14 @@ const allowedOrigins = [
   'https://weareone.co.ke',
   'http://www.weareone.co.ke',
   'https://www.weareone.co.ke',
+  'http://admin.weareone.co.ke',
+  'https://admin.weareone.co.ke',
   'http://localhost:5173',
   'http://localhost:8080',
   'http://localhost:8081',
+  'http://localhost:8083',
+  'http://localhost:8090',
+  'http://127.0.0.1:8083',
   'http://localhost:3000'
 ];
 
@@ -44,8 +50,11 @@ const corsOptions = {
     'Authorization',
     'Origin',
     'X-Requested-With',
-    'Accept'
-  ]
+    'Accept',
+    'x-admin-key'
+  ],
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 };
 
 // ✅ Apply CORS before anything else
@@ -88,6 +97,7 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/chat-history', chatHistoryRoutes);
 app.use('/api/events', eventsRoutes);
+app.use('/api/admin', adminRoutes);
 
 // ✅ Global error handler
 app.use((err, req, res, next) => {

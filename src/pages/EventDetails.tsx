@@ -5,6 +5,7 @@ import Footer from '@/components/Footer';
 import { getEventById } from '@/data/events';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
+import BackToTop from '@/components/BackToTop';
 
 const EventDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -15,6 +16,8 @@ const EventDetails: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [formRef, setFormRef] = useState<HTMLFormElement | null>(null);
+  const [ticketType, setTicketType] = useState<'WAO Members' | 'Public'>('WAO Members');
+  const ticketPrice = ticketType === 'WAO Members' ? 800 : 1000;
 
   // Monitor form reference
   useEffect(() => {
@@ -78,12 +81,13 @@ const EventDetails: React.FC = () => {
     const email = String(form.get('email') || '').trim();
     const phone = String(form.get('phone') || '').trim();
     const experience = String(form.get('experience') || '').trim();
+    const mpesaCode = String(form.get('mpesaCode') || '').trim();
     const acceptTerms = form.get('acceptTerms') === 'on';
     const acceptUpdates = form.get('acceptUpdates') === 'on';
 
-    if (!fullName || !email || !phone || !acceptTerms) {
+    if (!fullName || !email || !phone || !acceptTerms || !mpesaCode) {
       setSubmitting(false);
-      setMessage({ type: 'error', text: 'Please fill in Full Name, Email, Phone and accept Terms.' });
+      setMessage({ type: 'error', text: 'Please fill in Full Name, Email, Phone, M-Pesa code and accept Terms.' });
       return;
     }
 
@@ -134,10 +138,14 @@ const EventDetails: React.FC = () => {
           experience,
           acceptTerms,
           acceptUpdates,
+          ticketType,
+          amount: ticketPrice,
+          mpesaCode,
         });
         
         console.log('✅ Success Response:', data);
-        setMessage({ type: 'success', text: 'Registration received! We have emailed a confirmation.' });
+        const tno = data.ticketNumber ? ` Your Ticket Number is ${data.ticketNumber}.` : '';
+        setMessage({ type: 'success', text: `Registration received! We have emailed a confirmation.${tno}` });
         resetForm();
         
       } catch (apiErr) {
@@ -231,43 +239,24 @@ const EventDetails: React.FC = () => {
           <div className="md:col-span-1">
             <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
               <h2 className="text-xl font-bold mb-4">Get your tickets to {event.title}</h2>
-              <div className="space-y-3 mb-6">
-                {event.tickets.map((ticket, idx) => (
-                  <div key={idx} className="flex items-center justify-between border-b pb-2">
-                    <div>
-                      <div className="font-semibold">{ticket.name}</div>
-                      <div className="text-sm text-gray-600">{ticket.price}</div>
-                    </div>
-                    <div>
-                      {ticket.status === 'Available' ? (
-                        <button className="bg-ngo-orange text-white px-3 py-1 rounded text-sm">Select</button>
-                      ) : (
-                        <span className="text-red-500 font-semibold">Sold Out</span>
-                      )}
-                    </div>
+              <div className="space-y-3 mb-4">
+                <label className="flex items-center justify-between border-b pb-2 cursor-pointer">
+                  <div>
+                    <div className="font-semibold">WAO Members</div>
+                    <div className="text-sm text-gray-600">KES 800</div>
                   </div>
-                ))}
+                  <input type="radio" name="ticketType" value="WAO Members" checked={ticketType === 'WAO Members'} onChange={() => setTicketType('WAO Members')} />
+                </label>
+                <label className="flex items-center justify-between border-b pb-2 cursor-pointer">
+                  <div>
+                    <div className="font-semibold">Public</div>
+                    <div className="text-sm text-gray-600">KES 1000</div>
+                  </div>
+                  <input type="radio" name="ticketType" value="Public" checked={ticketType === 'Public'} onChange={() => setTicketType('Public')} />
+                </label>
               </div>
-              {event.id === 'movie-night' && (
-                <a
-                  href="https://inbranded.co/c/WAO_MovieNight"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full bg-ngo-orange text-white py-2 rounded font-semibold mb-3 text-center block hover:bg-orange-600 transition-colors"
-                >
-                  Create "I will be attending" Poster
-                </a>
-              )}
-              {event.id === 'mombasa-meetup' && (
-                <a
-                  href="https://inbranded.co/c/wao_mombasa-meetup"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full bg-ngo-orange text-white py-2 rounded font-semibold mb-3 text-center block hover:bg-orange-600 transition-colors"
-                >
-                  Create "I will be attending" Poster
-                </a>
-              )}
+              <div className="text-sm font-semibold mb-4">Total: KES {ticketPrice}</div>
+              
               {message && (
                 <div className={`mb-3 text-sm px-3 py-2 rounded ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                   {message.text}
@@ -280,6 +269,11 @@ const EventDetails: React.FC = () => {
                 <div>
                   <label className="block text-sm font-medium mb-1">What are you hoping to experience during this event?</label>
                   <textarea name="experience" className="w-full border rounded px-3 py-2 h-24 resize-none" placeholder="Tell us your expectation (optional)"></textarea>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">M-Pesa Confirmation Code</label>
+                  <input name="mpesaCode" type="text" placeholder="e.g., WAO1ABCD23" className="w-full border rounded px-3 py-2 uppercase tracking-wide" />
+                  <div className="text-xs text-gray-500 mt-1">We will verify your payment against the ticket amount (KES {ticketPrice}).</div>
                 </div>
                 <div className="flex items-center space-x-2">
                   <input name="acceptTerms" type="checkbox" id="privacy" />
@@ -299,6 +293,7 @@ const EventDetails: React.FC = () => {
         </div>
       </div>
       <Footer />
+      <BackToTop />
     </>
   );
 };

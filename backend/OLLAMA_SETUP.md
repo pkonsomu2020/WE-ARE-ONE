@@ -9,7 +9,7 @@ Add these to your `.env` file:
 
 ```env
 # Ollama Configuration
-OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_BASE_URL=https://your-ollama-server.com
 OLLAMA_MODEL=llama2:7b
 ```
 
@@ -57,7 +57,7 @@ OLLAMA_MODEL=llama2:7b
 
 3. **Test Ollama Connection**:
    ```bash
-   curl http://localhost:3000/api/chat/health
+   curl https://weareone.co.ke/api/chat/health
    ```
 
 ## Troubleshooting
@@ -72,7 +72,7 @@ OLLAMA_MODEL=llama2:7b
 - Check available models: `ollama list`
 
 ### Connection Issues
-- Verify Ollama is running on `http://localhost:11434`
+- Verify Ollama is running on your production server
 - Check firewall settings
 - Ensure backend can reach Ollama API
 

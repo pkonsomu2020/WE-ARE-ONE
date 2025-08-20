@@ -23,6 +23,17 @@ CREATE TABLE IF NOT EXISTS users (
   INDEX idx_phone (phone)
 );
 
+-- Admin users (for admin dashboard authentication)
+CREATE TABLE IF NOT EXISTS admin_users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  full_name VARCHAR(255) NOT NULL,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_admin_email (email)
+);
+
 -- Password reset tokens table
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -133,4 +144,50 @@ CREATE TABLE IF NOT EXISTS event_registrations (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_event_id (event_id),
   INDEX idx_email_event (email, event_id)
+);
+
+-- Event tickets table (allocations)
+CREATE TABLE IF NOT EXISTS event_tickets (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  event_id VARCHAR(100) NOT NULL,
+  user_email VARCHAR(255) NOT NULL,
+  full_name VARCHAR(255) NOT NULL,
+  ticket_type ENUM('WAO Members','Public') NOT NULL,
+  amount_paid INT NOT NULL,
+  mpesa_code VARCHAR(32) NOT NULL,
+  ticket_number VARCHAR(32) NOT NULL UNIQUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_event_email (event_id, user_email),
+  INDEX idx_mpesa_code (mpesa_code)
+);
+
+-- M-Pesa verification callbacks log
+CREATE TABLE IF NOT EXISTS mpesa_verifications (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  mpesa_code VARCHAR(32) NOT NULL,
+  amount INT DEFAULT NULL,
+  msisdn VARCHAR(32) DEFAULT NULL,
+  payer_name VARCHAR(255) DEFAULT NULL,
+  status VARCHAR(64) NOT NULL,
+  raw_response JSON NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_mpesa_code (mpesa_code)
+);
+
+-- Event payments (manual verification workflow)
+CREATE TABLE IF NOT EXISTS event_payments (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  event_id VARCHAR(100) NOT NULL,
+  full_name VARCHAR(255) NOT NULL,
+  email VARCHAR(255) NOT NULL,
+  phone VARCHAR(50) NOT NULL,
+  ticket_type ENUM('WAO Members','Public') NOT NULL,
+  amount INT NOT NULL,
+  mpesa_code VARCHAR(32) NOT NULL,
+  status ENUM('pending_verification','paid','failed') DEFAULT 'pending_verification',
+  confirmation_message TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_event_status (event_id, status),
+  UNIQUE KEY uniq_mpesa_code (mpesa_code)
 );

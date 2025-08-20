@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { events } from '@/data/events';
+import BackToTop from '@/components/BackToTop';
 
 const Events: React.FC = () => {
   return (
@@ -37,6 +38,7 @@ const Events: React.FC = () => {
         </div>
       </div>
       <Footer />
+      <BackToTop />
     </>
   );
 };

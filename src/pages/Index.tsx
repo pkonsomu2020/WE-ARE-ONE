@@ -7,17 +7,18 @@ import ImpactSection from '@/components/ImpactSection';
 import CommunitySection from '@/components/CommunitySection';
 import DonationSection from '@/components/DonationSection';
 import Footer from '@/components/Footer';
+import BackToTop from '@/components/BackToTop';
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { MessageCircle } from 'lucide-react';
 
 const nextEvent = {
-  title: 'WE ARE ONE MEET-UP, MOMBASA',
-  date: 'SAT 16TH AUGUST, 2025 10:00AM - 7:00PM',
-  venue: 'MAMA NGINA WATERFRONT',
-  image: '/EVENTS/WAO_MombasaMeetup.jpg',
+  title: 'WAO Movie Night',
+  date: 'Saturday September 6th | 7pm',
+  venue: 'Anga Cinema, Diamond Plaza II - Parklands',
+  image: '/EVENTS/WAO_Movie-Night.jpg',
   // Set the event start date/time for countdown (ISO format)
-  startDate: new Date('2025-08-16T10:00:00'),
+  startDate: new Date('2025-09-06T19:00:00'),
 };
 
 const UpcomingEventSection: React.FC = () => {
@@ -49,32 +50,32 @@ const UpcomingEventSection: React.FC = () => {
         <div className="md:w-1/2 flex flex-col justify-center items-center p-8 bg-ngo-orange text-white">
           <div className="mb-6 text-center">
             <div className="uppercase tracking-widest text-sm mb-2">Upcoming Event</div>
-            <div className="text-4xl md:text-5xl font-extrabold mb-2 text-white">WE ARE ONE MEET-UP, MOMBASA</div>
-            <div className="text-xl mb-1 text-white font-semibold">SAT 16TH AUGUST, 2025 10:00AM - 7:00PM</div>
-            <div className="text-lg mb-4 text-white">MAMA NGINA WATERFRONT</div>
+            <div className="text-4xl md:text-5xl font-extrabold mb-2 text-white">WAO Movie Night</div>
+            <div className="text-xl mb-1 text-white font-semibold">Saturday September 6th | 7pm</div>
+            <div className="text-lg mb-4 text-white">Anga Cinema, Diamond Plaza II - Parklands</div>
             <Link
-              to="/events/mombasa-meetup"
+              to="/events/movie-night"
               className="inline-block mt-4 px-8 py-3 bg-white text-ngo-orange font-bold text-lg rounded shadow hover:bg-orange-100 transition"
             >
               Join Now
             </Link>
           </div>
-          <div className="flex space-x-8 mt-10">
+          <div className="flex space-x-2 sm:space-x-4 md:space-x-6 lg:space-x-8 mt-10">
             <div className="flex flex-col items-center">
-              <div className="text-7xl font-extrabold text-white">{String(timeLeft.days).padStart(2, '0')}</div>
-              <div className="text-lg font-bold mt-1 tracking-wide">DAYS</div>
+              <div className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white">{String(timeLeft.days).padStart(2, '0')}</div>
+              <div className="text-xs sm:text-sm md:text-base lg:text-lg font-bold mt-1 tracking-wide">DAYS</div>
             </div>
             <div className="flex flex-col items-center">
-              <div className="text-7xl font-extrabold text-white">{String(timeLeft.hours).padStart(2, '0')}</div>
-              <div className="text-lg font-bold mt-1 tracking-wide">HOURS</div>
+              <div className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white">{String(timeLeft.hours).padStart(2, '0')}</div>
+              <div className="text-xs sm:text-sm md:text-base lg:text-lg font-bold mt-1 tracking-wide">HOURS</div>
             </div>
             <div className="flex flex-col items-center">
-              <div className="text-7xl font-extrabold text-white">{String(timeLeft.minutes).padStart(2, '0')}</div>
-              <div className="text-lg font-bold mt-1 tracking-wide">MINUTES</div>
+              <div className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white">{String(timeLeft.minutes).padStart(2, '0')}</div>
+              <div className="text-xs sm:text-sm md:text-base lg:text-lg font-bold mt-1 tracking-wide">MINUTES</div>
             </div>
             <div className="flex flex-col items-center">
-              <div className="text-7xl font-extrabold text-white">{String(timeLeft.seconds).padStart(2, '0')}</div>
-              <div className="text-lg font-bold mt-1 tracking-wide">SECONDS</div>
+              <div className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white">{String(timeLeft.seconds).padStart(2, '0')}</div>
+              <div className="text-xs sm:text-sm md:text-base lg:text-lg font-bold mt-1 tracking-wide">SECONDS</div>
             </div>
           </div>
         </div>
@@ -111,18 +112,20 @@ const Index = () => {
   useEffect(() => {
     const handleHashNavigation = () => {
       const hash = window.location.hash;
-      if (hash) {
-        // Remove the # symbol
-        const sectionId = hash.substring(1);
-        
-        // Wait for the page to fully render
-        setTimeout(() => {
-          const element = document.getElementById(sectionId);
-          if (element) {
-            element.scrollIntoView({ behavior: 'smooth' });
-          }
-        }, 100);
-      }
+      if (!hash) return;
+      const sectionId = hash.substring(1);
+      // Try multiple times in case content isn't mounted yet
+      let attempts = 0;
+      const tryScroll = () => {
+        const element = document.getElementById(sectionId);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        } else if (attempts < 5) {
+          attempts += 1;
+          setTimeout(tryScroll, 100);
+        }
+      };
+      tryScroll();
     };
 
     handleHashNavigation();
@@ -132,13 +135,19 @@ const Index = () => {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash;
-      if (hash) {
-        const sectionId = hash.substring(1);
+      if (!hash) return;
+      const sectionId = hash.substring(1);
+      let attempts = 0;
+      const tryScroll = () => {
         const element = document.getElementById(sectionId);
         if (element) {
           element.scrollIntoView({ behavior: 'smooth' });
+        } else if (attempts < 5) {
+          attempts += 1;
+          setTimeout(tryScroll, 100);
         }
-      }
+      };
+      tryScroll();
     };
 
     window.addEventListener('hashchange', handleHashChange);
@@ -148,15 +157,19 @@ const Index = () => {
   // Handle location changes (when navigating from other pages)
   useEffect(() => {
     const hash = location.hash;
-    if (hash) {
-      const sectionId = hash.substring(1);
-      setTimeout(() => {
-        const element = document.getElementById(sectionId);
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth' });
-        }
-      }, 100);
-    }
+    if (!hash) return;
+    const sectionId = hash.substring(1);
+    let attempts = 0;
+    const tryScroll = () => {
+      const element = document.getElementById(sectionId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      } else if (attempts < 5) {
+        attempts += 1;
+        setTimeout(tryScroll, 100);
+      }
+    };
+    tryScroll();
   }, [location.hash]);
 
   return (
@@ -168,8 +181,46 @@ const Index = () => {
       <MissionSection />
       <ImpactSection />
       <CommunitySection />
+      {/* WAO Constitution Section */}
+      <section id="constitution" className="w-full bg-gray-50 py-20 px-4">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-4xl lg:text-5xl font-bold mb-8 text-center">
+            WAO <span className="text-ngo-orange">Constitution</span>
+          </h2>
+          <p className="text-lg text-gray-700 text-center mb-8 max-w-3xl mx-auto">
+            Read the official constitution of We Are One (WAO). You can view it below or open it in a new tab.
+          </p>
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <iframe
+              title="WAO Constitution PDF"
+              src={'/THE%20CONSTITUTION%20FINAL%20EDIT.pdf#view=FitH'}
+              className="w-full"
+              style={{ height: '80vh', border: 'none' }}
+            />
+          </div>
+          <div className="mt-4 flex items-center justify-center gap-4">
+            <a
+              href={'/THE%20CONSTITUTION%20FINAL%20EDIT.pdf'}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block px-5 py-2 bg-ngo-orange text-white rounded shadow hover:bg-orange-600 transition"
+            >
+              Open in New Tab
+            </a>
+            <a
+              href={'/THE%20CONSTITUTION%20FINAL%20EDIT.pdf'}
+              download
+              className="inline-block px-5 py-2 border border-ngo-orange text-ngo-orange rounded hover:bg-orange-50 transition"
+            >
+              Download PDF
+            </a>
+          </div>
+        </div>
+      </section>
       <DonationSection />
       <Footer />
+      {/* Align vertically with chat icon on the right; BackToTop above Chat */}
+      <BackToTop className="right-6 bottom-[104px] md:bottom-[104px]" />
       
       {/* Floating Chat Icon */}
       <Link

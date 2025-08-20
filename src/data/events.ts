@@ -30,17 +30,20 @@ export const events: EventItem[] = [
   {
     id: 'movie-night',
     title: 'WAO Movie Night',
-    image: '/EVENTS/WAO_Movie Night.jpg',
-    date: 'SAT 2ND AUGUST 2025 4:00PM - 7:00PM',
-    location: 'Anga Cinema Diamond Plaza, Parklands',
+    image: '/EVENTS/WAO_Movie-Night.jpg',
+    date: 'Saturday September 6th | 7pm',
+    location: 'Anga Cinema, Diamond Plaza II - Parklands',
     price: 'KES 800',
     description:
       'Enjoy a fun-filled evening under the stars with great movies and company at the WAO Movie Night.',
     host: 'WE ARE ONE',
-    tickets: [{ name: 'Advanced Ticket', price: 'KES 800', status: 'Available' }],
-    photos: ['/EVENTS/WAO_Movie Night.jpg'],
+    tickets: [
+      { name: 'WAO Members', price: 'KES 800', status: 'Available' },
+      { name: 'Public', price: 'KES 1000', status: 'Available' }
+    ],
+    photos: ['/EVENTS/WAO_Movie-Night.jpg'],
     mapEmbed:
-      'https://www.google.com/maps?q=Anga+Cinema+Diamond+Plaza,+Parklands&output=embed',
+      'https://www.google.com/maps?q=Anga+Cinema+Diamond+Plaza+II,+Parklands&output=embed',
   },
   {
     id: 'mombasa-meetup',
