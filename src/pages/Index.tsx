@@ -13,12 +13,12 @@ import { Link, useLocation } from 'react-router-dom';
 import { MessageCircle } from 'lucide-react';
 
 const nextEvent = {
-  title: 'WAO Movie Night',
-  date: 'Saturday September 6th | 7pm',
-  venue: 'Anga Cinema, Diamond Plaza II - Parklands',
-  image: '/EVENTS/WAO_Movie-Night.jpg',
+  title: 'Kanunga Falls Meetup',
+  date: 'Sunday October 12th | 10:00am - 6:00pm',
+  venue: 'Kanunga Falls',
+  image: '/EVENTS/WAO_KanungaFalls.jpg',
   // Set the event start date/time for countdown (ISO format)
-  startDate: new Date('2025-09-06T19:00:00'),
+  startDate: new Date('2025-10-12T10:00:00'),
 };
 
 const UpcomingEventSection: React.FC = () => {
@@ -50,11 +50,11 @@ const UpcomingEventSection: React.FC = () => {
         <div className="md:w-1/2 flex flex-col justify-center items-center p-8 bg-ngo-orange text-white">
           <div className="mb-6 text-center">
             <div className="uppercase tracking-widest text-sm mb-2">Upcoming Event</div>
-            <div className="text-4xl md:text-5xl font-extrabold mb-2 text-white">WAO Movie Night</div>
-            <div className="text-xl mb-1 text-white font-semibold">Saturday September 6th | 7pm</div>
-            <div className="text-lg mb-4 text-white">Anga Cinema, Diamond Plaza II - Parklands</div>
+            <div className="text-4xl md:text-5xl font-extrabold mb-2 text-white">Kanunga Falls Meetup</div>
+            <div className="text-xl mb-1 text-white font-semibold">Sunday October 12th | 10:00am - 6:00pm</div>
+            <div className="text-lg mb-4 text-white">Kanunga Falls</div>
             <Link
-              to="/events/movie-night"
+              to="/events/kanunga-falls"
               className="inline-block mt-4 px-8 py-3 bg-white text-ngo-orange font-bold text-lg rounded shadow hover:bg-orange-100 transition"
             >
               Join Now

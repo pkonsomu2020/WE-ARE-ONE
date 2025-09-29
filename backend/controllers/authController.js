@@ -247,8 +247,12 @@ const forgotPassword = async (req, res) => {
       [user.id, resetToken, expiresAt]
     );
 
-    // Create reset URL - Use the correct frontend port
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
+    // Create reset URL - prefer env, fall back to production domain in prod
+    const frontendUrl =
+      process.env.FRONTEND_URL ||
+      (process.env.NODE_ENV === 'production'
+        ? 'https://weareone.co.ke'
+        : 'http://localhost:8080');
     const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
     
     // Enhanced debug logging

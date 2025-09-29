@@ -17,6 +17,8 @@ interface Order {
   date: string;
   amount?: number;
   confirmationMessage?: string;
+  eventId?: string;
+  ticketType?: string;
 }
 
 interface OrdersDashboardProps {
@@ -27,6 +29,7 @@ const OrdersDashboard = ({ onLogout }: OrdersDashboardProps) => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [eventFilter, setEventFilter] = useState<string>("all");
 
   const [orders, setOrders] = useState<Order[]>([]);
 
@@ -41,6 +44,8 @@ const OrdersDashboard = ({ onLogout }: OrdersDashboardProps) => {
       date: new Date(p.created_at).toLocaleString(),
       amount: p.amount,
       confirmationMessage: p.confirmation_message || undefined,
+      eventId: p.event_id,
+      ticketType: p.ticket_type,
     }));
     setOrders(mapped);
   };
@@ -62,12 +67,16 @@ const OrdersDashboard = ({ onLogout }: OrdersDashboardProps) => {
     }
   };
 
+  // Get unique events for filter dropdown
+  const uniqueEvents = Array.from(new Set(orders.map(order => order.eventId).filter(Boolean)));
+
   const filteredOrders = orders.filter(order => {
     const matchesSearch = order.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          order.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          order.mpesaCode.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || order.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesEvent = eventFilter === "all" || order.eventId === eventFilter;
+    return matchesSearch && matchesStatus && matchesEvent;
   });
 
   const handleStatusUpdate = async (orderId: number, newStatus: string, reason?: string) => {
@@ -96,10 +105,55 @@ const OrdersDashboard = ({ onLogout }: OrdersDashboardProps) => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto p-6">
+        {/* Event Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Total Orders</p>
+                  <p className="text-2xl font-bold">{orders.length}</p>
+                </div>
+                <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
+                  <span className="text-blue-600 font-bold">📊</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Paid Orders</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    {orders.filter(o => o.status === 'paid').length}
+                  </p>
+                </div>
+                <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
+                  <span className="text-green-600 font-bold">✅</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Active Events</p>
+                  <p className="text-2xl font-bold text-orange-600">{uniqueEvents.length}</p>
+                </div>
+                <div className="h-8 w-8 bg-orange-100 rounded-full flex items-center justify-center">
+                  <span className="text-orange-600 font-bold">🎫</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         <Card>
           <CardHeader>
-            <CardTitle className="text-xl">Recent Orders</CardTitle>
-            <CardDescription>Manage and track all customer orders</CardDescription>
+            <CardTitle className="text-xl">Event Orders</CardTitle>
+            <CardDescription>Manage and track orders by event</CardDescription>
             
             {/* Search and Filter Controls */}
             <div className="flex flex-col sm:flex-row gap-4 mt-4">
@@ -126,6 +180,21 @@ const OrdersDashboard = ({ onLogout }: OrdersDashboardProps) => {
                   <option value="failed">Failed</option>
                 </select>
               </div>
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-muted-foreground" />
+                <select
+                  value={eventFilter}
+                  onChange={(e) => setEventFilter(e.target.value)}
+                  className="px-3 py-2 border border-input rounded-md bg-background text-foreground"
+                >
+                  <option value="all">All Events</option>
+                  {uniqueEvents.map(eventId => (
+                    <option key={eventId} value={eventId}>
+                      {eventId}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -134,6 +203,7 @@ const OrdersDashboard = ({ onLogout }: OrdersDashboardProps) => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Order #</TableHead>
+                    <TableHead>Event</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>M-pesa Code</TableHead>
@@ -146,6 +216,14 @@ const OrdersDashboard = ({ onLogout }: OrdersDashboardProps) => {
                   {filteredOrders.map((order) => (
                     <TableRow key={order.id} className="hover:bg-muted/50">
                       <TableCell className="font-medium">{order.id}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="font-medium text-sm">{order.eventId || 'N/A'}</span>
+                          {order.ticketType && (
+                            <span className="text-xs text-muted-foreground">{order.ticketType}</span>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>{order.name}</TableCell>
                       <TableCell className="text-muted-foreground">{order.email}</TableCell>
                       <TableCell className="font-mono text-sm">{order.mpesaCode}</TableCell>

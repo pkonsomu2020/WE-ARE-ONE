@@ -16,8 +16,41 @@ const EventDetails: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [formRef, setFormRef] = useState<HTMLFormElement | null>(null);
-  const [ticketType, setTicketType] = useState<'WAO Members' | 'Public'>('WAO Members');
-  const ticketPrice = ticketType === 'WAO Members' ? 800 : 1000;
+  const [ticketType, setTicketType] = useState<string>('WAO Members');
+  const isFreeEvent = event?.price?.trim().toUpperCase() === 'KES 0';
+  
+  // Initialize ticketType based on event data
+  useEffect(() => {
+    if (event?.tickets && event.tickets.length === 1) {
+      setTicketType(event.tickets[0].name);
+    } else if (event?.tickets && event.tickets.length > 1) {
+      setTicketType(event.tickets[0].name); // Default to first option
+    } else {
+      // Fallback for events without tickets array
+      setTicketType('WAO Members');
+    }
+  }, [event]);
+  
+  // Calculate ticket price based on event data
+  const getTicketPrice = () => {
+    if (isFreeEvent) return 0;
+    
+    // If event has multiple ticket types, use the selected one
+    if (event?.tickets && event.tickets.length > 1) {
+      const selectedTicket = event.tickets.find(t => t.name === ticketType);
+      return selectedTicket ? parseInt(selectedTicket.price.replace(/[^\d]/g, '')) : 0;
+    }
+    
+    // If event has single ticket type, use that price
+    if (event?.tickets && event.tickets.length === 1) {
+      return parseInt(event.tickets[0].price.replace(/[^\d]/g, ''));
+    }
+    
+    // Fallback to event price
+    return parseInt(event?.price?.replace(/[^\d]/g, '') || '0');
+  };
+  
+  const ticketPrice = getTicketPrice();
 
   // Monitor form reference
   useEffect(() => {
@@ -85,9 +118,9 @@ const EventDetails: React.FC = () => {
     const acceptTerms = form.get('acceptTerms') === 'on';
     const acceptUpdates = form.get('acceptUpdates') === 'on';
 
-    if (!fullName || !email || !phone || !acceptTerms || !mpesaCode) {
+    if (!fullName || !email || !phone || !acceptTerms || (!isFreeEvent && !mpesaCode)) {
       setSubmitting(false);
-      setMessage({ type: 'error', text: 'Please fill in Full Name, Email, Phone, M-Pesa code and accept Terms.' });
+      setMessage({ type: 'error', text: isFreeEvent ? 'Please fill in Full Name, Email, Phone and accept Terms.' : 'Please fill in Full Name, Email, Phone, M-Pesa code and accept Terms.' });
       return;
     }
 
@@ -130,7 +163,7 @@ const EventDetails: React.FC = () => {
       
       // Use the centralized API utility
       try {
-        const data = await api.post('/api/events/register', {
+        const payload = {
           eventId: event.id,
           fullName,
           email,
@@ -138,10 +171,17 @@ const EventDetails: React.FC = () => {
           experience,
           acceptTerms,
           acceptUpdates,
-          ticketType,
-          amount: ticketPrice,
-          mpesaCode,
-        });
+          ...(isFreeEvent
+            ? { isFree: true }
+            : { 
+                ticketType: ticketType, 
+                amount: ticketPrice, 
+                mpesaCode 
+              }
+          ),
+        };
+        
+        const data = await api.post('/api/events/register', payload);
         
         console.log('✅ Success Response:', data);
         const tno = data.ticketNumber ? ` Your Ticket Number is ${data.ticketNumber}.` : '';
@@ -152,19 +192,29 @@ const EventDetails: React.FC = () => {
         console.warn('⚠️ Centralized API failed, trying direct fetch:', apiErr);
         
         // Fallback to direct fetch
+        const fallbackPayload = {
+          eventId: event.id,
+          fullName,
+          email,
+          phone,
+          experience,
+          acceptTerms,
+          acceptUpdates,
+          ...(isFreeEvent
+            ? { isFree: true }
+            : { 
+                ticketType: ticketType, 
+                amount: ticketPrice, 
+                mpesaCode 
+              }
+          ),
+        };
+        
         const res = await fetch(`${apiBase}/api/events/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({
-            eventId: event.id,
-            fullName,
-            email,
-            phone,
-            experience,
-            acceptTerms,
-            acceptUpdates,
-          }),
+          body: JSON.stringify(fallbackPayload),
         });
 
         if (res.ok) {
@@ -238,24 +288,38 @@ const EventDetails: React.FC = () => {
           {/* Right: Ticket Options & Booking */}
           <div className="md:col-span-1">
             <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
-              <h2 className="text-xl font-bold mb-4">Get your tickets to {event.title}</h2>
-              <div className="space-y-3 mb-4">
-                <label className="flex items-center justify-between border-b pb-2 cursor-pointer">
-                  <div>
-                    <div className="font-semibold">WAO Members</div>
-                    <div className="text-sm text-gray-600">KES 800</div>
-                  </div>
-                  <input type="radio" name="ticketType" value="WAO Members" checked={ticketType === 'WAO Members'} onChange={() => setTicketType('WAO Members')} />
-                </label>
-                <label className="flex items-center justify-between border-b pb-2 cursor-pointer">
-                  <div>
-                    <div className="font-semibold">Public</div>
-                    <div className="text-sm text-gray-600">KES 1000</div>
-                  </div>
-                  <input type="radio" name="ticketType" value="Public" checked={ticketType === 'Public'} onChange={() => setTicketType('Public')} />
-                </label>
-              </div>
-              <div className="text-sm font-semibold mb-4">Total: KES {ticketPrice}</div>
+              <h2 className="text-xl font-bold mb-4">{isFreeEvent ? 'Register for ' : 'Get your tickets to '}{event.title}</h2>
+              {!isFreeEvent && (
+                <>
+                  {event.tickets && event.tickets.length > 1 ? (
+                    <div className="space-y-3 mb-4">
+                      {event.tickets.map((ticket, index) => (
+                        <label key={index} className="flex items-center justify-between border-b pb-2 cursor-pointer">
+                          <div>
+                            <div className="font-semibold">{ticket.name}</div>
+                            <div className="text-sm text-gray-600">{ticket.price}</div>
+                          </div>
+                          <input 
+                            type="radio" 
+                            name="ticketType" 
+                            value={ticket.name} 
+                            checked={ticketType === ticket.name} 
+                            onChange={() => setTicketType(ticket.name)} 
+                          />
+                        </label>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="mb-4">
+                      <div className="text-center p-4 bg-gray-100 rounded-lg">
+                        <div className="font-semibold text-lg">{event.tickets?.[0]?.name || 'General Admission'}</div>
+                        <div className="text-2xl font-bold text-ngo-orange">{event.tickets?.[0]?.price || event.price}</div>
+                      </div>
+                    </div>
+                  )}
+                  <div className="text-sm font-semibold mb-4">Total: KES {ticketPrice}</div>
+                </>
+              )}
               
               {message && (
                 <div className={`mb-3 text-sm px-3 py-2 rounded ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
@@ -270,11 +334,13 @@ const EventDetails: React.FC = () => {
                   <label className="block text-sm font-medium mb-1">What are you hoping to experience during this event?</label>
                   <textarea name="experience" className="w-full border rounded px-3 py-2 h-24 resize-none" placeholder="Tell us your expectation (optional)"></textarea>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">M-Pesa Confirmation Code</label>
-                  <input name="mpesaCode" type="text" placeholder="e.g., WAO1ABCD23" className="w-full border rounded px-3 py-2 uppercase tracking-wide" />
-                  <div className="text-xs text-gray-500 mt-1">We will verify your payment against the ticket amount (KES {ticketPrice}).</div>
-                </div>
+                {!isFreeEvent && (
+                  <div>
+                    <label className="block text-sm font-medium mb-1">M-Pesa Confirmation Code</label>
+                    <input name="mpesaCode" type="text" placeholder="e.g., WAO1ABCD23" className="w-full border rounded px-3 py-2 uppercase tracking-wide" />
+                    <div className="text-xs text-gray-500 mt-1">We will verify your payment against the ticket amount (KES {ticketPrice}).</div>
+                  </div>
+                )}
                 <div className="flex items-center space-x-2">
                   <input name="acceptTerms" type="checkbox" id="privacy" />
                   <label htmlFor="privacy" className="text-xs">I have read and agree to <a href="#" className="underline text-ngo-orange">Privacy Policy</a>, <a href="#" className="underline text-ngo-orange">Terms and Conditions</a></label>
