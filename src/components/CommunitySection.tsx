@@ -1,22 +1,10 @@
 import { Button } from '@/components/ui/button';
-import AuthDialog from './AuthDialog';
 import { UserPlus } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useState } from 'react';
 
 const CommunitySection = () => {
-  const { isAuthenticated } = useAuth();
-  const [showAuthDialog, setShowAuthDialog] = useState(false);
-
   const handleJoinWhatsApp = () => {
-    if (isAuthenticated) {
-      // User is logged in, redirect to WhatsApp
-      const whatsappLink = "https://httpsweareone.kreativestores.shop/communities/we-are-one-20";
-      window.open(whatsappLink, '_blank');
-    } else {
-      // User is not logged in, show sign-in dialog
-      setShowAuthDialog(true);
-    }
+    const whatsappLink = "https://httpsweareone.kreativestores.shop/communities/we-are-one-20";
+    window.open(whatsappLink, '_blank');
   };
 
   return (
@@ -110,18 +98,7 @@ const CommunitySection = () => {
                   📱 Join WhatsApp Group
                 </Button>
                 
-                {!isAuthenticated && (
-                  <p className="text-sm text-gray-600">
-                    Signin first to join the community. 
-                    <AuthDialog
-                      trigger={
-                        <button className="text-ngo-orange hover:text-orange-600 ml-1 underline">
-                          Create your account here
-                        </button>
-                      }
-                    />
-                  </p>
-                )}
+                {/* Login no longer required to join WhatsApp group */}
               </div>
               
               <p className="text-sm text-gray-500">
@@ -132,12 +109,7 @@ const CommunitySection = () => {
         </div>
       </div>
 
-      {/* AuthDialog for non-authenticated users */}
-      {showAuthDialog && (
-        <AuthDialog
-          trigger={<div />}
-        />
-      )}
+      {/* No auth dialog needed */}
     </section>
   );
 };

@@ -66,24 +66,40 @@ exports.chatWithAI = async (req, res) => {
     // Add current message
     fullPrompt += `User: ${message}\nAssistant:`;
 
-    // Call Ollama API
-    const response = await axios.post(`${OLLAMA_BASE_URL}/api/generate`, {
-      model: OLLAMA_MODEL,
-      prompt: fullPrompt,
-      stream: false,
-      options: {
-        temperature: 0.7,
-        top_p: 0.9,
-        max_tokens: 200, // Slightly increased for more detailed responses
+    // Call Ollama API with stricter, faster generation settings
+    const response = await axios.post(
+      `${OLLAMA_BASE_URL}/api/generate`,
+      {
+        model: OLLAMA_MODEL,
+        prompt: fullPrompt,
+        stream: false,
+        options: {
+          temperature: 0.6,
+          top_p: 0.9,
+          // Ollama uses num_predict for max tokens; prefer smaller to keep <10s
+          num_predict: 128,
+        },
+      },
+      {
+        // Enforce ~10s client timeout to avoid long waits
+        timeout: 10000,
       }
-    });
+    );
 
     let aiResponse = response.data.response.trim();
     
-    // Clean up any thinking tags or internal reasoning
+    // Clean up any thinking tags or internal reasoning and stray role markers
     aiResponse = aiResponse.replace(/<think>.*?<\/think>/gs, '').trim();
     aiResponse = aiResponse.replace(/<reasoning>.*?<\/reasoning>/gs, '').trim();
     aiResponse = aiResponse.replace(/<internal>.*?<\/internal>/gs, '').trim();
+    aiResponse = aiResponse.replace(/^(User:|Assistant:)\s*/gi, '').trim();
+    aiResponse = aiResponse.replace(/\n(User:|Assistant:).*/gis, '').trim();
+
+    // Keep responses concise: cap to ~3 sentences
+    const sentences = aiResponse.split(/(?<=[.!?])\s+/).filter(Boolean);
+    if (sentences.length > 3) {
+      aiResponse = sentences.slice(0, 3).join(' ');
+    }
     
     // If response is empty after cleaning, provide a fallback
     if (!aiResponse) {
@@ -127,10 +143,13 @@ exports.chatWithAI = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Ollama API Error:', error);
+    const isTimeout = error.code === 'ECONNABORTED' || /timeout/i.test(error.message || '');
+    console.error('Ollama API Error:', error.message || error);
     
     // Fallback response if Ollama fails
-    const fallbackResponse = "I'm having trouble connecting right now, but I'm here for you. Would you like to try again or talk about what's on your mind?";
+    const fallbackResponse = isTimeout
+      ? "I'm sorry, that took too long. Let's try a shorter question, or I can give you a brief tip."
+      : "I'm having trouble connecting right now, but I'm here for you. Would you like to try again or talk about what's on your mind?";
     
     res.json({
       success: true,

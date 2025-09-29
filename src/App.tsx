@@ -18,6 +18,7 @@ import ChatMood from "./pages/ChatMood";
 import ChatJournal from "./pages/ChatJournal";
 import ChatSettings from "./pages/ChatSettings";
 import ChatAI from "./pages/ChatAI";
+import Analytics from "@/components/Analytics";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <Analytics />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/donation-success" element={<DonationSuccess />} />

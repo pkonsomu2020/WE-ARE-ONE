@@ -26,13 +26,14 @@ async function registerForEvent(req, res) {
       acceptUpdates,
       ticketType, // 'WAO Members' | 'Public'
       mpesaCode,
-      amount
+      amount,
+      isFree
     } = req.body;
 
-    if (!eventId || !fullName || !email || !phone || !acceptTerms || !ticketType || !mpesaCode || !amount) {
+    if (!eventId || !fullName || !email || !phone || !acceptTerms) {
       return res.status(400).json({
         success: false,
-        message: 'eventId, fullName, email, phone, ticketType, mpesaCode, amount and acceptTerms are required',
+        message: 'eventId, fullName, email, phone and acceptTerms are required',
       });
     }
 
@@ -42,23 +43,71 @@ async function registerForEvent(req, res) {
       return res.status(400).json({ success: false, message: 'Please create an account and sign in with this email before booking a ticket.' });
     }
 
-    // Validate expected amount
-    const expectedAmount = ticketType === 'WAO Members' ? 800 : 1000;
-    if (parseInt(amount, 10) !== expectedAmount) {
-      return res.status(400).json({ success: false, message: `Amount mismatch. Expected KES ${expectedAmount}` });
+    if (!isFree) {
+      // Validate expected amount
+      if (!ticketType || amount == null || !mpesaCode) {
+        return res.status(400).json({ success: false, message: 'ticketType, mpesaCode and amount are required for paid events' });
+      }
+      // Handle different ticket types and their expected amounts
+      let expectedAmount;
+      
+      // Normalize eventId to handle different formats (with debugging)
+      const normalizedEventId = String(eventId).toLowerCase().trim();
+      console.log('Debug - eventId:', eventId, 'normalized:', normalizedEventId, 'ticketType:', ticketType);
+      
+      // Define pricing for different events
+      const kanungaFallsPricing = {
+        'wao members': 1600,
+        'public': 1600,
+        'standard': 1600
+      };
+      
+      const movieNightPricing = {
+        'wao members': 800,
+        'public': 1000,
+        'standard': 800
+      };
+      
+      // Normalize ticket type for comparison
+      const normalizedTicketType = String(ticketType).toLowerCase().trim();
+      
+      if (normalizedEventId === 'kanunga-falls') {
+        expectedAmount = kanungaFallsPricing[normalizedTicketType] || parseInt(amount, 10);
+      } else if (normalizedEventId === 'movie-night') {
+        expectedAmount = movieNightPricing[normalizedTicketType] || parseInt(amount, 10);
+      } else {
+        // For unknown events, fall back to the provided amount
+        expectedAmount = parseInt(amount, 10);
+      }
+      
+      console.log('Debug - expectedAmount:', expectedAmount, 'providedAmount:', parseInt(amount, 10));
+      
+      if (parseInt(amount, 10) !== expectedAmount) {
+        return res.status(400).json({ 
+          success: false, 
+          message: `Amount mismatch. Expected KES ${expectedAmount} for ${ticketType} ticket on ${eventId}. Received KES ${amount}`,
+          debug: {
+            eventId,
+            normalizedEventId: String(eventId).toLowerCase().trim(),
+            ticketType,
+            normalizedTicketType: String(ticketType).toLowerCase().trim(),
+            expectedAmount,
+            providedAmount: parseInt(amount, 10)
+          }
+        });
+      }
+      // Manual verification workflow: store payment as pending for admin review
+      const [existingPayments] = await pool.execute('SELECT id FROM event_payments WHERE mpesa_code = ?', [mpesaCode]);
+      if (existingPayments.length > 0) {
+        return res.status(400).json({ success: false, message: 'This M-Pesa code has already been submitted.' });
+      }
+      
+      await pool.execute(
+        `INSERT INTO event_payments (event_id, full_name, email, phone, ticket_type, amount, mpesa_code, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 'pending_verification')`,
+        [eventId, fullName, email, phone, ticketType, expectedAmount, mpesaCode]
+      );
     }
-
-    // Manual verification workflow: store payment as pending for admin review
-    const [existingPayments] = await pool.execute('SELECT id FROM event_payments WHERE mpesa_code = ?', [mpesaCode]);
-    if (existingPayments.length > 0) {
-      return res.status(400).json({ success: false, message: 'This M-Pesa code has already been submitted.' });
-    }
-
-    await pool.execute(
-      `INSERT INTO event_payments (event_id, full_name, email, phone, ticket_type, amount, mpesa_code, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'pending_verification')`,
-      [eventId, fullName, email, phone, ticketType, expectedAmount, mpesaCode]
-    );
 
     const [result] = await pool.execute(
       `INSERT INTO event_registrations
@@ -91,9 +140,8 @@ async function registerForEvent(req, res) {
           <p><strong>Email:</strong> ${email}</p>
           <p><strong>Phone:</strong> ${phone}</p>
           <p><strong>Experience (expectation):</strong> ${experience || 'N/A'}</p>
-          <p><strong>Ticket:</strong> ${ticketType} (KES ${expectedAmount})</p>
-          <p><strong>M-Pesa Code:</strong> ${mpesaCode}</p>
-          
+          ${isFree ? `<p><strong>Ticket:</strong> Free</p>` : `<p><strong>Ticket:</strong> ${ticketType} (KES ${amount})</p>`}
+          ${!isFree ? `<p><strong>M-Pesa Code:</strong> ${mpesaCode}</p>` : ''}
           <p><strong>Accept Terms:</strong> ${acceptTerms ? 'Yes' : 'No'}</p>
           <p><strong>Accept Updates:</strong> ${acceptUpdates ? 'Yes' : 'No'}</p>
           <p><em>Registration ID: ${result.insertId}</em></p>
@@ -106,14 +154,19 @@ async function registerForEvent(req, res) {
       .sendMail({
         from: process.env.EMAIL_FROM,
         to: email,
-        subject: 'We received your ticket request – Pending Verification',
+        subject: isFree ? 'Your event registration is confirmed' : 'We received your ticket request – Pending Verification',
         html: `
           <p>Hi ${fullName},</p>
-          <p>Thank you for registering for our event. We have received your details and M-Pesa code.</p>
-          <p><strong>Event:</strong> ${eventId}</p>
-          <p><strong>Ticket Type:</strong> ${ticketType} (KES ${expectedAmount})</p>
-          <p><strong>M-Pesa Code:</strong> ${mpesaCode}</p>
-          <p>Our team will verify the payment and send your unique ticket number shortly. If verification fails, we will notify you.</p>
+          ${isFree ? `
+            <p>Thank you for registering for <strong>${eventId}</strong>. This is a free event—no payment is required.</p>
+            <p>Your spot has been reserved. We look forward to seeing you!</p>
+          ` : `
+            <p>Thank you for registering for our event. We have received your details and M-Pesa code.</p>
+            <p><strong>Event:</strong> ${eventId}</p>
+            <p><strong>Ticket Type:</strong> ${ticketType} (KES ${amount})</p>
+            <p><strong>M-Pesa Code:</strong> ${mpesaCode}</p>
+            <p>Our team will verify the payment and send your unique ticket number shortly. If verification fails, we will notify you.</p>
+          `}
           <p>— We Are One</p>
         `,
       })

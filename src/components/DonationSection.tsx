@@ -1,18 +1,10 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Heart, Users, Lightbulb, Shield, CreditCard, DollarSign } from 'lucide-react';
+import { Heart, Users, Lightbulb, Shield, CreditCard, DollarSign, Smartphone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
-interface DonorInfo {
-  email: string;
-  first_name: string;
-  last_name: string;
-  location: string;
-  phone: string;
-  username: string;
-  reason: string;
-}
+// Donor info collection removed to avoid prompts; backend handles minimal fields
 
 const getApiBaseUrl = () => {
   const hostname = window.location.hostname;
@@ -24,73 +16,24 @@ const getApiBaseUrl = () => {
 
 const DonationSection = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const [paymentMethod] = useState<'paypal'>('paypal');
+  const [paymentMethod, setPaymentMethod] = useState<'paypal' | 'mpesa' | null>(null);
+  const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Helper to collect donor info
-  const collectDonorInfo = async (): Promise<DonorInfo | null> => {
-    let email = user?.email;
-    let first_name = user?.fullName?.split(' ')[0];
-    let last_name = user?.fullName?.split(' ').slice(1).join(' ');
-    const location = 'Nairobi'; // Default location, or set as needed
-    let phone = user?.phone;
-    let username = email ? email.split('@')[0] : '';
-    const reason = 'Donation';
-
-    if (!email) {
-      email = prompt('Enter your email:') || '';
-      if (!email) return null;
-    }
-    if (!first_name) {
-      first_name = prompt('Enter your first name:') || '';
-      if (!first_name) return null;
-    }
-    if (!last_name) {
-      last_name = prompt('Enter your last name:') || '';
-      if (!last_name) return null;
-    }
-    if (!phone) {
-      phone = prompt('Enter your phone number:') || '';
-      if (!phone) return null;
-    }
-    if (!username) {
-      username = prompt('Enter your username:') || '';
-      if (!username) return null;
-    }
-    // Reason is always 'Donation', but you could prompt if you want
-    return { email, first_name, last_name, location, phone, username, reason };
-  };
+  // No client-side prompts; we only send amount and reason to backend for PayPal.
 
   const handleDonate = async (amount?: number) => {
-    if (!amount) {
-      const customAmount = prompt('Enter donation amount (USD):');
-      if (!customAmount || isNaN(Number(customAmount))) {
-        toast({
-          title: 'Invalid Amount',
-          description: 'Please enter a valid amount',
-          variant: 'destructive',
-        });
-        return;
-      }
-      amount = Number(customAmount);
+    if (!amount) amount = selectedAmount || 0;
+    if (!paymentMethod) {
+      toast({ title: 'Select Payment Method', description: 'Please choose M-Pesa or PayPal.', variant: 'default' });
+      return;
     }
 
     if (amount < 1) {
       toast({
         title: 'Invalid Amount',
         description: 'Minimum donation amount is $1 USD',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    // Collect donor info
-    const donorInfo = await collectDonorInfo();
-    if (!donorInfo) {
-      toast({
-        title: 'Missing Information',
-        description: 'All donor information is required.',
         variant: 'destructive',
       });
       return;
@@ -104,13 +47,20 @@ const DonationSection = () => {
       let body: Record<string, unknown> = {};
       let redirectField = '';
 
-      apiUrl = `${apiBaseUrl}/paypal/create-payment`;
-      body = {
-        amount: amount,
-        currency: 'USD',
-        reason: donorInfo.reason,
-      };
-      redirectField = 'approval_url';
+      if (paymentMethod === 'mpesa') {
+        // Redirect to Lipia Online payment link for MPesa
+        window.open('https://lipia-online.vercel.app/link/weareone', '_blank');
+        setIsLoading(false);
+        return;
+      } else {
+        apiUrl = `${apiBaseUrl}/paypal/create-payment`;
+        body = {
+          amount: amount,
+          currency: 'USD',
+          reason: 'Donation',
+        };
+        redirectField = 'approval_url';
+      }
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -192,8 +142,8 @@ const DonationSection = () => {
                 {donationTiers.map((tier, index) => (
                   <div
                     key={index}
-                    className="border border-gray-200 rounded-2xl p-6 text-center hover:border-ngo-orange hover:shadow-lg transition-all duration-300 cursor-pointer"
-                    onClick={() => handleDonate(tier.amount)}
+                    className={`border border-gray-200 rounded-2xl p-6 text-center hover:border-ngo-orange hover:shadow-lg transition-all duration-300 cursor-pointer ${selectedAmount === tier.amount ? 'ring-2 ring-ngo-orange' : ''}`}
+                    onClick={() => setSelectedAmount(tier.amount)}
                   >
                     <div className="bg-ngo-orange rounded-2xl w-16 h-16 flex items-center justify-center mx-auto mb-4">
                       <tier.icon className="w-8 h-8 text-white" />
@@ -210,16 +160,16 @@ const DonationSection = () => {
               {/* Only PayPal is available for now */}
               <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
                 <Button
-                  variant="default"
-                  className="bg-blue-600 text-white"
-                  disabled
+                  variant={paymentMethod === 'mpesa' ? 'default' : 'outline'}
+                  className={paymentMethod === 'mpesa' ? 'bg-green-600 text-white' : ''}
+                  onClick={() => setPaymentMethod('mpesa')}
                 >
-                  <CreditCard className="w-5 h-5 mr-2" /> Payd (Temporarily Unavailable)
+                  <Smartphone className="w-5 h-5 mr-2" /> M-Pesa
                 </Button>
                 <Button
-                  variant="default"
-                  className="bg-blue-600 text-white"
-                  disabled={isLoading}
+                  variant={paymentMethod === 'paypal' ? 'default' : 'outline'}
+                  className={paymentMethod === 'paypal' ? 'bg-blue-600 text-white' : ''}
+                  onClick={() => setPaymentMethod('paypal')}
                 >
                   <DollarSign className="w-5 h-5 mr-2" /> PayPal
                 </Button>
@@ -229,19 +179,27 @@ const DonationSection = () => {
                 <Button
                   size="lg"
                   onClick={() => {
-                    const customAmount = prompt('Enter donation amount (USD):');
-                    if (customAmount && !isNaN(Number(customAmount))) {
-                      handleDonate(Number(customAmount));
+                    if (!selectedAmount) {
+                      const customAmount = prompt('Enter donation amount (USD):');
+                      if (customAmount && !isNaN(Number(customAmount))) {
+                        setSelectedAmount(Number(customAmount));
+                      }
+                      return;
                     }
+                    // If payment method not chosen yet, don't show an error; let user pick first
+                    if (!paymentMethod) {
+                      return;
+                    }
+                    handleDonate(selectedAmount);
                   }}
                   disabled={isLoading}
                   variant="outline"
                   className="border-ngo-orange text-ngo-orange hover:bg-ngo-orange hover:text-white px-8 py-4 text-lg"
                 >
-                  Custom Amount
+                  {selectedAmount ? `Donate $${selectedAmount}` : 'Custom Amount'}
                 </Button>
                 <p className="text-gray-600 mt-4">
-                  Click a donation tier or "Custom Amount" to be redirected to PayPal and complete your donation securely.
+                  Select a tier, choose a payment method above, then click Donate.
                 </p>
               </div>
             </div>
