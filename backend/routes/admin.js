@@ -113,18 +113,30 @@ router.post('/auth/register', async (req, res) => {
 router.post('/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body || {};
+    console.log('🔐 Admin login attempt:', { email, hasPassword: !!password });
+    
     if (!email || !password) return res.status(400).json({ success: false, message: 'email and password are required' });
 
     const [rows] = await pool.execute('SELECT id, full_name, email, password_hash FROM admin_users WHERE email = ?', [email]);
+    console.log('👤 Admin user lookup:', { found: rows.length > 0, email });
+    
     if (rows.length === 0) return res.status(401).json({ success: false, message: 'Invalid credentials' });
     const admin = rows[0];
 
     const ok = await bcrypt.compare(password, admin.password_hash);
+    console.log('🔑 Password verification:', { success: ok, adminId: admin.id });
+    
     if (!ok) return res.status(401).json({ success: false, message: 'Invalid credentials' });
 
-    const token = jwt.sign({ adminId: admin.id }, process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET, { expiresIn: '7d' });
+    const jwtSecret = process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET;
+    console.log('🎫 JWT secret available:', !!jwtSecret);
+    
+    const token = jwt.sign({ adminId: admin.id }, jwtSecret, { expiresIn: '7d' });
+    console.log('✅ Admin login successful:', { adminId: admin.id, email: admin.email });
+    
     res.json({ success: true, token, admin: { id: admin.id, fullName: admin.full_name, email: admin.email } });
   } catch (e) {
+    console.error('❌ Admin login error:', e);
     res.status(500).json({ success: false, message: 'Login failed' });
   }
 });
@@ -135,10 +147,12 @@ router.use(adminAuth);
 // List payments
 router.get('/event-payments', async (req, res) => {
   try {
+    console.log('📊 Admin API: Fetching payments from database...');
     const [rows] = await pool.execute('SELECT * FROM event_payments ORDER BY created_at DESC');
+    console.log(`✅ Admin API: Found ${rows.length} payments`);
     res.json({ success: true, payments: rows || [] });
   } catch (e) {
-    console.error('List payments error:', e);
+    console.error('❌ Admin API: List payments error:', e);
     res.status(500).json({ success: false, message: 'Failed to load payments' });
   }
 });

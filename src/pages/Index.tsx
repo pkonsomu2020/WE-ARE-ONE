@@ -13,12 +13,12 @@ import { Link, useLocation } from 'react-router-dom';
 import { MessageCircle } from 'lucide-react';
 
 const nextEvent = {
-  title: 'Kanunga Falls Meetup',
-  date: 'Sunday October 12th | 10:00am - 6:00pm',
-  venue: 'Kanunga Falls',
-  image: '/EVENTS/WAO_KanungaFalls.jpg',
+  title: 'Kisumu Hangout',
+  date: 'Sunday October 19th | 9:00am - 6:00pm',
+  venue: 'Valley View Resort, Kisumu',
+  image: '/EVENTS/WAO_Kisumu-Meetup.jpg',
   // Set the event start date/time for countdown (ISO format)
-  startDate: new Date('2025-10-12T10:00:00'),
+  startDate: new Date('2025-10-19T09:00:00'),
 };
 
 const UpcomingEventSection: React.FC = () => {
@@ -50,15 +50,15 @@ const UpcomingEventSection: React.FC = () => {
         <div className="md:w-1/2 flex flex-col justify-center items-center p-8 bg-ngo-orange text-white">
           <div className="mb-6 text-center">
             <div className="uppercase tracking-widest text-sm mb-2">Upcoming Event</div>
-            <div className="text-4xl md:text-5xl font-extrabold mb-2 text-white">Kanunga Falls Meetup</div>
-            <div className="text-xl mb-1 text-white font-semibold">Sunday October 12th | 10:00am - 6:00pm</div>
-            <div className="text-lg mb-4 text-white">Kanunga Falls</div>
-            <Link
-              to="/events/kanunga-falls"
-              className="inline-block mt-4 px-8 py-3 bg-white text-ngo-orange font-bold text-lg rounded shadow hover:bg-orange-100 transition"
-            >
-              Join Now
-            </Link>
+                <div className="text-4xl md:text-5xl font-extrabold mb-2 text-white">Kisumu Hangout</div>
+                <div className="text-xl mb-1 text-white font-semibold">Sunday October 19th | 9:00am - 6:00pm</div>
+                <div className="text-lg mb-4 text-white">Valley View Resort, Kisumu</div>
+                <Link
+                  to="/events/kisumu-hangout-resort"
+                  className="inline-block mt-4 px-8 py-3 bg-white text-ngo-orange font-bold text-lg rounded shadow hover:bg-orange-100 transition"
+                >
+                  Join Now
+                </Link>
           </div>
           <div className="flex space-x-2 sm:space-x-4 md:space-x-6 lg:space-x-8 mt-10">
             <div className="flex flex-col items-center">
@@ -176,6 +176,7 @@ const Index = () => {
     <div className="min-h-screen">
       <Header />
       <HeroSection />
+      <DonationSection />
       <UpcomingEventSection />
       <AboutSection />
       <MissionSection />
@@ -217,7 +218,6 @@ const Index = () => {
           </div>
         </div>
       </section>
-      <DonationSection />
       <Footer />
       {/* Align vertically with chat icon on the right; BackToTop above Chat */}
       <BackToTop className="right-6 bottom-[104px] md:bottom-[104px]" />

@@ -14,6 +14,20 @@ export interface EventItem {
 
 export const events: EventItem[] = [
   {
+    id: 'kisumu-hangout-resort',
+    title: 'Kisumu Hangout',
+    image: '/EVENTS/WAO_Kisumu-Meetup.jpg',
+    date: 'SUN 19TH OCT, 2025 9:00AM - 6:00PM',
+    location: 'Valley View Resort, Kisumu',
+    price: 'KES 0',
+    description:
+      'Join us for an exciting day at Valley View Resort in Kisumu! Connect with the WAO community, enjoy activities, and build meaningful relationships in a beautiful resort setting.',
+    host: 'WE ARE ONE',
+    tickets: [{ name: 'General Admission', price: 'KES 0', status: 'Available' }],
+    photos: ['/EVENTS/WAO_Kisumu-Meetup.jpg'],
+    mapEmbed: 'https://www.google.com/maps?q=Valley+View+Resort+Kisumu&output=embed',
+  },
+  {
     id: 'kanunga-falls',
     title: 'Kanunga Falls Meetup',
     image: '/EVENTS/WAO_KanungaFalls.jpg',
