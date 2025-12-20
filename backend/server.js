@@ -12,61 +12,144 @@ const settingsRoutes = require('./routes/settings');
 const chatRoutes = require('./routes/chat');
 const chatHistoryRoutes = require('./routes/chatHistory');
 const eventsRoutes = require('./routes/events');
+const eventSchedulerRoutes = require('./routes/eventScheduler');
 const adminRoutes = require('./routes/admin');
+const adminSettingsRoutes = require('./routes/adminSettings');
+const fileRepositoryRoutes = require('./routes/fileRepository');
+// const fileRepositoryAdvancedRoutes = require('./routes/fileRepositoryAdvanced');
+const feedbackRoutes = require('./routes/feedback');
+const notificationRoutes = require('./routes/notifications');
 const { testConnection } = require('./config/database');
+const reminderService = require('./services/reminderService');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ✅ Centralized CORS options (first!)
+// ✅ Enhanced CORS configuration for admin panel
 const allowedOrigins = [
+  // Production domains
   'http://weareone.co.ke',
   'https://weareone.co.ke',
   'http://www.weareone.co.ke',
   'https://www.weareone.co.ke',
   'http://admin.weareone.co.ke',
   'https://admin.weareone.co.ke',
+  // Vercel deployment URLs (will be updated after deployment)
+  'https://weareone-frontend.vercel.app',
+  'https://weareone-admin.vercel.app',
+  // Development localhost
   'http://localhost:5173',
   'http://localhost:8080',
   'http://localhost:8081',
   'http://localhost:8083',
   'http://localhost:8090',
   'http://127.0.0.1:8083',
-  'http://localhost:3000'
+  'http://localhost:3000',
+  'http://localhost:4173',
+  'http://localhost:5174',
+  'http://localhost:8082',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:8080'
 ];
 
 const corsOptions = {
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    // Allow all localhost origins for development
+    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      return callback(null, true);
+    }
+
+    // Allow all weareone.co.ke subdomains (including admin.weareone.co.ke)
+    if (origin.includes('weareone.co.ke')) {
+      return callback(null, true);
+    }
+
+    // Check against allowed origins for production
+    if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: [
     'Content-Type',
     'Authorization',
     'Origin',
     'X-Requested-With',
     'Accept',
-    'x-admin-key'
+    'x-admin-key',
+    'Cache-Control',
+    'Pragma'
   ],
+  exposedHeaders: ['Content-Length', 'X-Foo', 'X-Bar'],
   preflightContinue: false,
-  optionsSuccessStatus: 204
+  optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
 };
 
 // ✅ Apply CORS before anything else
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // Preflight for all routes
+
+// ✅ Additional CORS middleware specifically for admin routes
+app.use('/api/admin', (req, res, next) => {
+  const origin = req.headers.origin;
+
+  // TEMPORARY: Allow all origins for admin routes (for debugging)
+  // TODO: Restrict this in production
+  res.header('Access-Control-Allow-Origin', origin || '*');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,Origin,X-Requested-With,Accept,x-admin-key,Cache-Control,Pragma');
+
+  next();
+});
+
+// ✅ Handle preflight requests explicitly
+app.options('*', (req, res) => {
+  const origin = req.headers.origin;
+
+  // Check if origin is allowed
+  const isAllowed = !origin ||
+    origin.includes('localhost') ||
+    origin.includes('127.0.0.1') ||
+    allowedOrigins.includes(origin);
+
+  if (isAllowed) {
+    res.header('Access-Control-Allow-Origin', origin || '*');
+    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,PATCH');
+    res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,Origin,X-Requested-With,Accept,x-admin-key,Cache-Control,Pragma');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Max-Age', '86400'); // 24 hours
+    res.sendStatus(200);
+  } else {
+    res.sendStatus(403);
+  }
+});
 
 // ✅ Body parsing (still before routes)
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// ✅ Security middleware
-app.use(helmet());
+// ✅ Security middleware (configured to allow CORS)
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  crossOriginEmbedderPolicy: false,
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      connectSrc: ["'self'", "https://admin.weareone.co.ke", "https://weareone.co.ke"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+    },
+  },
+}));
 
 // ✅ Rate limiting middleware
 app.use(rateLimit({
@@ -79,7 +162,7 @@ app.use(rateLimit({
 testConnection();
 
 // ✅ Health check route
-app.get('/health', (req, res) => {
+app.get('/api/health', (req, res) => {
   res.status(200).json({
     status: 'OK',
     timestamp: new Date().toISOString(),
@@ -97,7 +180,13 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/chat-history', chatHistoryRoutes);
 app.use('/api/events', eventsRoutes);
+app.use('/api/event-scheduler', eventSchedulerRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/admin-settings', adminSettingsRoutes);
+app.use('/api/file-repository', fileRepositoryRoutes);
+// app.use('/api/file-repository-advanced', fileRepositoryAdvancedRoutes);
+app.use('/api/feedback', feedbackRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // ✅ Global error handler
 app.use((err, req, res, next) => {
@@ -122,4 +211,11 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV}`);
   console.log(`Payd Mode: ${process.env.PAYD_MODE}`);
+
+  // Start the reminder service for automatic notifications
+  if (process.env.NODE_ENV === 'production') {
+    reminderService.start();
+  } else {
+    console.log('⚠️ Reminder service disabled in development mode');
+  }
 });

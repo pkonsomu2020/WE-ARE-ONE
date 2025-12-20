@@ -1,13 +1,19 @@
 const getApiBaseUrl = () => {
   const hostname = window.location.hostname;
-  
+
   // Development environment
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return 'http://localhost:3000';
+    return 'http://localhost:3000/api';
   }
-  
-  // Production environment
-  return 'https://weareone.co.ke';
+
+  // Production environment - now using Render backend
+  // Check if we have a custom API URL from environment
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+
+  // Default to Render backend URL
+  return 'https://wao-backend.onrender.com/api';
 };
 
 const API_BASE_URL = getApiBaseUrl();
@@ -46,7 +52,7 @@ export const api = {
     if (!res.ok) throw new Error(await res.text());
     return res.json();
   },
-  
+
   // Helper method to get the base URL
   getBaseUrl: () => API_BASE_URL,
 }; 

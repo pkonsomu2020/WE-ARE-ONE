@@ -24,9 +24,11 @@ const testConnection = async () => {
     const connection = await promisePool.getConnection();
     console.log('✅ Database connected successfully');
     connection.release();
+    return true;
   } catch (error) {
     console.error('❌ Database connection failed:', error.message);
-    process.exit(1);
+    console.log('⚠️ Server will continue without database connection');
+    return false;
   }
 };
 
