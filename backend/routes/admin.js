@@ -112,32 +112,66 @@ router.post('/auth/register', async (req, res) => {
 
 router.post('/auth/login', async (req, res) => {
   try {
-    const { email, password } = req.body || {};
-    console.log('🔐 Admin login attempt:', { email, hasPassword: !!password });
+    console.log('🔐 Admin login request received');
+    console.log('📋 Request headers:', {
+      origin: req.headers.origin,
+      'content-type': req.headers['content-type'],
+      'user-agent': req.headers['user-agent']?.substring(0, 50) + '...'
+    });
     
-    if (!email || !password) return res.status(400).json({ success: false, message: 'email and password are required' });
+    const { email, password } = req.body || {};
+    console.log('🔐 Admin login attempt:', { email, hasPassword: !!password, bodyKeys: Object.keys(req.body || {}) });
+    
+    if (!email || !password) {
+      console.log('❌ Missing email or password');
+      return res.status(400).json({ success: false, message: 'email and password are required' });
+    }
 
     const [rows] = await pool.execute('SELECT id, full_name, email, password_hash FROM admin_users WHERE email = ?', [email]);
-    console.log('👤 Admin user lookup:', { found: rows.length > 0, email });
+    console.log('👤 Admin user lookup:', { found: rows.length > 0, email, tableExists: true });
     
-    if (rows.length === 0) return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    if (rows.length === 0) {
+      console.log('❌ Admin user not found:', email);
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+    
     const admin = rows[0];
 
     const ok = await bcrypt.compare(password, admin.password_hash);
     console.log('🔑 Password verification:', { success: ok, adminId: admin.id });
     
-    if (!ok) return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    if (!ok) {
+      console.log('❌ Password verification failed');
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
 
     const jwtSecret = process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET;
     console.log('🎫 JWT secret available:', !!jwtSecret);
     
-    const token = jwt.sign({ adminId: admin.id }, jwtSecret, { expiresIn: '7d' });
-    console.log('✅ Admin login successful:', { adminId: admin.id, email: admin.email });
+    if (!jwtSecret) {
+      console.error('❌ No JWT secret available');
+      return res.status(500).json({ success: false, message: 'Server configuration error' });
+    }
     
-    res.json({ success: true, token, admin: { id: admin.id, fullName: admin.full_name, email: admin.email } });
+    const token = jwt.sign({ adminId: admin.id }, jwtSecret, { expiresIn: '7d' });
+    console.log('✅ Admin login successful:', { adminId: admin.id, email: admin.email, tokenLength: token.length });
+    
+    // Set CORS headers explicitly for this response
+    res.header('Access-Control-Allow-Origin', req.headers.origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+    
+    res.json({ 
+      success: true, 
+      token, 
+      admin: { 
+        id: admin.id, 
+        fullName: admin.full_name, 
+        email: admin.email 
+      } 
+    });
   } catch (e) {
     console.error('❌ Admin login error:', e);
-    res.status(500).json({ success: false, message: 'Login failed' });
+    res.status(500).json({ success: false, message: 'Login failed', error: e.message });
   }
 });
 
@@ -246,6 +280,96 @@ router.put('/event-payments/:id', async (req, res) => {
   }
 });
 
+// Dashboard Stats Endpoint
+router.get('/dashboard/stats', async (req, res) => {
+  try {
+    // Get total orders
+    const [totalOrdersResult] = await pool.execute(
+      'SELECT COUNT(*) as count FROM event_payments'
+    );
+    
+    // Get paid orders
+    const [paidOrdersResult] = await pool.execute(
+      'SELECT COUNT(*) as count FROM event_payments WHERE status = "paid"'
+    );
+    
+    // Get pending complaints (placeholder - will be replaced when feedback API is implemented)
+    const pendingComplaints = 0;
+    
+    // Get active events (placeholder - will be replaced when events API is implemented)
+    const activeEvents = 0;
+    
+    // Get upcoming meetings (placeholder)
+    const upcomingMeetings = 0;
+    
+    // Get total revenue
+    const [revenueResult] = await pool.execute(
+      'SELECT SUM(amount) as total FROM event_payments WHERE status = "paid"'
+    );
+    
+    const stats = {
+      totalOrders: totalOrdersResult[0].count,
+      paidOrders: paidOrdersResult[0].count,
+      activeEvents: activeEvents,
+      pendingComplaints: pendingComplaints,
+      upcomingMeetings: upcomingMeetings,
+      totalRevenue: revenueResult[0].total || 0
+    };
+    
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    console.error('Error fetching dashboard stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch dashboard statistics'
+    });
+  }
+});
+
+// Mission Vision Endpoint
+router.get('/dashboard/mission-vision', async (req, res) => {
+  try {
+    // For now, return the hardcoded mission and vision
+    // This can be made dynamic by storing in database later
+    const missionVision = {
+      mission: "To provide comprehensive mental health support, foster community connections, and create safe spaces for healing and growth through accessible resources, peer support, and professional guidance. We are committed to fostering mental wellness, building resilient communities, and ensuring that no one faces their challenges alone.",
+      vision: "A world where mental health is prioritized, stigma is eliminated, and every individual has access to the support they need to thrive emotionally, mentally, and socially. We envision communities where mental wellness is valued equally with physical health.",
+      lastUpdated: new Date().toLocaleDateString(),
+      source: 'admin',
+      missionPoints: [
+        {
+          title: "Support & Community",
+          description: "Creating safe spaces where individuals can share their experiences, find understanding, and build meaningful connections with others who understand their journey."
+        },
+        {
+          title: "Education & Awareness", 
+          description: "Raising awareness about mental health issues, reducing stigma, and providing educational resources to empower individuals and families."
+        },
+        {
+          title: "Advocacy & Policy Change",
+          description: "Advocating for better mental health policies, improved access to services, and systemic changes that benefit our community."
+        },
+        {
+          title: "Peer Mentorship",
+          description: "Connecting individuals with trained peer mentors who can provide guidance, support, and hope based on lived experience."
+        }
+      ]
+    };
+    
+    res.json({
+      success: true,
+      data: missionVision
+    });
+  } catch (error) {
+    console.error('Error fetching mission/vision:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch mission and vision'
+    });
+  }
+});
+
 module.exports = router;
-
-

@@ -1,0 +1,63 @@
+services:
+  - type: web
+    name: wao-backend
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: FRONTEND_URL
+        value: https://weareone.co.ke
+      - key: DB_HOST
+        fromDatabase:
+          name: wao-mysql
+          property: host
+      - key: DB_NAME
+        value: weareone_donation_app
+      - key: DB_USER
+        fromDatabase:
+          name: wao-mysql
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: wao-mysql
+          property: password
+      - key: JWT_SECRET
+        generateValue: true
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: PAYPAL_MODE
+        value: live
+      - key: EMAIL_HOST
+        value: smtp.gmail.com
+      - key: EMAIL_PORT
+        value: 587
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_PASS
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: PAYD_USERNAME
+        sync: false
+      - key: PAYD_PASSWORD
+        sync: false
+      - key: PAYD_MODE
+        value: live
+      - key: ADMIN_API_KEY
+        generateValue: true
+      - key: ADMIN_DEFAULT_EMAIL
+        value: admin@weareone.co.ke
+      - key: ADMIN_DEFAULT_PASSWORD
+        sync: false
+      - key: ADMIN_DEFAULT_NAME
+        value: WAO Admin
+      - key: EVENTS_ADMIN_EMAIL
+        value: events@weareone.co.ke

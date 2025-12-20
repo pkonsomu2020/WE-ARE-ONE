@@ -1,198 +1,260 @@
-# ✅ WE-ARE-ONE Deployment Checklist
+# 🚀 WeAreOne Deployment Checklist
 
-## Pre-Deployment Setup
+## ✅ Phase 1: Backend Migration to Render (READY TO START)
 
-### Environment Variables
-- [ ] Copy `backend/env.production.example` to `backend/.env`
-- [ ] Update database credentials for production
-- [ ] Set `FRONTEND_URL=https://weareone.co.ke`
-- [ ] Set `NODE_ENV=production`
-- [ ] Configure PayPal live credentials
-- [ ] Set up email SMTP configuration
-- [ ] Generate secure JWT secrets
-- [ ] Set admin API key and credentials
+### 1.1 Prerequisites Completed ✅
+- [x] Backend code cleaned and prepared
+- [x] Environment variables documented (.env.example)
+- [x] Render configuration created (render.yaml)
+- [x] CORS updated for new domains
+- [x] API URLs updated in frontend
 
-### Database Setup
-- [ ] Create MySQL database in cPanel
-- [ ] Import `backend/config/schema.sql`
-- [ ] Test database connection
-- [ ] Verify all tables are created
+### 1.2 Deploy Backend to Render
+**Time Estimate: 30-45 minutes**
 
-### Domain & SSL
-- [ ] Ensure `weareone.co.ke` is pointing to cPanel
-- [ ] Enable SSL certificate
-- [ ] Set up HTTPS redirect
-- [ ] Create admin subdomain: `admin.weareone.co.ke`
+1. **Create Render Account**
+   - Go to [render.com](https://render.com)
+   - Sign up with GitHub account
+   - Connect your repository
 
-## Backend Deployment
+2. **Create Web Service**
+   - Click "New +" → "Web Service"
+   - Select your GitHub repository
+   - Configure settings:
+     - **Name**: `wao-backend`
+     - **Environment**: `Node`
+     - **Region**: `Oregon (US West)`
+     - **Branch**: `main`
+     - **Root Directory**: `backend`
+     - **Build Command**: `npm install`
+     - **Start Command**: `npm start`
 
-### Node.js App Configuration
-- [ ] Upload `backend/` folder to cPanel
-- [ ] Install production dependencies: `npm install --production`
-- [ ] Configure Node.js app in cPanel
-- [ ] Set startup file to `server.js`
-- [ ] Set Node.js version to 18.x+
-- [ ] Start the application
+3. **Set Environment Variables**
+   Copy from your current `.env` file:
+   ```
+   NODE_ENV=production
+   PORT=10000
+   DB_HOST=[your-cpanel-mysql-host]
+   DB_NAME=weareone_donation_app
+   DB_USER=[your-mysql-username]
+   DB_PASSWORD=[your-mysql-password]
+   FRONTEND_URL=https://weareone.co.ke
+   JWT_SECRET=[your-jwt-secret]
+   PAYPAL_CLIENT_ID=[your-paypal-client-id]
+   PAYPAL_CLIENT_SECRET=[your-paypal-client-secret]
+   PAYPAL_MODE=live
+   EMAIL_HOST=smtp.gmail.com
+   EMAIL_PORT=587
+   EMAIL_USER=[your-email]
+   EMAIL_PASS=[your-email-password]
+   EMAIL_FROM=[your-email]
+   PAYD_USERNAME=[your-payd-username]
+   PAYD_PASSWORD=[your-payd-password]
+   PAYD_MODE=live
+   ADMIN_API_KEY=[your-admin-api-key]
+   ADMIN_DEFAULT_EMAIL=admin@weareone.co.ke
+   ADMIN_DEFAULT_PASSWORD=[your-admin-password]
+   ADMIN_DEFAULT_NAME=WAO Admin
+   EVENTS_ADMIN_EMAIL=events@weareone.co.ke
+   ```
 
-### API Testing
-- [ ] Test health endpoint: `https://weareone.co.ke/health`
-- [ ] Test authentication: `https://weareone.co.ke/api/auth/login`
-- [ ] Test chat endpoint: `https://weareone.co.ke/api/chat/health`
-- [ ] Verify CORS is working
-- [ ] Test database connections
+4. **Enable External MySQL Access**
+   - Login to cPanel
+   - Go to "Remote MySQL"
+   - Add `%` (allow all IPs) or specific Render IPs
+   - Test connection
 
-## Frontend Deployment
+5. **Deploy and Test**
+   - Click "Create Web Service"
+   - Wait for deployment (5-10 minutes)
+   - Test endpoints:
+     ```bash
+     curl https://wao-backend.onrender.com/api/health
+     curl https://wao-backend.onrender.com/api/cors-test
+     ```
 
-### Build & Upload
-- [ ] Run `npm run build` in project root
-- [ ] Upload `dist/` contents to `public_html/`
-- [ ] Create `.htaccess` file for React Router
-- [ ] Verify `index.html` is in root directory
-
-### Frontend Testing
-- [ ] Test homepage loads correctly
-- [ ] Test user registration/login
-- [ ] Test AI chat functionality
-- [ ] Test donation system
-- [ ] Test mobile responsiveness
-
-## Admin Panel Deployment
-
-### Build & Upload
-- [ ] Run `npm run build` in `WAO_Admin/` directory
-- [ ] Upload admin `dist/` to admin subdomain
-- [ ] Create `.htaccess` for admin panel
-- [ ] Configure admin environment variables
-
-### Admin Testing
-- [ ] Test admin login at `admin.weareone.co.ke`
-- [ ] Test payment management
-- [ ] Test event management
-- [ ] Verify admin API key works
-
-## Email Configuration
-
-### SMTP Setup
-- [ ] Configure email service in cPanel
-- [ ] Test password reset emails
-- [ ] Test event registration emails
-- [ ] Test payment confirmation emails
-
-## Security Verification
-
-### Environment Security
-- [ ] All sensitive data in environment variables
-- [ ] No hardcoded credentials in code
-- [ ] Strong passwords and API keys
-- [ ] JWT secrets are secure
-
-### SSL & HTTPS
-- [ ] SSL certificate is active
-- [ ] All HTTP traffic redirects to HTTPS
-- [ ] Mixed content warnings resolved
-- [ ] Security headers configured
-
-## Payment System
-
-### PayPal Configuration
-- [ ] PayPal live credentials configured
-- [ ] Test donation flow end-to-end
-- [ ] Verify success/failure redirects
-- [ ] Test payment notifications
-
-### M-Pesa Configuration (if using)
-- [ ] M-Pesa live credentials configured
-- [ ] Test payment flow
-- [ ] Verify webhook endpoints
-
-## AI Chat System
-
-### Ollama Configuration
-- [ ] Ollama server is accessible
-- [ ] Test AI chat responses
-- [ ] Verify model is working
-- [ ] Test conversation history
-
-## Final Testing
-
-### User Experience
-- [ ] Test complete user registration flow
-- [ ] Test login/logout functionality
-- [ ] Test password reset process
-- [ ] Test profile management
-- [ ] Test mood tracking
-- [ ] Test journal entries
-- [ ] Test event registration
-
-### Performance
-- [ ] Page load times are acceptable
-- [ ] Images and assets load correctly
-- [ ] Mobile performance is good
-- [ ] API response times are reasonable
-
-### Error Handling
-- [ ] 404 pages work correctly
-- [ ] Error messages are user-friendly
-- [ ] Network errors are handled gracefully
-- [ ] Form validation works
-
-## Monitoring Setup
-
-### Logs & Monitoring
-- [ ] Set up error logging
-- [ ] Configure uptime monitoring
-- [ ] Set up performance monitoring
-- [ ] Configure backup systems
-
-### Maintenance
-- [ ] Schedule regular backups
-- [ ] Plan update procedures
-- [ ] Document maintenance tasks
-- [ ] Set up alert systems
-
-## Documentation
-
-### Deployment Documentation
-- [ ] Update README with production URLs
-- [ ] Document deployment procedures
-- [ ] Create maintenance guides
-- [ ] Document troubleshooting steps
-
-### User Documentation
-- [ ] Create user guides
-- [ ] Document admin procedures
-- [ ] Create support documentation
-
-## Go Live Checklist
-
-### Final Verification
-- [ ] All tests pass
-- [ ] No console errors
-- [ ] All features working
-- [ ] Performance is acceptable
-- [ ] Security is verified
-- [ ] Backup systems are active
-
-### Launch
-- [ ] Announce the launch
-- [ ] Monitor for issues
-- [ ] Gather user feedback
-- [ ] Plan for improvements
+### 1.3 Backend Deployment Verification
+- [ ] Service deployed successfully
+- [ ] Health check endpoint working
+- [ ] Database connection established
+- [ ] CORS test passing
+- [ ] Admin endpoints accessible
 
 ---
 
-## 🎉 Deployment Complete!
+## 📋 Phase 2: Frontend Migration to Vercel (AFTER BACKEND)
 
-Your WE-ARE-ONE application is now live at:
-- **Main Site**: https://weareone.co.ke
-- **Admin Panel**: https://admin.weareone.co.ke
+### 2.1 User Frontend Deployment
+**Time Estimate: 20-30 minutes**
 
-### Important URLs
-- Health Check: https://weareone.co.ke/health
-- API Base: https://weareone.co.ke/api
-- Admin Login: https://admin.weareone.co.ke
+1. **Create Vercel Account**
+   - Go to [vercel.com](https://vercel.com)
+   - Sign up with GitHub account
 
-### Support Contacts
-- Technical Issues: Check cPanel logs
-- User Support: Monitor user feedback
-- Payment Issues: Check PayPal dashboard 
+2. **Deploy User Frontend**
+   - Click "New Project"
+   - Import your repository
+   - Configure:
+     - **Framework Preset**: Vite
+     - **Root Directory**: `.` (root)
+     - **Build Command**: `npm run build`
+     - **Output Directory**: `dist`
+
+3. **Set Environment Variables**
+   ```
+   VITE_API_BASE_URL=https://wao-backend.onrender.com/api
+   ```
+
+4. **Custom Domain Setup**
+   - Add domain: `weareone.co.ke`
+   - Follow DNS instructions
+
+### 2.2 Admin Frontend Deployment
+**Time Estimate: 20-30 minutes**
+
+1. **Deploy Admin Frontend**
+   - Create new Vercel project
+   - Import repository
+   - Configure:
+     - **Framework Preset**: Vite
+     - **Root Directory**: `WAO_Admin`
+     - **Build Command**: `npm run build`
+     - **Output Directory**: `dist`
+
+2. **Set Environment Variables**
+   ```
+   VITE_API_BASE_URL=https://wao-backend.onrender.com
+   VITE_ADMIN_API_KEY=[your-admin-api-key]
+   ```
+
+3. **Custom Domain Setup**
+   - Add domain: `admin.weareone.co.ke`
+   - Follow DNS instructions
+
+---
+
+## 🌐 Phase 3: DNS Configuration (FINAL STEP)
+
+### 3.1 DNS Records to Update
+**Time Estimate: 15 minutes (24-48 hours propagation)**
+
+In your domain registrar (where weareone.co.ke is managed):
+
+1. **Main Website**
+   ```
+   Type: A or CNAME
+   Name: @ (or weareone.co.ke)
+   Value: [Vercel IP from dashboard]
+   ```
+
+2. **Admin Panel**
+   ```
+   Type: CNAME
+   Name: admin
+   Value: [Vercel domain from admin deployment]
+   ```
+
+3. **API Backend** (Optional - for custom domain)
+   ```
+   Type: CNAME
+   Name: api
+   Value: wao-backend.onrender.com
+   ```
+
+### 3.2 SSL Certificates
+- Vercel: Automatic SSL (Let's Encrypt)
+- Render: Automatic SSL (Let's Encrypt)
+- No action required
+
+---
+
+## 🧪 Phase 4: Testing & Verification
+
+### 4.1 Full System Test
+- [ ] User registration/login
+- [ ] Admin panel access
+- [ ] Payment processing (PayPal/Payd)
+- [ ] File uploads
+- [ ] Email notifications
+- [ ] Event scheduling
+- [ ] All CRUD operations
+
+### 4.2 Performance Test
+- [ ] Page load times
+- [ ] API response times
+- [ ] Mobile responsiveness
+- [ ] Cross-browser compatibility
+
+---
+
+## 🚨 Rollback Plan
+
+If issues occur:
+
+1. **Immediate Rollback**
+   - Revert DNS to point back to cPanel
+   - Keep old cPanel files as backup
+
+2. **Partial Rollback**
+   - Keep backend on Render, revert frontend to cPanel
+   - Or vice versa
+
+3. **Debug Mode**
+   - Use Render/Vercel logs for debugging
+   - Test with direct URLs before DNS switch
+
+---
+
+## 💰 Cost Summary
+
+### Free Tier Limits
+- **Render**: 750 hours/month (sleeps after 15min inactivity)
+- **Vercel**: 100GB bandwidth, unlimited deployments
+- **Total Cost**: $0/month for development
+
+### Paid Upgrades (If Needed)
+- **Render Pro**: $7/month (no sleep, better performance)
+- **Vercel Pro**: $20/month (more bandwidth, analytics)
+
+---
+
+## 📞 Next Actions
+
+### Immediate (Today)
+1. ✅ Complete backend preparation (DONE)
+2. 🚀 Deploy backend to Render
+3. 🧪 Test backend endpoints
+
+### This Week
+1. Deploy user frontend to Vercel
+2. Deploy admin frontend to Vercel
+3. Test full system with temporary URLs
+
+### Next Week
+1. Update DNS records
+2. Monitor for 48 hours
+3. Clean up old cPanel files (keep database)
+
+---
+
+## 🆘 Support & Troubleshooting
+
+### Common Issues
+- **CORS Errors**: Check allowed origins in backend
+- **Database Connection**: Verify cPanel external access
+- **Build Failures**: Check Node.js version compatibility
+- **DNS Propagation**: Use DNS checker tools
+
+### Monitoring
+- Render Dashboard: Logs, metrics, alerts
+- Vercel Dashboard: Analytics, performance
+- Uptime monitoring: Consider UptimeRobot (free)
+
+### Backup Strategy
+- Database: Regular MySQL exports
+- Code: Git repository (already done)
+- Environment: Document all settings
+
+---
+
+**Ready to start? Begin with Phase 1: Backend Deployment to Render! 🚀**

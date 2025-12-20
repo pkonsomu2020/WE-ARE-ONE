@@ -54,7 +54,7 @@ const EventDetails: React.FC = () => {
 
   // Monitor form reference
   useEffect(() => {
-    console.log('🔄 Form reference updated:', formRef);
+    // Form reference updated
   }, [formRef]);
 
   // Robust form reset function
@@ -63,7 +63,6 @@ const EventDetails: React.FC = () => {
       // Method 1: Use stored form reference
       if (formRef) {
         formRef.reset();
-        console.log('✅ Form reset via stored reference');
         return;
       }
       
@@ -71,7 +70,6 @@ const EventDetails: React.FC = () => {
       const form = document.querySelector('form');
       if (form) {
         form.reset();
-        console.log('✅ Form reset via document.querySelector');
         return;
       }
       
@@ -84,7 +82,6 @@ const EventDetails: React.FC = () => {
           input.value = '';
         }
       });
-      console.log('✅ Form reset via manual input clearing');
       
     } catch (error) {
       console.error('❌ Form reset failed:', error);
@@ -126,7 +123,6 @@ const EventDetails: React.FC = () => {
 
     try {
       const apiBase = api.getBaseUrl();
-      console.log('🌐 API Base URL:', apiBase);
       
       // Test backend connectivity first
       try {
@@ -134,26 +130,21 @@ const EventDetails: React.FC = () => {
           method: 'GET',
           timeout: 5000 
         });
-        console.log('🏥 Backend Health Check:', healthCheck.status);
         
         // Test events endpoint
         const eventsTest = await fetch(`${apiBase}/api/events/test`, { 
           method: 'GET',
           timeout: 5000 
         });
-        console.log('🎯 Events Endpoint Test:', eventsTest.status);
         
         if (eventsTest.ok) {
           const testData = await eventsTest.json();
-          console.log('✅ Events Test Response:', testData);
         }
       } catch (healthErr) {
         console.warn('⚠️ Backend health check failed:', healthErr);
       }
       
-      console.log('📝 Form Data:', {
-        eventId: event.id,
-        fullName,
+      const payload = {
         email,
         phone,
         experience,
@@ -183,7 +174,6 @@ const EventDetails: React.FC = () => {
         
         const data = await api.post('/api/events/register', payload);
         
-        console.log('✅ Success Response:', data);
         const tno = data.ticketNumber ? ` Your Ticket Number is ${data.ticketNumber}.` : '';
         setMessage({ type: 'success', text: `Registration received! We have emailed a confirmation.${tno}` });
         resetForm();
@@ -219,7 +209,6 @@ const EventDetails: React.FC = () => {
 
         if (res.ok) {
           const data = await res.json().catch(() => ({}));
-          console.log('✅ Direct Fetch Success:', data);
           setMessage({ type: 'success', text: 'Registration received! We have emailed a confirmation.' });
           resetForm();
         } else {

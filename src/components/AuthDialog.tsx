@@ -200,9 +200,6 @@ const AuthDialog = ({ trigger }: AuthDialogProps) => {
     const formData = new FormData(e.currentTarget);
     const apiBaseUrl = getApiUrl();
     
-    console.log('API Base URL:', apiBaseUrl);
-    console.log('Current origin:', window.location.origin);
-    
     try {
       if (isLogin) {
         // Login request
@@ -212,7 +209,6 @@ const AuthDialog = ({ trigger }: AuthDialogProps) => {
         };
 
         const loginUrl = `${apiBaseUrl}/auth/login`;
-        console.log('Attempting login to:', loginUrl);
 
         const response = await fetch(loginUrl, {
           method: 'POST',
@@ -223,9 +219,6 @@ const AuthDialog = ({ trigger }: AuthDialogProps) => {
           },
           body: JSON.stringify(loginData)
         });
-
-        console.log('Login response status:', response.status);
-        console.log('Login response headers:', Object.fromEntries(response.headers.entries()));
 
         // Check if response is actually JSON
         const contentType = response.headers.get('content-type');
@@ -273,7 +266,6 @@ const AuthDialog = ({ trigger }: AuthDialogProps) => {
         };
 
         const registerUrl = `${apiBaseUrl}/auth/register`;
-        console.log('Attempting registration to:', registerUrl);
 
         const response = await fetch(registerUrl, {
           method: 'POST',
