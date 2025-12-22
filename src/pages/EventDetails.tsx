@@ -150,7 +150,7 @@ const EventDetails: React.FC = () => {
         experience,
         acceptTerms,
         acceptUpdates,
-      });
+      };
       
       // Use the centralized API utility
       try {
