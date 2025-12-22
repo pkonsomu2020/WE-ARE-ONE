@@ -12,6 +12,9 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
+# Database migrations (temporary migration files)
+migrations/
+
 # Logs
 logs
 *.log
