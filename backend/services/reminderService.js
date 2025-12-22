@@ -9,7 +9,7 @@ class ReminderService {
     this.checkInterval = 5 * 60 * 1000; // Check every 5 minutes
     
     // Email transporter with better timeout settings
-    this.transporter = nodemailer.createTransporter({
+    this.transporter = nodemailer.createTransport({
       host: process.env.EMAIL_HOST,
       port: process.env.EMAIL_PORT,
       secure: false,
