@@ -214,7 +214,13 @@ app.listen(PORT, () => {
 
   // Start the reminder service for automatic notifications
   if (process.env.NODE_ENV === 'production') {
-    reminderService.start();
+    // Check if email configuration is available
+    if (process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+      reminderService.start();
+    } else {
+      console.log('⚠️ Reminder service disabled - Email configuration missing');
+      console.log('💡 Set EMAIL_HOST, EMAIL_USER, and EMAIL_PASS to enable reminders');
+    }
   } else {
     console.log('⚠️ Reminder service disabled in development mode');
   }
