@@ -34,9 +34,11 @@ const allowedOrigins = [
   'https://www.weareone.co.ke',
   'http://admin.weareone.co.ke',
   'https://admin.weareone.co.ke',
-  // Vercel deployment URLs (will be updated after deployment)
+  // Vercel deployment URLs
   'https://weareone-frontend.vercel.app',
   'https://weareone-admin.vercel.app',
+  'https://we-are-one-pkonsomu2020s-projects.vercel.app',
+  'https://we-are-one-git-main-pkonsomu2020s-projects.vercel.app',
   // Development localhost
   'http://localhost:5173',
   'http://localhost:8080',
