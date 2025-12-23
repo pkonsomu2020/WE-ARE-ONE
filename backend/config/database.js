@@ -51,7 +51,7 @@ async function handleSelectQuery(query, params) {
     
     // Handle WHERE clauses with parameters
     if (query.includes('WHERE') && params && params.length > 0) {
-      // For user login: SELECT id, full_name, email, phone, password_hash FROM users WHERE email = ?
+      // For user/admin login: SELECT ... FROM users/admin_users WHERE email = ?
       if (query.includes('email = ?') && params[0]) {
         const { data, error } = await supabase
           .from(tableName)
@@ -89,6 +89,25 @@ async function handleSelectQuery(query, params) {
 async function handleInsertQuery(query, params) {
   const tableMatch = query.match(/insert\s+into\s+(\w+)/i);
   if (tableMatch) {
+    const tableName = tableMatch[1];
+    
+    // Handle admin_users INSERT
+    if (tableName === 'admin_users' && params && params.length >= 3) {
+      const [fullName, email, passwordHash] = params;
+      const { data, error } = await supabase
+        .from('admin_users')
+        .insert({
+          full_name: fullName,
+          email: email,
+          password_hash: passwordHash
+        })
+        .select();
+      
+      if (error) throw error;
+      return [[], { affectedRows: 1, insertId: data[0]?.id || 1 }];
+    }
+    
+    // Handle other INSERT queries as needed
     return [[], { affectedRows: 1, insertId: 1 }];
   }
   return [[], { affectedRows: 0 }];
