@@ -9,7 +9,8 @@ const getApiBaseUrl = () => {
   // Production environment - ALWAYS use Render backend
   // Check if we have a custom API URL from environment
   if (import.meta.env.VITE_API_BASE_URL) {
-    return import.meta.env.VITE_API_BASE_URL;
+    // Clean any whitespace/newlines from environment variable
+    return import.meta.env.VITE_API_BASE_URL.trim();
   }
 
   // Default to correct Render backend URL
@@ -27,12 +28,16 @@ console.log('🔍 API Configuration:', {
 
 export const api = {
   get: async (url: string) => {
-    const res = await fetch(`${API_BASE_URL}${url}`, { credentials: 'include' });
+    const fullUrl = `${API_BASE_URL}${url}`;
+    console.log('🌐 API GET:', fullUrl);
+    const res = await fetch(fullUrl, { credentials: 'include' });
     if (!res.ok) throw new Error(await res.text());
     return res.json();
   },
   post: async (url: string, data: any) => {
-    const res = await fetch(`${API_BASE_URL}${url}`, {
+    const fullUrl = `${API_BASE_URL}${url}`;
+    console.log('🌐 API POST:', fullUrl);
+    const res = await fetch(fullUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
