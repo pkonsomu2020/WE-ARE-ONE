@@ -49,12 +49,26 @@ async function handleSelectQuery(query, params) {
   if (tableMatch) {
     const tableName = tableMatch[1];
     
-    if (query.includes('SELECT *') || query.includes('select *')) {
+    // Handle WHERE clauses with parameters
+    if (query.includes('WHERE') && params && params.length > 0) {
+      // For user login: SELECT id, full_name, email, phone, password_hash FROM users WHERE email = ?
+      if (query.includes('email = ?') && params[0]) {
+        const { data, error } = await supabase
+          .from(tableName)
+          .select('*')
+          .eq('email', params[0]);
+        
+        if (error) throw error;
+        return [data, { affectedRows: data.length }];
+      }
+      
+      // Handle other WHERE conditions as needed
       const { data, error } = await supabase.from(tableName).select('*');
       if (error) throw error;
       return [data, { affectedRows: data.length }];
     }
     
+    // Handle COUNT queries
     if (query.includes('COUNT(') || query.includes('count(')) {
       const { count, error } = await supabase
         .from(tableName)
@@ -63,6 +77,7 @@ async function handleSelectQuery(query, params) {
       return [[{ count }], { affectedRows: 1 }];
     }
     
+    // Handle simple SELECT * queries
     const { data, error } = await supabase.from(tableName).select('*');
     if (error) throw error;
     return [data, { affectedRows: data.length }];
