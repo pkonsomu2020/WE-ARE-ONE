@@ -29,6 +29,23 @@ import {
   Award
 } from 'lucide-react';
 
+// Helper function to safely format dates
+const formatDate = (dateString: any): string => {
+  if (!dateString) return 'N/A';
+  
+  try {
+    const date = new Date(dateString);
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return 'Invalid Date';
+    }
+    return date.toLocaleString();
+  } catch (error) {
+    console.error('Date formatting error:', error);
+    return 'Invalid Date';
+  }
+};
+
 interface AdminMetrics {
   admin_profile_id: number;
   full_name: string;
@@ -359,7 +376,7 @@ const AdminAnalyticsPage = () => {
                     <td className="py-2 pr-4 text-right">{admin.events_created}</td>
                     <td className="py-2 pr-4 text-right font-semibold">{admin.total_actions}</td>
                     <td className="py-2 pr-4 text-xs text-gray-500">
-                      {admin.last_activity ? new Date(admin.last_activity).toLocaleString() : 'N/A'}
+                      {formatDate(admin.last_activity)}
                     </td>
                     <td className="py-2 pr-4 text-right">
                       <Button
@@ -412,7 +429,7 @@ const AdminAnalyticsPage = () => {
             </div>
             <div className="space-y-2">
               <p className="text-sm text-gray-500">Last Activity</p>
-              <p className="text-sm text-gray-700">{selectedAdminMetrics.last_activity ? new Date(selectedAdminMetrics.last_activity).toLocaleString() : 'N/A'}</p>
+              <p className="text-sm text-gray-700">{formatDate(selectedAdminMetrics.last_activity)}</p>
             </div>
             <div className="space-y-2">
               <p className="text-sm text-gray-500">Recognition</p>

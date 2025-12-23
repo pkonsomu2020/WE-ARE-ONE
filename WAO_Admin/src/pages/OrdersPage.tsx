@@ -9,6 +9,23 @@ import OrderDetailModal from "@/components/OrderDetailModal";
 import { api } from "@/lib/api";
 import { ProtectedPage } from "@/components/ProtectedPage";
 
+// Helper function to safely format dates
+const formatDate = (dateString: any): string => {
+  if (!dateString) return 'N/A';
+  
+  try {
+    const date = new Date(dateString);
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return 'Invalid Date';
+    }
+    return date.toLocaleString();
+  } catch (error) {
+    console.error('Date formatting error:', error);
+    return 'Invalid Date';
+  }
+};
+
 interface Order {
   id: number;
   name: string;
@@ -41,7 +58,7 @@ const OrdersPage = () => {
         email: p.email,
         mpesaCode: p.mpesa_code,
         status: p.status === 'pending_verification' ? 'pending' : (p.status as Order['status']),
-        date: new Date(p.created_at).toLocaleString(),
+        date: formatDate(p.created_at),
         amount: p.amount,
         confirmationMessage: p.confirmation_message || undefined,
         eventId: p.event_id,

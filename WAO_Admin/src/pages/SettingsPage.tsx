@@ -57,6 +57,23 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 
+// Helper function to safely format dates
+const formatDate = (dateString: any): string => {
+  if (!dateString) return 'N/A';
+  
+  try {
+    const date = new Date(dateString);
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return 'Invalid Date';
+    }
+    return date.toLocaleString();
+  } catch (error) {
+    console.error('Date formatting error:', error);
+    return 'Invalid Date';
+  }
+};
+
 const SettingsPage = () => {
   const { addNotification } = useNotifications();
   const [showPassword, setShowPassword] = useState(false);
@@ -1023,7 +1040,7 @@ const SettingsPage = () => {
 
                 <div className="pt-2">
                   <p className="text-sm text-gray-500 mb-2">
-                    Last backup: {new Date(dataSettings.lastBackup).toLocaleString()}
+                    Last backup: {formatDate(dataSettings.lastBackup)}
                   </p>
                   <Button onClick={handleDataBackup} className="w-full bg-orange-600 hover:bg-orange-700" disabled={saving}>
                     {saving ? (
