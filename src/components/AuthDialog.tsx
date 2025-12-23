@@ -96,8 +96,8 @@ const AuthDialog = ({ trigger }: AuthDialogProps) => {
     return 'http://localhost:3000/api';
   }
 
-  // Default to live production
-  return 'https://weareone.co.ke/api';
+  // Always use Render backend for production
+  return 'https://we-are-one-api.onrender.com/api';
 };
 
   const handleSupportChange = (option: string, checked: boolean) => {

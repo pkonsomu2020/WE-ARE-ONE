@@ -11,7 +11,8 @@ const getApiBaseUrl = () => {
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
     return 'http://localhost:3000/api';
   }
-  return 'https://weareone.co.ke/api';
+  // Always use Render backend for production
+  return 'https://we-are-one-api.onrender.com/api';
 };
 
 const DonationSection = () => {
