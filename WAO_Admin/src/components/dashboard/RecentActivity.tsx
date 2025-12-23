@@ -11,6 +11,23 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+// Helper function to safely format dates
+const formatDate = (dateString: any, fallbackTime?: number): string => {
+  if (!dateString && !fallbackTime) return 'N/A';
+  
+  try {
+    const date = new Date(dateString || fallbackTime || Date.now());
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return 'Invalid Date';
+    }
+    return date.toLocaleString();
+  } catch (error) {
+    console.error('Date formatting error:', error);
+    return 'Invalid Date';
+  }
+};
+
 interface RecentActivityProps {
   orders: any[];
 }
@@ -22,7 +39,7 @@ const RecentActivity = ({ orders }: RecentActivityProps) => {
     type: 'order',
     title: order.status === 'paid' ? 'Payment verified' : 'New order received',
     description: `${order.name} - ${order.event || 'Event Registration'}`,
-    time: new Date(order.created_at || Date.now() - (index * 60000)).toLocaleString(),
+    time: formatDate(order.created_at, Date.now() - (index * 60000)),
     icon: ShoppingCart,
     color: order.status === 'paid' ? 'text-green-600' : 'text-blue-600',
     bgColor: order.status === 'paid' ? 'bg-green-50' : 'bg-blue-50'

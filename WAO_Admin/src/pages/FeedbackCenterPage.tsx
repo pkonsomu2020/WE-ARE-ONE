@@ -206,7 +206,21 @@ const FeedbackCenterPage = () => {
   };
 
   const formatDate = (dateString: string) => feedbackAPI.formatDate(dateString);
-  const formatDateTime = (dateString: string) => new Date(dateString).toLocaleString();
+  const formatDateTime = (dateString: string) => {
+    if (!dateString) return 'N/A';
+    
+    try {
+      const date = new Date(dateString);
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return 'Invalid Date';
+      }
+      return date.toLocaleString();
+    } catch (error) {
+      console.error('Date formatting error:', error);
+      return 'Invalid Date';
+    }
+  };
 
   return (
     <div className="space-y-6">

@@ -18,6 +18,23 @@ import {
   FolderOpen,
   User as UserIcon
 } from 'lucide-react';
+
+// Helper function to safely format dates
+const formatDate = (dateString: any): string => {
+  if (!dateString) return 'N/A';
+  
+  try {
+    const date = new Date(dateString);
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return 'Invalid Date';
+    }
+    return date.toLocaleString();
+  } catch (error) {
+    console.error('Date formatting error:', error);
+    return 'Invalid Date';
+  }
+};
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -568,7 +585,7 @@ const FileRepositoryPage = () => {
                           {file.uploader_name || file.uploaded_by}
                         </span>
                       </td>
-                      <td className="py-2 pr-4">{new Date(file.created_at).toLocaleString()}</td>
+                      <td className="py-2 pr-4">{formatDate(file.created_at)}</td>
                       <td className="py-2 pr-4 text-right">{file.download_count}</td>
                     </tr>
                   ))}
