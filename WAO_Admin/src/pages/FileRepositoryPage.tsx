@@ -504,7 +504,7 @@ const FileRepositoryPage = () => {
                         <UserIcon className="w-3 h-3 mr-1 flex-shrink-0" />
                         <span className="truncate">{file.uploader_name || file.uploaded_by}</span>
                       </p>
-                      <p>{new Date(file.created_at).toLocaleDateString()}</p>
+                      <p>{formatDate(file.created_at)}</p>
                       <p>Downloads: {file.download_count}</p>
                     </div>
 

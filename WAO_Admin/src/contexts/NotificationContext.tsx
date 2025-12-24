@@ -1,6 +1,23 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { api } from '@/lib/api';
 
+// Helper function to safely format dates
+const formatDate = (dateString: any): Date => {
+  if (!dateString) return new Date();
+  
+  try {
+    const date = new Date(dateString);
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return new Date();
+    }
+    return date;
+  } catch (error) {
+    console.error('Date formatting error:', error);
+    return new Date();
+  }
+};
+
 export interface Notification {
   id: string;
   title: string;
@@ -47,7 +64,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
           title: n.title,
           message: n.message,
           type: n.type,
-          timestamp: new Date(n.createdAt),
+          timestamp: formatDate(n.createdAt),
           read: n.isRead,
           source: n.source,
           actionUrl: n.actionUrl
@@ -64,7 +81,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
           title: 'Welcome to Admin Portal',
           message: 'System initialized successfully. All features are ready to use.',
           type: 'success',
-          timestamp: new Date(Date.now() - 1000 * 60 * 5),
+          timestamp: new Date(Date.now() - 1000 * 60 * 5), // This is safe as it uses Date.now()
           read: false,
           source: 'system',
           actionUrl: '/admin'

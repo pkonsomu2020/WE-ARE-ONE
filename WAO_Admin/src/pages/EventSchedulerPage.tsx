@@ -34,6 +34,34 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+
+// Helper function to safely format dates
+const formatDate = (dateString: any): Date => {
+  if (!dateString) return new Date();
+  
+  try {
+    const date = new Date(dateString);
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return new Date();
+    }
+    return date;
+  } catch (error) {
+    console.error('Date formatting error:', error);
+    return new Date();
+  }
+};
+
+const formatDateString = (dateString: any): string => {
+  const date = formatDate(dateString);
+  return date.toLocaleDateString();
+};
+
+const formatTimeString = (dateString: any): string => {
+  const date = formatDate(dateString);
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
+
 import {
   Dialog,
   DialogContent,
@@ -160,8 +188,8 @@ const EventSchedulerPage = () => {
 
   const upcomingEventsList = useMemo(() => (
     filteredEvents
-      .filter(event => new Date(event.start) >= new Date())
-      .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
+      .filter(event => formatDate(event.start) >= new Date())
+      .sort((a, b) => formatDate(a.start).getTime() - formatDate(b.start).getTime())
       .slice(0, 5)
   ), [filteredEvents]);
 
@@ -192,11 +220,11 @@ const EventSchedulerPage = () => {
   };
 
   const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return formatTimeString(dateString);
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
+    return formatDateString(dateString);
   };
 
   const getDaysInMonth = (date: Date) => {
@@ -325,7 +353,7 @@ const EventSchedulerPage = () => {
         // Add notification
         addNotification({
           title: 'Event Scheduled',
-          message: `"${newEvent.title}" scheduled for ${new Date(newEvent.date).toLocaleDateString()} at ${newEvent.startTime}`,
+          message: `"${newEvent.title}" scheduled for ${formatDateString(newEvent.date)} at ${newEvent.startTime}`,
           type: 'success',
           source: 'event',
           actionUrl: '/admin/events'
@@ -476,7 +504,7 @@ const EventSchedulerPage = () => {
                       min={new Date().toISOString().split('T')[0]}
                       required
                     />
-                    {newEvent.date && new Date(newEvent.date) < new Date(new Date().toISOString().split('T')[0]) && (
+                    {newEvent.date && formatDate(newEvent.date) < new Date(new Date().toISOString().split('T')[0]) && (
                       <p className="text-sm text-red-500 mt-1">
                         ⚠️ Cannot schedule events in the past
                       </p>
@@ -743,7 +771,7 @@ const EventSchedulerPage = () => {
               }
 
               const dayEvents = getEventsForDate(date);
-              const isToday = date.toDateString() === new Date().toDateString();
+              const isToday = date.toDateString() === new Date().toDateString(); // This is safe as 'date' is already a Date object
 
               return (
                 <div
