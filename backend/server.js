@@ -218,7 +218,9 @@ app.listen(PORT, () => {
   if (process.env.NODE_ENV === 'production') {
     // Check if email configuration is available
     if (process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-      reminderService.start();
+      // TEMPORARILY DISABLED FOR PERFORMANCE TESTING
+      // reminderService.start();
+      console.log('⚠️ Reminder service temporarily disabled for performance testing');
     } else {
       console.log('⚠️ Reminder service disabled - Email configuration missing');
       console.log('💡 Set EMAIL_HOST, EMAIL_USER, and EMAIL_PASS to enable reminders');

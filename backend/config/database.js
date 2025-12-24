@@ -77,6 +77,22 @@ async function handleSelectQuery(query, params) {
       return [[{ count }], { affectedRows: 1 }];
     }
     
+    // Handle ORDER BY queries (optimize for event_payments)
+    if (query.includes('ORDER BY')) {
+      let supabaseQuery = supabase.from(tableName).select('*');
+      
+      // Handle ORDER BY created_at DESC (common pattern)
+      if (query.includes('ORDER BY created_at DESC')) {
+        supabaseQuery = supabaseQuery.order('created_at', { ascending: false });
+      } else if (query.includes('ORDER BY created_at')) {
+        supabaseQuery = supabaseQuery.order('created_at', { ascending: true });
+      }
+      
+      const { data, error } = await supabaseQuery;
+      if (error) throw error;
+      return [data, { affectedRows: data.length }];
+    }
+    
     // Handle simple SELECT * queries
     const { data, error } = await supabase.from(tableName).select('*');
     if (error) throw error;
