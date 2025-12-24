@@ -178,12 +178,28 @@ router.post('/auth/login', async (req, res) => {
 // --- Protected admin endpoints ---
 router.use(adminAuth);
 
-// List payments
+// List payments with caching
+let paymentsCache = null;
+let paymentsCacheTime = 0;
+const PAYMENTS_CACHE_DURATION = 1 * 60 * 1000; // 1 minute
+
 router.get('/event-payments', async (req, res) => {
   try {
+    // Check if we have cached payments that are still valid
+    const now = Date.now();
+    if (paymentsCache && (now - paymentsCacheTime) < PAYMENTS_CACHE_DURATION) {
+      console.log('📊 Returning cached payments list');
+      return res.json({ success: true, payments: paymentsCache, cached: true });
+    }
+
     console.log('📊 Admin API: Fetching payments from database...');
     const [rows] = await pool.execute('SELECT * FROM event_payments ORDER BY created_at DESC');
     console.log(`✅ Admin API: Found ${rows.length} payments`);
+    
+    // Cache the payments
+    paymentsCache = rows || [];
+    paymentsCacheTime = now;
+    
     res.json({ success: true, payments: rows || [] });
   } catch (e) {
     console.error('❌ Admin API: List payments error:', e);
@@ -215,6 +231,10 @@ router.put('/event-payments/:id', async (req, res) => {
     const payment = rows[0];
 
     await pool.execute('UPDATE event_payments SET status = ?, confirmation_message = ? WHERE id = ?', [status, reason || null, req.params.id]);
+
+    // Clear caches when payment is updated
+    paymentsCache = null;
+    statsCache = null;
 
     let ticketNumber = null;
     if (status === 'paid') {
@@ -280,9 +300,25 @@ router.put('/event-payments/:id', async (req, res) => {
   }
 });
 
-// Dashboard Stats Endpoint
+// Dashboard Stats Endpoint with caching
+let statsCache = null;
+let statsCacheTime = 0;
+const STATS_CACHE_DURATION = 2 * 60 * 1000; // 2 minutes
+
 router.get('/dashboard/stats', async (req, res) => {
   try {
+    // Check if we have cached stats that are still valid
+    const now = Date.now();
+    if (statsCache && (now - statsCacheTime) < STATS_CACHE_DURATION) {
+      console.log('📊 Returning cached dashboard stats');
+      return res.json({
+        success: true,
+        data: { ...statsCache, cached: true }
+      });
+    }
+
+    console.log('📊 Fetching fresh dashboard stats...');
+    
     // Get total orders
     const [totalOrdersResult] = await pool.execute(
       'SELECT COUNT(*) as count FROM event_payments'
@@ -316,6 +352,11 @@ router.get('/dashboard/stats', async (req, res) => {
       totalRevenue: revenueResult[0].total || 0
     };
     
+    // Cache the stats
+    statsCache = stats;
+    statsCacheTime = now;
+    
+    console.log('✅ Dashboard stats fetched and cached');
     res.json({
       success: true,
       data: stats
