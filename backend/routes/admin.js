@@ -35,7 +35,7 @@ const transporter = nodemailer.createTransport({
     if (!email || !password) return; // nothing to seed
     const [exists] = await pool.execute('SELECT id FROM admin_users WHERE email = ?', [email]);
     if (exists.length > 0) return;
-    const hash = await bcrypt.hash(password, 12);
+    const hash = await bcrypt.hash(password, 10); // Reduced from 12 to 10 for better performance
     await pool.execute('INSERT INTO admin_users (full_name, email, password_hash) VALUES (?, ?, ?)', [fullName, email, hash]);
     console.log(`✅ Seeded default admin: ${email}`);
   } catch (e) {
@@ -96,7 +96,7 @@ router.post('/auth/register', async (req, res) => {
     const [exists] = await pool.execute('SELECT id FROM admin_users WHERE email = ?', [email]);
     if (exists.length > 0) return res.status(400).json({ success: false, message: 'Admin already exists' });
 
-    const passwordHash = await bcrypt.hash(password, 12);
+    const passwordHash = await bcrypt.hash(password, 10); // Reduced from 12 to 10 for better performance
     const [result] = await pool.execute(
       'INSERT INTO admin_users (full_name, email, password_hash) VALUES (?, ?, ?)',
       [fullName, email, passwordHash]

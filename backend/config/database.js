@@ -1,13 +1,55 @@
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
-// Create Supabase clients
+// Create Supabase clients with optimized settings
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  db: {
+    schema: 'public',
+  },
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  },
+  global: {
+    headers: { 'x-client-info': 'wao-backend' },
+  },
+});
+
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+  db: {
+    schema: 'public',
+  },
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  },
+  global: {
+    headers: { 'x-client-info': 'wao-backend-admin' },
+  },
+});
+
+// Warm up connections on startup
+(async function warmupConnections() {
+  try {
+    console.log('🔥 Warming up database connections...');
+    const start = Date.now();
+    
+    // Warm up both connections with simple queries
+    await Promise.all([
+      supabase.from('users').select('id').limit(1),
+      supabaseAdmin.from('admin_users').select('id').limit(1)
+    ]);
+    
+    const time = Date.now() - start;
+    console.log(`✅ Database connections warmed up in ${time}ms`);
+  } catch (error) {
+    console.log('⚠️ Connection warmup failed:', error.message);
+  }
+})();
 
 // Create promise-based wrapper to match existing code structure
 const promisePool = {
@@ -43,6 +85,10 @@ const promisePool = {
   }
 };
 
+// Simple in-memory cache for admin users (to avoid repeated DB queries)
+const adminUserCache = new Map();
+const ADMIN_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
 // Helper functions for different query types
 async function handleSelectQuery(query, params) {
   const tableMatch = query.match(/from\s+(\w+)/i);
@@ -53,12 +99,36 @@ async function handleSelectQuery(query, params) {
     if (query.includes('WHERE') && params && params.length > 0) {
       // For user/admin login: SELECT ... FROM users/admin_users WHERE email = ?
       if (query.includes('email = ?') && params[0]) {
-        const { data, error } = await supabase
+        // Check cache for admin users
+        if (tableName === 'admin_users') {
+          const cacheKey = `admin_${params[0]}`;
+          const cached = adminUserCache.get(cacheKey);
+          if (cached && (Date.now() - cached.timestamp) < ADMIN_CACHE_DURATION) {
+            console.log('📋 Using cached admin user data');
+            return [cached.data, { affectedRows: cached.data.length }];
+          }
+        }
+        
+        // Use admin client for admin_users table for better performance
+        const client = tableName === 'admin_users' ? supabaseAdmin : supabase;
+        
+        const { data, error } = await client
           .from(tableName)
           .select('*')
-          .eq('email', params[0]);
+          .eq('email', params[0])
+          .limit(1); // Add limit for better performance
         
         if (error) throw error;
+        
+        // Cache admin user data
+        if (tableName === 'admin_users' && data.length > 0) {
+          const cacheKey = `admin_${params[0]}`;
+          adminUserCache.set(cacheKey, {
+            data: data,
+            timestamp: Date.now()
+          });
+        }
+        
         return [data, { affectedRows: data.length }];
       }
       
