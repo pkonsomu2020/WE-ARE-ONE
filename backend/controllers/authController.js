@@ -376,21 +376,27 @@ const register = async (req, res) => {
     console.log('📝 Registration attempt for:', email);
 
     // Check if user already exists using direct Supabase query for better performance
-    const { data: existingUsers, error: existError } = await supabase
+    const { data: emailCheck, error: emailError } = await supabase
       .from('users')
       .select('id')
-      .or(`email.eq.${email},phone.eq.${phone}`)
+      .eq('email', email)
       .limit(1);
 
-    if (existError) {
-      console.error('❌ Error checking existing users:', existError.message);
+    const { data: phoneCheck, error: phoneError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('phone', phone)
+      .limit(1);
+
+    if (emailError || phoneError) {
+      console.error('❌ Error checking existing users:', emailError?.message || phoneError?.message);
       return res.status(500).json({
         success: false,
         message: 'Registration failed due to database error'
       });
     }
 
-    if (existingUsers.length > 0) {
+    if (emailCheck.length > 0 || phoneCheck.length > 0) {
       return res.status(400).json({
         success: false,
         message: 'User with this email or phone already exists'
