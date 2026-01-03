@@ -323,8 +323,8 @@ const resetPassword = async (req, res) => {
 
     const resetToken = tokens[0];
 
-    // Hash new password
-    const saltRounds = 12;
+    // Hash new password with optimized rounds
+    const saltRounds = 10; // Reduced from 12 to 10 for better performance
     const passwordHash = await bcrypt.hash(newPassword, saltRounds);
 
     // Update user password
@@ -391,8 +391,8 @@ const register = async (req, res) => {
       });
     }
 
-    // Hash password
-    const saltRounds = 12;
+    // Hash password with optimized rounds for better performance
+    const saltRounds = 10; // Reduced from 12 to 10 for better performance while maintaining security
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
     // Insert user
