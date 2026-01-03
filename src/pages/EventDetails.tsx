@@ -132,7 +132,7 @@ const EventDetails: React.FC = () => {
         });
         
         // Test events endpoint
-        const eventsTest = await fetch(`${apiBase}/api/events/test`, { 
+        const eventsTest = await fetch(`${apiBase}/events/test`, { 
           method: 'GET',
           timeout: 5000 
         });
@@ -143,14 +143,6 @@ const EventDetails: React.FC = () => {
       } catch (healthErr) {
         console.warn('⚠️ Backend health check failed:', healthErr);
       }
-      
-      const payload = {
-        email,
-        phone,
-        experience,
-        acceptTerms,
-        acceptUpdates,
-      };
       
       // Use the centralized API utility
       try {
@@ -172,7 +164,7 @@ const EventDetails: React.FC = () => {
           ),
         };
         
-        const data = await api.post('/api/events/register', payload);
+        const data = await api.post('/events/register', payload);
         
         const tno = data.ticketNumber ? ` Your Ticket Number is ${data.ticketNumber}.` : '';
         setMessage({ type: 'success', text: `Registration received! We have emailed a confirmation.${tno}` });
@@ -200,7 +192,7 @@ const EventDetails: React.FC = () => {
           ),
         };
         
-        const res = await fetch(`${apiBase}/api/events/register`, {
+        const res = await fetch(`${apiBase}/events/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
           credentials: 'include',
