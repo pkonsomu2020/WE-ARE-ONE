@@ -407,7 +407,7 @@ const register = async (req, res) => {
     const saltRounds = 10; // Reduced from 12 to 10 for better performance while maintaining security
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
-    // Insert user directly with Supabase (bypassing the problematic sequence issue)
+    // Insert user with Supabase (sequence is now fixed)
     const { data: userResult, error: userError } = await supabase
       .from('users')
       .insert({
