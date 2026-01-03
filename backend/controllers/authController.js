@@ -2,7 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
-const { pool } = require('../config/database');
+const { pool, supabase } = require('../config/database');
 
 // Email transporter setup
 const transporter = nodemailer.createTransport({
@@ -355,11 +355,7 @@ const resetPassword = async (req, res) => {
 
 // Register user
 const register = async (req, res) => {
-  const connection = await pool.getConnection();
-  
   try {
-    await connection.beginTransaction();
-
     const {
       fullName,
       email,
@@ -377,14 +373,24 @@ const register = async (req, res) => {
       otherSupportDetails
     } = req.body;
 
-    // Check if user already exists
-    const [existingUsers] = await connection.execute(
-      'SELECT id FROM users WHERE email = ? OR phone = ?',
-      [email, phone]
-    );
+    console.log('📝 Registration attempt for:', email);
+
+    // Check if user already exists using direct Supabase query for better performance
+    const { data: existingUsers, error: existError } = await supabase
+      .from('users')
+      .select('id')
+      .or(`email.eq.${email},phone.eq.${phone}`)
+      .limit(1);
+
+    if (existError) {
+      console.error('❌ Error checking existing users:', existError.message);
+      return res.status(500).json({
+        success: false,
+        message: 'Registration failed due to database error'
+      });
+    }
 
     if (existingUsers.length > 0) {
-      await connection.rollback();
       return res.status(400).json({
         success: false,
         message: 'User with this email or phone already exists'
@@ -395,44 +401,84 @@ const register = async (req, res) => {
     const saltRounds = 10; // Reduced from 12 to 10 for better performance while maintaining security
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
-    // Insert user
-    const [userResult] = await connection.execute(
-      `INSERT INTO users (
-        full_name, email, phone, gender, age, location, password_hash,
-        emergency_contact_name, emergency_contact_phone, emergency_contact_relationship,
-        live_location, personal_statement
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        fullName, email, phone, gender, parseInt(age), location, passwordHash,
-        emergencyContactName, emergencyContactPhone, emergencyContactRelationship,
-        liveLocation, personalStatement
-      ]
-    );
+    // Insert user directly with Supabase (bypassing the problematic sequence issue)
+    const { data: userResult, error: userError } = await supabase
+      .from('users')
+      .insert({
+        full_name: fullName,
+        email: email,
+        phone: phone,
+        gender: gender,
+        age: parseInt(age),
+        location: location,
+        password_hash: passwordHash,
+        emergency_contact_name: emergencyContactName,
+        emergency_contact_phone: emergencyContactPhone,
+        emergency_contact_relationship: emergencyContactRelationship,
+        live_location: liveLocation,
+        personal_statement: personalStatement
+      })
+      .select();
 
-    const userId = userResult.insertId;
+    if (userError) {
+      console.error('❌ User insert error:', userError.message);
+      
+      // Handle specific database errors
+      if (userError.message.includes('duplicate key')) {
+        return res.status(400).json({
+          success: false,
+          message: 'User with this email or phone already exists'
+        });
+      }
+      
+      return res.status(500).json({
+        success: false,
+        message: 'Registration failed. Please try again.'
+      });
+    }
+
+    const userId = userResult[0].id;
+    console.log('✅ User created with ID:', userId);
 
     // Handle support categories
     if (supportCategories && Array.isArray(supportCategories)) {
       for (const category of supportCategories) {
-        // Get category ID
-        const [categoryResult] = await connection.execute(
-          'SELECT id FROM support_categories WHERE name = ?',
-          [category]
-        );
+        try {
+          // Get category ID
+          const { data: categoryResult, error: catError } = await supabase
+            .from('support_categories')
+            .select('id')
+            .eq('name', category)
+            .limit(1);
 
-        if (categoryResult.length > 0) {
-          const categoryId = categoryResult[0].id;
-          const otherDetails = category === 'Other' ? otherSupportDetails : null;
+          if (catError) {
+            console.error('❌ Category lookup error:', catError.message);
+            continue; // Skip this category but don't fail the registration
+          }
 
-          await connection.execute(
-            'INSERT INTO user_support_categories (user_id, support_category_id, other_details) VALUES (?, ?, ?)',
-            [userId, categoryId, otherDetails]
-          );
+          if (categoryResult.length > 0) {
+            const categoryId = categoryResult[0].id;
+            const otherDetails = category === 'Other' ? otherSupportDetails : null;
+
+            const { error: relError } = await supabase
+              .from('user_support_categories')
+              .insert({
+                user_id: userId,
+                support_category_id: categoryId,
+                other_details: otherDetails
+              });
+
+            if (relError) {
+              console.error('❌ Support category relationship error:', relError.message);
+              // Don't fail registration for this
+            }
+          }
+        } catch (error) {
+          console.error('❌ Support category processing error:', error.message);
+          // Continue with registration even if support categories fail
         }
       }
     }
-
-    await connection.commit();
 
     // Generate JWT token
     const token = generateToken(userId);
@@ -463,6 +509,8 @@ const register = async (req, res) => {
       console.error('Admin notification error:', err)
     );
 
+    console.log('✅ Registration successful for user ID:', userId);
+
     res.status(201).json({
       success: true,
       message: 'Registration successful',
@@ -478,15 +526,12 @@ const register = async (req, res) => {
     });
 
   } catch (error) {
-    await connection.rollback();
-    console.error('Registration error:', error);
+    console.error('❌ Registration error:', error);
     res.status(500).json({
       success: false,
       message: 'Registration failed',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
-  } finally {
-    connection.release();
   }
 };
 
