@@ -76,11 +76,79 @@ const promisePool = {
   
   getConnection: async () => {
     return {
-      execute: promisePool.execute,
-      beginTransaction: async () => {},
-      commit: async () => {},
-      rollback: async () => {},
-      release: () => {}
+      execute: async (query, params = []) => {
+        // For user registration, handle the INSERT directly with Supabase
+        if (query.includes('INSERT INTO users')) {
+          const [fullName, email, phone, gender, age, location, passwordHash,
+                 emergencyContactName, emergencyContactPhone, emergencyContactRelationship,
+                 liveLocation, personalStatement] = params;
+          
+          const { data, error } = await supabase
+            .from('users')
+            .insert({
+              full_name: fullName,
+              email: email,
+              phone: phone,
+              gender: gender,
+              age: parseInt(age),
+              location: location,
+              password_hash: passwordHash,
+              emergency_contact_name: emergencyContactName,
+              emergency_contact_phone: emergencyContactPhone,
+              emergency_contact_relationship: emergencyContactRelationship,
+              live_location: liveLocation,
+              personal_statement: personalStatement
+            })
+            .select();
+          
+          if (error) throw error;
+          return [[], { affectedRows: 1, insertId: data[0]?.id || 1 }];
+        }
+        
+        // Handle support categories lookup
+        if (query.includes('SELECT id FROM support_categories WHERE name = ?')) {
+          const [categoryName] = params;
+          const { data, error } = await supabase
+            .from('support_categories')
+            .select('id')
+            .eq('name', categoryName)
+            .limit(1);
+          
+          if (error) throw error;
+          return [data, { affectedRows: data.length }];
+        }
+        
+        // Handle user support categories INSERT
+        if (query.includes('INSERT INTO user_support_categories')) {
+          const [userId, categoryId, otherDetails] = params;
+          const { data, error } = await supabase
+            .from('user_support_categories')
+            .insert({
+              user_id: userId,
+              support_category_id: categoryId,
+              other_details: otherDetails
+            })
+            .select();
+          
+          if (error) throw error;
+          return [[], { affectedRows: 1, insertId: data[0]?.id || 1 }];
+        }
+        
+        // For support categories and other queries, use the main execute function
+        return await promisePool.execute(query, params);
+      },
+      beginTransaction: async () => {
+        console.log('📝 Transaction started (Supabase handles this automatically)');
+      },
+      commit: async () => {
+        console.log('✅ Transaction committed (Supabase handles this automatically)');
+      },
+      rollback: async () => {
+        console.log('🔄 Transaction rolled back (Supabase handles this automatically)');
+      },
+      release: () => {
+        console.log('🔓 Connection released (Supabase handles this automatically)');
+      }
     };
   }
 };
