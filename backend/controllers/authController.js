@@ -301,33 +301,27 @@ const forgotPassword = async (req, res) => {
       // Add timeout to email sending
       const emailPromise = sendPasswordResetEmail(user.email, resetToken, resetUrl);
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Email timeout')), 10000) // 10 second timeout
+        setTimeout(() => reject(new Error('Email timeout')), 5000) // 5 second timeout
       );
       
       const emailSent = await Promise.race([emailPromise, timeoutPromise]);
       
       if (emailSent) {
         console.log('✅ Reset email sent successfully');
-        res.json({
-          success: true,
-          message: 'If an account with that email exists, a password reset link has been sent.'
-        });
       } else {
-        console.log('❌ Email sending failed');
-        res.json({
-          success: true,
-          message: 'If an account with that email exists, a password reset link has been sent.'
-        });
+        console.log('❌ Email sending failed but continuing...');
       }
     } catch (emailError) {
       console.error('❌ Email sending error:', emailError.message);
-      
-      // Still return success to not reveal if email exists
-      res.json({
-        success: true,
-        message: 'If an account with that email exists, a password reset link has been sent.'
-      });
+      // Continue anyway - don't fail the request due to email issues
     }
+
+    // Always return success to not reveal if email exists and to provide good UX
+    // The reset token is stored in database regardless of email success
+    res.json({
+      success: true,
+      message: 'If an account with that email exists, a password reset link has been sent.'
+    });
 
   } catch (error) {
     console.error('❌ Forgot password error:', error);
@@ -745,10 +739,83 @@ const getProfile = async (req, res) => {
   }
 };
 
+// Get reset token for testing (temporary endpoint)
+const getResetToken = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required'
+      });
+    }
+
+    // Check if user exists using Supabase
+    const { data: users, error: userError } = await supabase
+      .from('users')
+      .select('id, full_name, email')
+      .eq('email', email)
+      .limit(1);
+
+    if (userError || users.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const user = users[0];
+
+    // Get the most recent valid reset token for this user
+    const { data: tokens, error: tokenError } = await supabase
+      .from('password_reset_tokens')
+      .select('token, expires_at')
+      .eq('user_id', user.id)
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (tokenError) {
+      return res.status(500).json({
+        success: false,
+        message: 'Database error'
+      });
+    }
+
+    if (tokens.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No valid reset token found. Please request a new password reset.'
+      });
+    }
+
+    const resetToken = tokens[0];
+    const frontendUrl = process.env.FRONTEND_URL || 'https://weareone.co.ke';
+    const resetUrl = `${frontendUrl}/reset-password?token=${resetToken.token}`;
+
+    res.json({
+      success: true,
+      data: {
+        resetUrl: resetUrl,
+        expiresAt: resetToken.expires_at
+      }
+    });
+
+  } catch (error) {
+    console.error('Get reset token error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get reset token'
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
   getProfile,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  getResetToken
 };
