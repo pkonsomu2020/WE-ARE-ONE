@@ -223,20 +223,11 @@ const forgotPassword = async (req, res) => {
 
     console.log('🔍 Forgot password request for:', email);
 
-    // Check if user exists using Supabase for better performance
-    const { data: users, error: userError } = await supabase
-      .from('users')
-      .select('id, full_name, email')
-      .eq('email', email)
-      .limit(1);
-
-    if (userError) {
-      console.error('❌ Database error checking user:', userError.message);
-      return res.status(500).json({
-        success: false,
-        message: 'Database error. Please try again.'
-      });
-    }
+    // Check if user exists using the existing pool wrapper
+    const [users] = await pool.execute(
+      'SELECT id, full_name, email FROM users WHERE email = ?',
+      [email]
+    );
 
     if (users.length === 0) {
       console.log('⚠️ User not found for email:', email);
@@ -258,37 +249,20 @@ const forgotPassword = async (req, res) => {
     console.log('🔑 Generated reset token for user:', user.id);
     console.log('📅 Token expires at:', expiresAt.toISOString());
 
-    // Store reset token in database using Supabase
-    const { error: tokenError } = await supabase
-      .from('password_reset_tokens')
-      .insert({
-        user_id: user.id,
-        token: resetToken,
-        expires_at: expiresAt.toISOString()
-      });
-
-    if (tokenError) {
-      console.error('❌ Error storing reset token:', tokenError.message);
-      
-      // If table doesn't exist, create a simple in-memory solution for now
-      if (tokenError.message.includes('relation "password_reset_tokens" does not exist')) {
-        console.log('⚠️ Password reset tokens table does not exist. Using temporary solution.');
-        
-        // For now, just return success without actually sending email
-        // TODO: Create the password_reset_tokens table in Supabase
-        return res.json({
-          success: true,
-          message: 'Password reset functionality is temporarily unavailable. Please contact support.'
-        });
-      }
-      
+    // Store reset token in database using pool wrapper
+    try {
+      await pool.execute(
+        'INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES (?, ?, ?)',
+        [user.id, resetToken, expiresAt]
+      );
+      console.log('✅ Reset token stored in database');
+    } catch (dbError) {
+      console.error('❌ Database error storing token:', dbError.message);
       return res.status(500).json({
         success: false,
         message: 'Failed to process request. Please try again.'
       });
     }
-
-    console.log('✅ Reset token stored in database');
 
     // Create reset URL
     const frontendUrl = process.env.FRONTEND_URL || 'https://weareone.co.ke';
@@ -297,7 +271,6 @@ const forgotPassword = async (req, res) => {
     console.log('🔗 Generated reset URL:', resetUrl);
 
     // For now, skip email sending and just return success
-    // TODO: Fix email configuration
     console.log('⚠️ Email sending temporarily disabled - returning success');
 
     // Always return success - the reset token is stored in database
@@ -339,29 +312,11 @@ const resetPassword = async (req, res) => {
 
     console.log('🔍 Reset password attempt with token');
 
-    // Find valid reset token using Supabase
-    const { data: tokens, error: tokenError } = await supabase
-      .from('password_reset_tokens')
-      .select('user_id, expires_at')
-      .eq('token', token)
-      .gt('expires_at', new Date().toISOString())
-      .limit(1);
-
-    if (tokenError) {
-      console.error('❌ Error checking reset token:', tokenError.message);
-      
-      if (tokenError.message.includes('relation "password_reset_tokens" does not exist')) {
-        return res.status(400).json({
-          success: false,
-          message: 'Password reset functionality is temporarily unavailable. Please contact support.'
-        });
-      }
-      
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to process request. Please try again.'
-      });
-    }
+    // Find valid reset token using pool wrapper
+    const [tokens] = await pool.execute(
+      'SELECT user_id, expires_at FROM password_reset_tokens WHERE token = ? AND expires_at > NOW()',
+      [token]
+    );
 
     if (tokens.length === 0) {
       console.log('❌ Invalid or expired reset token');
@@ -378,32 +333,19 @@ const resetPassword = async (req, res) => {
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(newPassword, saltRounds);
 
-    // Update user password using Supabase
-    const { error: updateError } = await supabase
-      .from('users')
-      .update({ password_hash: passwordHash })
-      .eq('id', resetToken.user_id);
-
-    if (updateError) {
-      console.error('❌ Error updating password:', updateError.message);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to reset password. Please try again.'
-      });
-    }
+    // Update user password using pool wrapper
+    await pool.execute(
+      'UPDATE users SET password_hash = ? WHERE id = ?',
+      [passwordHash, resetToken.user_id]
+    );
 
     console.log('✅ Password updated successfully for user:', resetToken.user_id);
 
     // Delete used reset token
-    const { error: deleteError } = await supabase
-      .from('password_reset_tokens')
-      .delete()
-      .eq('token', token);
-
-    if (deleteError) {
-      console.error('⚠️ Error deleting reset token:', deleteError.message);
-      // Don't fail the request if token deletion fails
-    }
+    await pool.execute(
+      'DELETE FROM password_reset_tokens WHERE token = ?',
+      [token]
+    );
 
     console.log('✅ Reset token deleted');
 
