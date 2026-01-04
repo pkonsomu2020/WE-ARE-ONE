@@ -678,14 +678,13 @@ const getResetToken = async (req, res) => {
       });
     }
 
-    // Check if user exists using Supabase
-    const { data: users, error: userError } = await supabase
-      .from('users')
-      .select('id, full_name, email')
-      .eq('email', email)
-      .limit(1);
+    // Check if user exists using pool wrapper
+    const [users] = await pool.execute(
+      'SELECT id, full_name, email FROM users WHERE email = ?',
+      [email]
+    );
 
-    if (userError || users.length === 0) {
+    if (users.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'User not found'
@@ -694,21 +693,11 @@ const getResetToken = async (req, res) => {
 
     const user = users[0];
 
-    // Get the most recent valid reset token for this user
-    const { data: tokens, error: tokenError } = await supabase
-      .from('password_reset_tokens')
-      .select('token, expires_at')
-      .eq('user_id', user.id)
-      .gt('expires_at', new Date().toISOString())
-      .order('created_at', { ascending: false })
-      .limit(1);
-
-    if (tokenError) {
-      return res.status(500).json({
-        success: false,
-        message: 'Database error'
-      });
-    }
+    // Get the most recent valid reset token for this user using pool wrapper
+    const [tokens] = await pool.execute(
+      'SELECT token, expires_at FROM password_reset_tokens WHERE user_id = ? AND expires_at > NOW() ORDER BY created_at DESC LIMIT 1',
+      [user.id]
+    );
 
     if (tokens.length === 0) {
       return res.status(404).json({
