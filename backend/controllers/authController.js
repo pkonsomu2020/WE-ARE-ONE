@@ -4,16 +4,43 @@ const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 const { pool, supabase } = require('../config/database');
 
-// Email transporter setup
+// Enhanced Email transporter setup with better configuration
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
-  port: process.env.EMAIL_PORT,
-  secure: false,
+  port: parseInt(process.env.EMAIL_PORT),
+  secure: false, // true for 465, false for other ports
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
+  },
+  // Enhanced configuration for better reliability
+  connectionTimeout: 10000, // 10 seconds
+  greetingTimeout: 5000, // 5 seconds
+  socketTimeout: 10000, // 10 seconds
+  pool: true, // Use connection pooling
+  maxConnections: 5,
+  maxMessages: 100,
+  rateLimit: 14, // 14 messages per second max
+  tls: {
+    rejectUnauthorized: false // Allow self-signed certificates
   }
 });
+
+// Test email connection on startup
+const testEmailConnection = async () => {
+  try {
+    console.log('🔍 Testing email connection...');
+    await transporter.verify();
+    console.log('✅ Email service is ready');
+    return true;
+  } catch (error) {
+    console.error('❌ Email service error:', error.message);
+    return false;
+  }
+};
+
+// Test connection immediately
+testEmailConnection();
 
 // Generate JWT token
 const generateToken = (userId) => {
@@ -29,9 +56,11 @@ const generateResetToken = () => {
   return crypto.randomBytes(32).toString('hex');
 };
 
-// Send password reset email
+// Send password reset email with enhanced error handling
 const sendPasswordResetEmail = async (userEmail, resetToken, resetUrl) => {
   try {
+    console.log('📧 Preparing to send reset email to:', userEmail);
+    
     const resetEmailContent = `
       <!DOCTYPE html>
       <html>
@@ -87,17 +116,38 @@ const sendPasswordResetEmail = async (userEmail, resetToken, resetUrl) => {
       </html>
     `;
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_FROM,
+    const mailOptions = {
+      from: `"We Are One Support" <${process.env.EMAIL_FROM}>`,
       to: userEmail,
       subject: 'Reset Your Password - We Are One',
-      html: resetEmailContent
-    });
+      html: resetEmailContent,
+      // Add headers for better deliverability
+      headers: {
+        'X-Priority': '1',
+        'X-MSMail-Priority': 'High',
+        'Importance': 'high'
+      }
+    };
 
-    console.log('✅ Password reset email sent successfully to:', userEmail);
+    console.log('📤 Sending email...');
+    const startTime = Date.now();
+    
+    // Send email with timeout protection
+    const info = await transporter.sendMail(mailOptions);
+    
+    const duration = Date.now() - startTime;
+    console.log(`✅ Password reset email sent successfully to: ${userEmail} (${duration}ms)`);
+    console.log('📧 Message ID:', info.messageId);
+    
     return true;
   } catch (error) {
     console.error('❌ Password reset email failed:', error.message);
+    console.error('❌ Error details:', {
+      code: error.code,
+      command: error.command,
+      response: error.response,
+      responseCode: error.responseCode
+    });
     return false;
   }
 };
@@ -270,15 +320,33 @@ const forgotPassword = async (req, res) => {
     
     console.log('🔗 Generated reset URL:', resetUrl);
 
-    // For now, skip email sending and just return success
-    console.log('⚠️ Email sending temporarily disabled - returning success');
+    // Send reset email with timeout protection
+    try {
+      console.log('📧 Attempting to send reset email...');
+      
+      // Create a promise that will timeout after 8 seconds
+      const emailPromise = sendPasswordResetEmail(user.email, resetToken, resetUrl);
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Email timeout after 8 seconds')), 8000)
+      );
+      
+      // Race between email sending and timeout
+      const emailSent = await Promise.race([emailPromise, timeoutPromise]);
+      
+      if (emailSent) {
+        console.log('✅ Reset email sent successfully');
+      } else {
+        console.log('❌ Email sending failed but continuing...');
+      }
+    } catch (emailError) {
+      console.error('❌ Email sending error:', emailError.message);
+      // Continue anyway - don't fail the request due to email issues
+    }
 
     // Always return success - the reset token is stored in database
     res.json({
       success: true,
-      message: 'If an account with that email exists, a password reset link has been sent.',
-      // Temporary: include reset URL in response for testing
-      ...(process.env.NODE_ENV === 'development' && { resetUrl })
+      message: 'If an account with that email exists, a password reset link has been sent.'
     });
 
   } catch (error) {
@@ -727,11 +795,82 @@ const getResetToken = async (req, res) => {
   }
 };
 
+// Test email endpoint (temporary)
+const testEmail = async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required'
+      });
+    }
+
+    console.log('🧪 Testing email service to:', email);
+
+    const testEmailContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+          .logo { text-align: center; margin-bottom: 30px; }
+          .logo h1 { color: #ff6b35; font-size: 28px; margin: 0; }
+        </style>
+      </head>
+      <body>
+        <div class="logo">
+          <h1>We Are One (WAO)</h1>
+        </div>
+        <h2>Email Service Test</h2>
+        <p>This is a test email to verify that the email service is working correctly.</p>
+        <p>If you received this email, the email service is functioning properly!</p>
+        <p>Time sent: ${new Date().toISOString()}</p>
+      </body>
+      </html>
+    `;
+
+    const mailOptions = {
+      from: `"We Are One Support" <${process.env.EMAIL_FROM}>`,
+      to: email,
+      subject: 'Email Service Test - We Are One',
+      html: testEmailContent
+    };
+
+    const startTime = Date.now();
+    const info = await transporter.sendMail(mailOptions);
+    const duration = Date.now() - startTime;
+
+    console.log(`✅ Test email sent successfully to: ${email} (${duration}ms)`);
+    console.log('📧 Message ID:', info.messageId);
+
+    res.json({
+      success: true,
+      message: 'Test email sent successfully',
+      data: {
+        messageId: info.messageId,
+        duration: `${duration}ms`
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Test email failed:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Test email failed',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
   getProfile,
   forgotPassword,
   resetPassword,
-  getResetToken
+  getResetToken,
+  testEmail
 };
