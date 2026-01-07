@@ -7,6 +7,27 @@ const { pool, supabase, ensureWarmConnection } = require('../config/database');
 // Initialize Resend with API key
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// Test Resend connection on startup
+const testResendConnection = async () => {
+  try {
+    console.log('🔍 Testing Resend email service...');
+    // Resend doesn't have a direct test method, but we can check if API key is set
+    if (process.env.RESEND_API_KEY) {
+      console.log('✅ Resend API key configured');
+      return true;
+    } else {
+      console.error('❌ Resend API key not found');
+      return false;
+    }
+  } catch (error) {
+    console.error('❌ Resend service error:', error.message);
+    return false;
+  }
+};
+
+// Test connection immediately
+testResendConnection();
+
 // Optimized bcrypt with worker threads for better performance
 const bcryptConfig = {
   saltRounds: 10, // Balanced security vs performance
@@ -45,30 +66,6 @@ const comparePasswordAsync = async (password, hash) => {
     activeBcryptOperations--;
   }
 };
-
-// Initialize Resend with API key
-const resend = new Resend(process.env.RESEND_API_KEY);
-
-// Test Resend connection on startup
-const testResendConnection = async () => {
-  try {
-    console.log('🔍 Testing Resend email service...');
-    // Resend doesn't have a direct test method, but we can check if API key is set
-    if (process.env.RESEND_API_KEY) {
-      console.log('✅ Resend API key configured');
-      return true;
-    } else {
-      console.error('❌ Resend API key not found');
-      return false;
-    }
-  } catch (error) {
-    console.error('❌ Resend service error:', error.message);
-    return false;
-  }
-};
-
-// Test connection immediately
-testResendConnection();
 
 // Generate JWT token
 const generateToken = (userId) => {
@@ -230,14 +227,20 @@ const sendWelcomeEmail = async (userData) => {
       </html>
     `;
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_FROM,
-      to: userData.email,
+    // Send welcome email using Resend
+    const { data, error } = await resend.emails.send({
+      from: `We Are One Support <${process.env.EMAIL_FROM}>`,
+      to: [userData.email],
       subject: 'Welcome to We Are One - Your Mental Health Support Community',
-      html: welcomeEmailContent
+      html: welcomeEmailContent,
     });
 
-    console.log('✅ Welcome email sent successfully to:', userData.email);
+    if (error) {
+      console.error('❌ Welcome email failed:', error);
+    } else {
+      console.log('✅ Welcome email sent successfully to:', userData.email);
+      console.log('📧 Email ID:', data.id);
+    }
   } catch (error) {
     console.error('❌ Welcome email failed:', error.message);
   }
@@ -266,14 +269,20 @@ const sendEmailNotification = async (userData) => {
       <p><strong>Registration Date:</strong> ${new Date().toLocaleString()}</p>
     `;
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_FROM,
-      to: 'weareone0624@gmail.com',
+    // Send admin notification using Resend
+    const { data, error } = await resend.emails.send({
+      from: `We Are One Support <${process.env.EMAIL_FROM}>`,
+      to: ['weareone0624@gmail.com'],
       subject: 'New User Registration - We Are One NGO',
-      html: emailContent
+      html: emailContent,
     });
 
-    console.log('✅ Admin notification email sent successfully');
+    if (error) {
+      console.error('❌ Admin notification email failed:', error);
+    } else {
+      console.log('✅ Admin notification email sent successfully');
+      console.log('📧 Email ID:', data.id);
+    }
   } catch (error) {
     console.error('❌ Admin notification email failed:', error.message);
   }
