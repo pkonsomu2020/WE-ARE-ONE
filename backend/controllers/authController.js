@@ -146,7 +146,7 @@ const sendPasswordResetEmail = async (userEmail, resetToken, resetUrl) => {
     
     // Send email using Resend
     const { data, error } = await resend.emails.send({
-      from: `We Are One Support <${process.env.EMAIL_FROM}>`,
+      from: 'We Are One Support <onboarding@resend.dev>',
       to: [userEmail],
       subject: 'Reset Your Password - We Are One',
       html: resetEmailContent,
@@ -229,7 +229,7 @@ const sendWelcomeEmail = async (userData) => {
 
     // Send welcome email using Resend
     const { data, error } = await resend.emails.send({
-      from: `We Are One Support <${process.env.EMAIL_FROM}>`,
+      from: 'We Are One Support <onboarding@resend.dev>',
       to: [userData.email],
       subject: 'Welcome to We Are One - Your Mental Health Support Community',
       html: welcomeEmailContent,
@@ -271,7 +271,7 @@ const sendEmailNotification = async (userData) => {
 
     // Send admin notification using Resend
     const { data, error } = await resend.emails.send({
-      from: `We Are One Support <${process.env.EMAIL_FROM}>`,
+      from: 'We Are One Support <onboarding@resend.dev>',
       to: ['weareone0624@gmail.com'],
       subject: 'New User Registration - We Are One NGO',
       html: emailContent,
@@ -881,7 +881,7 @@ const testEmail = async (req, res) => {
     
     // Send test email using Resend
     const { data, error } = await resend.emails.send({
-      from: `We Are One Support <${process.env.EMAIL_FROM}>`,
+      from: 'We Are One Support <onboarding@resend.dev>',
       to: [email],
       subject: 'Email Service Test - We Are One',
       html: testEmailContent,
