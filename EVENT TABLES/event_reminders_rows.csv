@@ -1,0 +1,5 @@
+id,event_id,reminder_type,reminder_datetime,is_sent,sent_at,created_at
+1,1,1_hour,2025-11-12 13:12:00,false,,2025-11-11 11:12:50
+6,5,1_hour,2025-11-13 21:15:00,false,,2025-11-13 14:10:39
+8,7,24_hours,2025-11-13 21:04:00,false,,2025-11-13 18:03:29
+9,7,1_hour,2025-11-14 20:04:00,false,,2025-11-13 18:03:29

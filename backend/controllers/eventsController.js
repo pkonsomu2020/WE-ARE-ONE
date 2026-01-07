@@ -1,17 +1,9 @@
 const { pool } = require('../config/database');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const { verifyMpesaCode } = require('../services/mpesaService');
 
-// Email transporter setup (reuse env)
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: process.env.EMAIL_PORT,
-  secure: false,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+// Initialize Resend with API key
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // POST /api/events/register
 async function registerForEvent(req, res) {
@@ -128,49 +120,45 @@ async function registerForEvent(req, res) {
 
     // Send admin notification (non-blocking)
     const adminEmail = process.env.EVENTS_ADMIN_EMAIL || 'weareone0624@gmail.com';
-    transporter
-      .sendMail({
-        from: process.env.EMAIL_FROM,
-        to: adminEmail,
-        subject: `New Event Registration - ${eventId}`,
-        html: `
-          <h2>New Event Registration</h2>
-          <p><strong>Event:</strong> ${eventId}</p>
-          <p><strong>Full Name:</strong> ${fullName}</p>
-          <p><strong>Email:</strong> ${email}</p>
-          <p><strong>Phone:</strong> ${phone}</p>
-          <p><strong>Experience (expectation):</strong> ${experience || 'N/A'}</p>
-          ${isFree ? `<p><strong>Ticket:</strong> Free</p>` : `<p><strong>Ticket:</strong> ${ticketType} (KES ${amount})</p>`}
-          ${!isFree ? `<p><strong>M-Pesa Code:</strong> ${mpesaCode}</p>` : ''}
-          <p><strong>Accept Terms:</strong> ${acceptTerms ? 'Yes' : 'No'}</p>
-          <p><strong>Accept Updates:</strong> ${acceptUpdates ? 'Yes' : 'No'}</p>
-          <p><em>Registration ID: ${result.insertId}</em></p>
-        `,
-      })
-      .catch((err) => console.error('Event registration admin email error:', err.message));
+    resend.emails.send({
+      from: `We Are One Events <${process.env.EMAIL_FROM}>`,
+      to: [adminEmail],
+      subject: `New Event Registration - ${eventId}`,
+      html: `
+        <h2>New Event Registration</h2>
+        <p><strong>Event:</strong> ${eventId}</p>
+        <p><strong>Full Name:</strong> ${fullName}</p>
+        <p><strong>Email:</strong> ${email}</p>
+        <p><strong>Phone:</strong> ${phone}</p>
+        <p><strong>Experience (expectation):</strong> ${experience || 'N/A'}</p>
+        ${isFree ? `<p><strong>Ticket:</strong> Free</p>` : `<p><strong>Ticket:</strong> ${ticketType} (KES ${amount})</p>`}
+        ${!isFree ? `<p><strong>M-Pesa Code:</strong> ${mpesaCode}</p>` : ''}
+        <p><strong>Accept Terms:</strong> ${acceptTerms ? 'Yes' : 'No'}</p>
+        <p><strong>Accept Updates:</strong> ${acceptUpdates ? 'Yes' : 'No'}</p>
+        <p><em>Registration ID: ${result.insertId}</em></p>
+      `,
+    }).catch((err) => console.error('Event registration admin email error:', err.message));
 
     // Send user confirmation (non-blocking)
-    transporter
-      .sendMail({
-        from: process.env.EMAIL_FROM,
-        to: email,
-        subject: isFree ? 'Your event registration is confirmed' : 'We received your ticket request – Pending Verification',
-        html: `
-          <p>Hi ${fullName},</p>
-          ${isFree ? `
-            <p>Thank you for registering for <strong>${eventId}</strong>. This is a free event—no payment is required.</p>
-            <p>Your spot has been reserved. We look forward to seeing you!</p>
-          ` : `
-            <p>Thank you for registering for our event. We have received your details and M-Pesa code.</p>
-            <p><strong>Event:</strong> ${eventId}</p>
-            <p><strong>Ticket Type:</strong> ${ticketType} (KES ${amount})</p>
-            <p><strong>M-Pesa Code:</strong> ${mpesaCode}</p>
-            <p>Our team will verify the payment and send your unique ticket number shortly. If verification fails, we will notify you.</p>
-          `}
-          <p>— We Are One</p>
-        `,
-      })
-      .catch((err) => console.error('Event registration user email error:', err.message));
+    resend.emails.send({
+      from: `We Are One Events <${process.env.EMAIL_FROM}>`,
+      to: [email],
+      subject: isFree ? 'Your event registration is confirmed' : 'We received your ticket request – Pending Verification',
+      html: `
+        <p>Hi ${fullName},</p>
+        ${isFree ? `
+          <p>Thank you for registering for <strong>${eventId}</strong>. This is a free event—no payment is required.</p>
+          <p>Your spot has been reserved. We look forward to seeing you!</p>
+        ` : `
+          <p>Thank you for registering for our event. We have received your details and M-Pesa code.</p>
+          <p><strong>Event:</strong> ${eventId}</p>
+          <p><strong>Ticket Type:</strong> ${ticketType} (KES ${amount})</p>
+          <p><strong>M-Pesa Code:</strong> ${mpesaCode}</p>
+          <p>Our team will verify the payment and send your unique ticket number shortly. If verification fails, we will notify you.</p>
+        `}
+        <p>— We Are One</p>
+      `,
+    }).catch((err) => console.error('Event registration user email error:', err.message));
 
     return res.json({ success: true, message: 'Registration received! We will get back to you shortly.' });
   } catch (error) {
