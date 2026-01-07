@@ -121,7 +121,7 @@ async function registerForEvent(req, res) {
     // Send admin notification (non-blocking)
     const adminEmail = process.env.EVENTS_ADMIN_EMAIL || 'weareone0624@gmail.com';
     resend.emails.send({
-      from: `We Are One Events <${process.env.EMAIL_FROM}>`,
+      from: 'We Are One Events <onboarding@resend.dev>',
       to: [adminEmail],
       subject: `New Event Registration - ${eventId}`,
       html: `
@@ -141,7 +141,7 @@ async function registerForEvent(req, res) {
 
     // Send user confirmation (non-blocking)
     resend.emails.send({
-      from: `We Are One Events <${process.env.EMAIL_FROM}>`,
+      from: 'We Are One Events <onboarding@resend.dev>',
       to: [email],
       subject: isFree ? 'Your event registration is confirmed' : 'We received your ticket request – Pending Verification',
       html: `
