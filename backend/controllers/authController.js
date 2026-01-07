@@ -2,7 +2,49 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { Resend } = require('resend');
 const crypto = require('crypto');
-const { pool, supabase } = require('../config/database');
+const { pool, supabase, ensureWarmConnection } = require('../config/database');
+
+// Initialize Resend with API key
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+// Optimized bcrypt with worker threads for better performance
+const bcryptConfig = {
+  saltRounds: 10, // Balanced security vs performance
+  maxConcurrent: 2 // Limit concurrent bcrypt operations
+};
+
+let activeBcryptOperations = 0;
+
+// Enhanced bcrypt with concurrency control
+const hashPasswordAsync = async (password) => {
+  // Wait if too many concurrent operations
+  while (activeBcryptOperations >= bcryptConfig.maxConcurrent) {
+    await new Promise(resolve => setTimeout(resolve, 10));
+  }
+  
+  activeBcryptOperations++;
+  try {
+    const hash = await bcrypt.hash(password, bcryptConfig.saltRounds);
+    return hash;
+  } finally {
+    activeBcryptOperations--;
+  }
+};
+
+const comparePasswordAsync = async (password, hash) => {
+  // Wait if too many concurrent operations
+  while (activeBcryptOperations >= bcryptConfig.maxConcurrent) {
+    await new Promise(resolve => setTimeout(resolve, 10));
+  }
+  
+  activeBcryptOperations++;
+  try {
+    const isValid = await bcrypt.compare(password, hash);
+    return isValid;
+  } finally {
+    activeBcryptOperations--;
+  }
+};
 
 // Initialize Resend with API key
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -380,9 +422,8 @@ const resetPassword = async (req, res) => {
     const resetToken = tokens[0];
     console.log('✅ Valid reset token found for user:', resetToken.user_id);
 
-    // Hash new password with optimized rounds
-    const saltRounds = 10;
-    const passwordHash = await bcrypt.hash(newPassword, saltRounds);
+    // Hash new password with optimized bcrypt
+    const passwordHash = await hashPasswordAsync(newPassword);
 
     // Update user password using pool wrapper
     await pool.execute(
@@ -464,9 +505,8 @@ const register = async (req, res) => {
       });
     }
 
-    // Hash password with optimized rounds for better performance
-    const saltRounds = 10; // Reduced from 12 to 10 for better performance while maintaining security
-    const passwordHash = await bcrypt.hash(password, saltRounds);
+    // Hash password with optimized bcrypt
+    const passwordHash = await hashPasswordAsync(password);
 
     // Insert user with Supabase (sequence is now fixed)
     const { data: userResult, error: userError } = await supabase
@@ -602,7 +642,7 @@ const register = async (req, res) => {
   }
 };
 
-// Login user
+// Login user with performance optimizations
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -614,13 +654,20 @@ const login = async (req, res) => {
       });
     }
 
-    // Find user by email
+    console.log('🔐 Login attempt for:', email);
+    const startTime = Date.now();
+
+    // Ensure database connection is warm
+    await ensureWarmConnection();
+
+    // Find user by email with optimized query
     const [users] = await pool.execute(
       'SELECT id, full_name, email, phone, password_hash FROM users WHERE email = ?',
       [email]
     );
 
     if (users.length === 0) {
+      console.log('❌ User not found:', email);
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password'
@@ -628,11 +675,13 @@ const login = async (req, res) => {
     }
 
     const user = users[0];
+    console.log('✅ User found, verifying password...');
 
-    // Verify password
-    const isValidPassword = await bcrypt.compare(password, user.password_hash);
+    // Verify password with optimized bcrypt
+    const isValidPassword = await comparePasswordAsync(password, user.password_hash);
 
     if (!isValidPassword) {
+      console.log('❌ Invalid password for:', email);
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password'
@@ -641,6 +690,9 @@ const login = async (req, res) => {
 
     // Generate JWT token
     const token = generateToken(user.id);
+
+    const duration = Date.now() - startTime;
+    console.log(`✅ Login successful for ${email} in ${duration}ms`);
 
     res.json({
       success: true,
@@ -657,7 +709,7 @@ const login = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('❌ Login error:', error);
     res.status(500).json({
       success: false,
       message: 'Login failed',

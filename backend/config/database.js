@@ -32,24 +32,55 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
   },
 });
 
-// Warm up connections on startup
-(async function warmupConnections() {
+// Enhanced connection warmup with keep-alive
+let isConnectionWarmed = false;
+let lastWarmupTime = 0;
+const WARMUP_INTERVAL = 5 * 60 * 1000; // 5 minutes
+
+const warmupConnections = async (force = false) => {
+  const now = Date.now();
+  
+  // Skip if recently warmed up (unless forced)
+  if (!force && isConnectionWarmed && (now - lastWarmupTime) < WARMUP_INTERVAL) {
+    return true;
+  }
+
   try {
     console.log('🔥 Warming up database connections...');
     const start = Date.now();
     
     // Warm up both connections with simple queries
-    await Promise.all([
+    const warmupPromises = [
       supabase.from('users').select('id').limit(1),
       supabaseAdmin.from('admin_users').select('id').limit(1)
-    ]);
+    ];
+    
+    await Promise.all(warmupPromises);
     
     const time = Date.now() - start;
     console.log(`✅ Database connections warmed up in ${time}ms`);
+    
+    isConnectionWarmed = true;
+    lastWarmupTime = now;
+    return true;
   } catch (error) {
     console.log('⚠️ Connection warmup failed:', error.message);
+    isConnectionWarmed = false;
+    return false;
   }
+};
+
+// Initial warmup on startup
+(async function initialWarmup() {
+  await warmupConnections(true);
 })();
+
+// Auto-warmup before database operations
+const ensureWarmConnection = async () => {
+  if (!isConnectionWarmed || (Date.now() - lastWarmupTime) > WARMUP_INTERVAL) {
+    await warmupConnections();
+  }
+};
 
 // Create promise-based wrapper to match existing code structure
 const promisePool = {
@@ -133,6 +164,9 @@ const USER_CACHE_DURATION = 2 * 60 * 1000; // 2 minutes (shorter for users)
 
 // Helper functions for different query types
 async function handleSelectQuery(query, params) {
+  // Ensure warm connection before database operations
+  await ensureWarmConnection();
+  
   const tableMatch = query.match(/from\s+(\w+)/i);
   if (tableMatch) {
     const tableName = tableMatch[1];
@@ -338,5 +372,7 @@ module.exports = {
   pool: promisePool,
   testConnection,
   supabase,
-  supabaseAdmin
+  supabaseAdmin,
+  warmupConnections,
+  ensureWarmConnection
 };

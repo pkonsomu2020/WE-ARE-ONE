@@ -21,6 +21,7 @@ const feedbackRoutes = require('./routes/feedback');
 const notificationRoutes = require('./routes/notifications');
 const { testConnection } = require('./config/database');
 const reminderService = require('./services/reminderService');
+const warmupService = require('./services/warmupService');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -163,13 +164,34 @@ app.use(rateLimit({
 // ✅ Test database connection
 testConnection();
 
-// ✅ Health check route
+// ✅ Health check route with warmup trigger
 app.get('/api/health', (req, res) => {
+  // Record activity for warmup service
+  warmupService.recordActivity();
+  
   res.status(200).json({
     status: 'OK',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV
+    environment: process.env.NODE_ENV,
+    uptime: process.uptime(),
+    timeSinceLastActivity: warmupService.getTimeSinceLastActivity()
   });
+});
+
+// ✅ Warmup endpoint for external monitoring
+app.get('/api/warmup', async (req, res) => {
+  try {
+    await warmupService.performWarmup();
+    res.status(200).json({
+      status: 'Warmup completed',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'Warmup failed',
+      error: error.message
+    });
+  }
 });
 
 // ✅ API routes
@@ -213,6 +235,9 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV}`);
   console.log(`Payd Mode: ${process.env.PAYD_MODE}`);
+
+  // Start the warmup service for better performance
+  warmupService.start();
 
   // Start the reminder service for automatic notifications
   if (process.env.NODE_ENV === 'production') {
