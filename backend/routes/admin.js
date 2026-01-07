@@ -81,6 +81,22 @@ const transporter = nodemailer.createTransport({
       )
     `);
 
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS event_registrations (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        event_id VARCHAR(100) NOT NULL,
+        full_name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        phone VARCHAR(50) NOT NULL,
+        experience_text TEXT,
+        accept_terms BOOLEAN DEFAULT FALSE,
+        accept_updates BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_event_email (event_id, email),
+        INDEX idx_event_date (event_id, created_at)
+      )
+    `);
+
     console.log('✅ Event tables ready');
   } catch (e) {
     console.error('⚠️ Failed ensuring event tables:', e.message);
