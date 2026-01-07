@@ -1,6 +1,6 @@
 // Production environment - using correct Render backend URL
 // Check if we have a custom API URL from environment, otherwise use the correct Render URL
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string) || "https://wao-backend.onrender.com";
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string) || "https://we-are-one-api.onrender.com";
 const ADMIN_KEY = (import.meta.env.VITE_ADMIN_API_KEY as string) || "3090375ecb2326add24b37c7fd9b5fce4959c766677cdd4fd32eb67fa383db44";
 
 let ADMIN_TOKEN: string | null = (typeof localStorage !== 'undefined' && localStorage.getItem('wao_admin_token')) || null;
