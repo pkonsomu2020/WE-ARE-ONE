@@ -14,7 +14,7 @@ const getApiBaseUrl = () => {
   }
 
   // Default to correct Render backend URL
-  return 'https://wao-backend.onrender.com/api';
+  return 'https://we-are-one-api.onrender.com/api';
 };
 
 const API_BASE_URL = getApiBaseUrl();
