@@ -1,46 +1,32 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const crypto = require('crypto');
 const { pool, supabase } = require('../config/database');
 
-// Enhanced Email transporter setup with better configuration
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: parseInt(process.env.EMAIL_PORT),
-  secure: false, // true for 465, false for other ports
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  },
-  // Enhanced configuration for better reliability
-  connectionTimeout: 10000, // 10 seconds
-  greetingTimeout: 5000, // 5 seconds
-  socketTimeout: 10000, // 10 seconds
-  pool: true, // Use connection pooling
-  maxConnections: 5,
-  maxMessages: 100,
-  rateLimit: 14, // 14 messages per second max
-  tls: {
-    rejectUnauthorized: false // Allow self-signed certificates
-  }
-});
+// Initialize Resend with API key
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Test email connection on startup
-const testEmailConnection = async () => {
+// Test Resend connection on startup
+const testResendConnection = async () => {
   try {
-    console.log('🔍 Testing email connection...');
-    await transporter.verify();
-    console.log('✅ Email service is ready');
-    return true;
+    console.log('🔍 Testing Resend email service...');
+    // Resend doesn't have a direct test method, but we can check if API key is set
+    if (process.env.RESEND_API_KEY) {
+      console.log('✅ Resend API key configured');
+      return true;
+    } else {
+      console.error('❌ Resend API key not found');
+      return false;
+    }
   } catch (error) {
-    console.error('❌ Email service error:', error.message);
+    console.error('❌ Resend service error:', error.message);
     return false;
   }
 };
 
 // Test connection immediately
-testEmailConnection();
+testResendConnection();
 
 // Generate JWT token
 const generateToken = (userId) => {
@@ -56,10 +42,10 @@ const generateResetToken = () => {
   return crypto.randomBytes(32).toString('hex');
 };
 
-// Send password reset email with enhanced error handling
+// Send password reset email using Resend
 const sendPasswordResetEmail = async (userEmail, resetToken, resetUrl) => {
   try {
-    console.log('📧 Preparing to send reset email to:', userEmail);
+    console.log('📧 Preparing to send reset email via Resend to:', userEmail);
     
     const resetEmailContent = `
       <!DOCTYPE html>
@@ -116,38 +102,30 @@ const sendPasswordResetEmail = async (userEmail, resetToken, resetUrl) => {
       </html>
     `;
 
-    const mailOptions = {
-      from: `"We Are One Support" <${process.env.EMAIL_FROM}>`,
-      to: userEmail,
-      subject: 'Reset Your Password - We Are One',
-      html: resetEmailContent,
-      // Add headers for better deliverability
-      headers: {
-        'X-Priority': '1',
-        'X-MSMail-Priority': 'High',
-        'Importance': 'high'
-      }
-    };
-
-    console.log('📤 Sending email...');
+    console.log('📤 Sending email via Resend...');
     const startTime = Date.now();
     
-    // Send email with timeout protection
-    const info = await transporter.sendMail(mailOptions);
+    // Send email using Resend
+    const { data, error } = await resend.emails.send({
+      from: `We Are One Support <${process.env.EMAIL_FROM}>`,
+      to: [userEmail],
+      subject: 'Reset Your Password - We Are One',
+      html: resetEmailContent,
+    });
+
+    if (error) {
+      console.error('❌ Resend error:', error);
+      return false;
+    }
     
     const duration = Date.now() - startTime;
-    console.log(`✅ Password reset email sent successfully to: ${userEmail} (${duration}ms)`);
-    console.log('📧 Message ID:', info.messageId);
+    console.log(`✅ Password reset email sent successfully via Resend to: ${userEmail} (${duration}ms)`);
+    console.log('📧 Email ID:', data.id);
     
     return true;
   } catch (error) {
     console.error('❌ Password reset email failed:', error.message);
-    console.error('❌ Error details:', {
-      code: error.code,
-      command: error.command,
-      response: error.response,
-      responseCode: error.responseCode
-    });
+    console.error('❌ Error details:', error);
     return false;
   }
 };
@@ -320,26 +298,31 @@ const forgotPassword = async (req, res) => {
     
     console.log('🔗 Generated reset URL:', resetUrl);
 
-    // Send reset email with timeout protection
+    // Send reset email using Resend (much faster than SMTP)
     try {
-      console.log('📧 Attempting to send reset email...');
+      console.log('📧 Attempting to send reset email via Resend...');
       
-      // Create a promise that will timeout after 8 seconds
+      // Create a promise that will timeout after 3 seconds (Resend is fast)
       const emailPromise = sendPasswordResetEmail(user.email, resetToken, resetUrl);
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Email timeout after 8 seconds')), 8000)
+        setTimeout(() => reject(new Error('Email timeout after 3 seconds')), 3000)
       );
       
       // Race between email sending and timeout
       const emailSent = await Promise.race([emailPromise, timeoutPromise]);
       
       if (emailSent) {
-        console.log('✅ Reset email sent successfully');
+        console.log('✅ Reset email sent successfully via Resend');
       } else {
         console.log('❌ Email sending failed but continuing...');
       }
     } catch (emailError) {
       console.error('❌ Email sending error:', emailError.message);
+      
+      // FALLBACK: Log the reset URL for manual access (temporary solution)
+      console.log('🔗 FALLBACK - Reset URL for manual access:', resetUrl);
+      console.log('📧 Email that would have received the reset:', user.email);
+      
       // Continue anyway - don't fail the request due to email issues
     }
 
@@ -795,7 +778,7 @@ const getResetToken = async (req, res) => {
   }
 };
 
-// Test email endpoint (temporary)
+// Test email endpoint using Resend
 const testEmail = async (req, res) => {
   try {
     const { email } = req.body;
@@ -807,7 +790,7 @@ const testEmail = async (req, res) => {
       });
     }
 
-    console.log('🧪 Testing email service to:', email);
+    console.log('🧪 Testing Resend email service to:', email);
 
     const testEmailContent = `
       <!DOCTYPE html>
@@ -825,32 +808,42 @@ const testEmail = async (req, res) => {
           <h1>We Are One (WAO)</h1>
         </div>
         <h2>Email Service Test</h2>
-        <p>This is a test email to verify that the email service is working correctly.</p>
+        <p>This is a test email to verify that the Resend email service is working correctly.</p>
         <p>If you received this email, the email service is functioning properly!</p>
         <p>Time sent: ${new Date().toISOString()}</p>
+        <p>Service: Resend</p>
       </body>
       </html>
     `;
 
-    const mailOptions = {
-      from: `"We Are One Support" <${process.env.EMAIL_FROM}>`,
-      to: email,
-      subject: 'Email Service Test - We Are One',
-      html: testEmailContent
-    };
-
     const startTime = Date.now();
-    const info = await transporter.sendMail(mailOptions);
-    const duration = Date.now() - startTime;
+    
+    // Send test email using Resend
+    const { data, error } = await resend.emails.send({
+      from: `We Are One Support <${process.env.EMAIL_FROM}>`,
+      to: [email],
+      subject: 'Email Service Test - We Are One',
+      html: testEmailContent,
+    });
 
-    console.log(`✅ Test email sent successfully to: ${email} (${duration}ms)`);
-    console.log('📧 Message ID:', info.messageId);
+    if (error) {
+      console.error('❌ Resend test email error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Test email failed',
+        error: error.message
+      });
+    }
+
+    const duration = Date.now() - startTime;
+    console.log(`✅ Test email sent successfully via Resend to: ${email} (${duration}ms)`);
+    console.log('📧 Email ID:', data.id);
 
     res.json({
       success: true,
-      message: 'Test email sent successfully',
+      message: 'Test email sent successfully via Resend',
       data: {
-        messageId: info.messageId,
+        emailId: data.id,
         duration: `${duration}ms`
       }
     });
