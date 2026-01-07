@@ -97,7 +97,7 @@ const AuthDialog = ({ trigger }: AuthDialogProps) => {
   }
 
   // Always use Render backend for production
-  return 'https://we-are-one-api.onrender.com/api';
+  return 'https://wao-backend.onrender.com/api';
 };
 
   const handleSupportChange = (option: string, checked: boolean) => {

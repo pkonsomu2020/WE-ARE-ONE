@@ -7,7 +7,7 @@
 
 const https = require('https');
 
-const BACKEND_URL = 'https://we-are-one-api.onrender.com';
+const BACKEND_URL = 'https://wao-backend.onrender.com';
 const PING_INTERVAL = 8 * 60 * 1000; // 8 minutes (before Render's 10-minute timeout)
 
 class BackendMonitor {

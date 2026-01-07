@@ -12,7 +12,7 @@ const getApiBaseUrl = () => {
     return 'http://localhost:3000/api';
   }
   // Always use Render backend for production
-  return 'https://we-are-one-api.onrender.com/api';
+  return 'https://wao-backend.onrender.com/api';
 };
 
 const DonationSection = () => {

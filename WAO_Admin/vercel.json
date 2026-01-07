@@ -26,6 +26,6 @@
     }
   ],
   "env": {
-    "VITE_API_BASE_URL": "https://we-are-one-api.onrender.com"
+    "VITE_API_BASE_URL": "https://wao-backend.onrender.com"
   }
 }
