@@ -74,7 +74,7 @@ const FileRepositoryPage = () => {
   }, []);
 
   useEffect(() => {
-    if (files.length === 0) {
+    if (!files || !Array.isArray(files) || files.length === 0) {
       setUploaders([]);
       return;
     }
@@ -146,15 +146,21 @@ const FileRepositoryPage = () => {
     return 'bg-gray-100 text-gray-800';
   };
 
-  const filteredDocuments = useMemo(() => files.filter(file => {
-    const nameMatches = file.original_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      file.uploaded_by.toLowerCase().includes(searchTerm.toLowerCase());
-    const categoryMatches = selectedCategory === 'all' || file.category_name === selectedCategory;
-    const typeMatches = selectedType === 'all' || file.mime_type.includes(selectedType);
-    const uploaderValue = file.uploaded_by_email || file.uploader_name || file.uploaded_by;
-    const uploaderMatches = selectedUploader === 'all' || uploaderValue === selectedUploader;
-    return nameMatches && categoryMatches && typeMatches && uploaderMatches;
-  }), [files, searchTerm, selectedCategory, selectedType, selectedUploader]);
+  const filteredDocuments = useMemo(() => {
+    if (!files || !Array.isArray(files)) {
+      return [];
+    }
+    
+    return files.filter(file => {
+      const nameMatches = file.original_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        file.uploaded_by.toLowerCase().includes(searchTerm.toLowerCase());
+      const categoryMatches = selectedCategory === 'all' || file.category_name === selectedCategory;
+      const typeMatches = selectedType === 'all' || file.mime_type.includes(selectedType);
+      const uploaderValue = file.uploaded_by_email || file.uploader_name || file.uploaded_by;
+      const uploaderMatches = selectedUploader === 'all' || uploaderValue === selectedUploader;
+      return nameMatches && categoryMatches && typeMatches && uploaderMatches;
+    });
+  }, [files, searchTerm, selectedCategory, selectedType, selectedUploader]);
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();

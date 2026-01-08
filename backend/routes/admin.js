@@ -429,4 +429,119 @@ router.get('/dashboard/mission-vision', async (req, res) => {
   }
 });
 
+// Analytics Endpoints
+router.get('/analytics/overview', async (req, res) => {
+  try {
+    console.log('📊 Fetching analytics overview...');
+    
+    // Get basic stats
+    const [totalUsers] = await pool.execute('SELECT COUNT(*) as count FROM users');
+    const [totalPayments] = await pool.execute('SELECT COUNT(*) as count FROM event_payments');
+    const [paidPayments] = await pool.execute('SELECT COUNT(*) as count FROM event_payments WHERE status = "paid"');
+    const [totalRevenue] = await pool.execute('SELECT SUM(amount) as total FROM event_payments WHERE status = "paid"');
+    const [totalRegistrations] = await pool.execute('SELECT COUNT(*) as count FROM event_registrations');
+    
+    // Get recent activity (last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const [recentUsers] = await pool.execute(
+      'SELECT COUNT(*) as count FROM users WHERE created_at >= ?', 
+      [thirtyDaysAgo.toISOString().split('T')[0]]
+    );
+    const [recentPayments] = await pool.execute(
+      'SELECT COUNT(*) as count FROM event_payments WHERE created_at >= ?', 
+      [thirtyDaysAgo.toISOString().split('T')[0]]
+    );
+    
+    // Get top events by registrations
+    const [topEvents] = await pool.execute(`
+      SELECT event_id, COUNT(*) as registrations 
+      FROM event_registrations 
+      GROUP BY event_id 
+      ORDER BY registrations DESC 
+      LIMIT 5
+    `);
+    
+    const overview = {
+      totalUsers: totalUsers[0].count,
+      totalPayments: totalPayments[0].count,
+      paidPayments: paidPayments[0].count,
+      totalRevenue: totalRevenue[0].total || 0,
+      totalRegistrations: totalRegistrations[0].count,
+      recentUsers: recentUsers[0].count,
+      recentPayments: recentPayments[0].count,
+      topEvents: topEvents || []
+    };
+    
+    console.log('✅ Analytics overview fetched');
+    res.json({
+      success: true,
+      data: overview
+    });
+  } catch (error) {
+    console.error('Error fetching analytics overview:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch analytics overview'
+    });
+  }
+});
+
+router.get('/analytics/trends', async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    console.log('📊 Fetching analytics trends...', { startDate, endDate });
+    
+    // Default to last 30 days if no dates provided
+    const end = endDate ? new Date(endDate) : new Date();
+    const start = startDate ? new Date(startDate) : new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
+    
+    // Get daily user registrations
+    const [userTrends] = await pool.execute(`
+      SELECT DATE(created_at) as date, COUNT(*) as count 
+      FROM users 
+      WHERE created_at BETWEEN ? AND ? 
+      GROUP BY DATE(created_at) 
+      ORDER BY date
+    `, [start.toISOString().split('T')[0], end.toISOString().split('T')[0]]);
+    
+    // Get daily payment trends
+    const [paymentTrends] = await pool.execute(`
+      SELECT DATE(created_at) as date, COUNT(*) as count, SUM(amount) as revenue 
+      FROM event_payments 
+      WHERE created_at BETWEEN ? AND ? AND status = "paid"
+      GROUP BY DATE(created_at) 
+      ORDER BY date
+    `, [start.toISOString().split('T')[0], end.toISOString().split('T')[0]]);
+    
+    // Get event registration trends
+    const [registrationTrends] = await pool.execute(`
+      SELECT DATE(created_at) as date, COUNT(*) as count 
+      FROM event_registrations 
+      WHERE created_at BETWEEN ? AND ? 
+      GROUP BY DATE(created_at) 
+      ORDER BY date
+    `, [start.toISOString().split('T')[0], end.toISOString().split('T')[0]]);
+    
+    const trends = {
+      userRegistrations: userTrends || [],
+      payments: paymentTrends || [],
+      eventRegistrations: registrationTrends || [],
+      dateRange: { start: start.toISOString(), end: end.toISOString() }
+    };
+    
+    console.log('✅ Analytics trends fetched');
+    res.json({
+      success: true,
+      data: trends
+    });
+  } catch (error) {
+    console.error('Error fetching analytics trends:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch analytics trends'
+    });
+  }
+});
+
 module.exports = router;
