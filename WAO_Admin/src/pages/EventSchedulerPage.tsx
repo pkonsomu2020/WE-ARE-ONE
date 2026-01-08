@@ -223,7 +223,7 @@ const EventSchedulerPage = () => {
     return formatTimeString(dateString);
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDateDisplay = (dateString: string) => {
     return formatDateString(dateString);
   };
 
@@ -504,7 +504,7 @@ const EventSchedulerPage = () => {
                       min={new Date().toISOString().split('T')[0]}
                       required
                     />
-                    {newEvent.date && formatDate(newEvent.date) < new Date(new Date().toISOString().split('T')[0]) && (
+                    {newEvent.date && new Date(newEvent.date) < new Date(new Date().toISOString().split('T')[0]) && (
                       <p className="text-sm text-red-500 mt-1">
                         ⚠️ Cannot schedule events in the past
                       </p>
@@ -861,7 +861,7 @@ const EventSchedulerPage = () => {
                           <div className="flex items-center space-x-4 text-sm text-gray-500">
                             <div className="flex items-center">
                               <Clock className="w-4 h-4 mr-1" />
-                              {formatDate(event.start)} • {formatTime(event.start)} - {formatTime(event.end)}
+                              {formatDateDisplay(event.start)} • {formatTime(event.start)} - {formatTime(event.end)}
                             </div>
                             {event.location && (
                               <div className="flex items-center">
