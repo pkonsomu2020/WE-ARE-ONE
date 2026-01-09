@@ -142,7 +142,6 @@ async function registerForEvent(req, res) {
     }).catch((err) => console.error('Event registration admin email error:', err.message));
 
     // Send user confirmation (non-blocking) - TEMPORARY: Route to verified address
-    const originalUserEmail = email;
     const actualRecipient = 'weareone0624@gmail.com';
     
     resend.emails.send({
