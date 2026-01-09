@@ -118,12 +118,14 @@ async function registerForEvent(req, res) {
 
     // Ticket number allocation will occur after admin marks payment as paid
 
-    // Send admin notification (non-blocking)
+    // Send admin notification (non-blocking) - TEMPORARY: Route to verified address
     const adminEmail = process.env.EVENTS_ADMIN_EMAIL || 'weareone0624@gmail.com';
+    const originalUserEmail = email;
+    
     resend.emails.send({
       from: 'We Are One Events <onboarding@resend.dev>',
-      to: [adminEmail],
-      subject: `New Event Registration - ${eventId}`,
+      to: [adminEmail], // This already goes to verified address
+      subject: `New Event Registration - ${eventId} (from ${originalUserEmail})`,
       html: `
         <h2>New Event Registration</h2>
         <p><strong>Event:</strong> ${eventId}</p>
@@ -139,12 +141,18 @@ async function registerForEvent(req, res) {
       `,
     }).catch((err) => console.error('Event registration admin email error:', err.message));
 
-    // Send user confirmation (non-blocking)
+    // Send user confirmation (non-blocking) - TEMPORARY: Route to verified address
+    const originalUserEmail = email;
+    const actualRecipient = 'weareone0624@gmail.com';
+    
     resend.emails.send({
       from: 'We Are One Events <onboarding@resend.dev>',
-      to: [email],
-      subject: isFree ? 'Your event registration is confirmed' : 'We received your ticket request – Pending Verification',
+      to: [actualRecipient],
+      subject: isFree ? `Event Registration Confirmation for ${originalUserEmail}` : `Ticket Request for ${originalUserEmail} – Pending Verification`,
       html: `
+        <div style="background-color: #e3f2fd; border: 1px solid #2196f3; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <strong>🔧 TESTING MODE:</strong> This email was intended for <strong>${originalUserEmail}</strong> but redirected here due to email testing restrictions.
+        </div>
         <p>Hi ${fullName},</p>
         ${isFree ? `
           <p>Thank you for registering for <strong>${eventId}</strong>. This is a free event—no payment is required.</p>
