@@ -84,7 +84,12 @@ const generateResetToken = () => {
 // Send password reset email using Resend
 const sendPasswordResetEmail = async (userEmail, resetToken, resetUrl) => {
   try {
-    console.log('📧 Preparing to send reset email via Resend to:', userEmail);
+    // TEMPORARY: Route all emails to verified address due to Resend testing restrictions
+    const originalRecipient = userEmail;
+    const actualRecipient = 'weareone0624@gmail.com'; // Only verified address that works
+    
+    console.log('📧 Preparing to send reset email via Resend to:', actualRecipient);
+    console.log('⚠️ Original recipient:', originalRecipient, '(redirected due to testing mode)');
     
     const resetEmailContent = `
       <!DOCTYPE html>
@@ -100,9 +105,14 @@ const sendPasswordResetEmail = async (userEmail, resetToken, resetUrl) => {
           .warning { background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0; }
           .signature { margin-top: 30px; }
           .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 14px; color: #666; }
+          .testing-notice { background-color: #e3f2fd; border: 1px solid #2196f3; padding: 15px; border-radius: 5px; margin: 20px 0; }
         </style>
       </head>
       <body>
+        <div class="testing-notice">
+          <strong>🔧 TESTING MODE:</strong> This password reset email was intended for <strong>${originalRecipient}</strong> but redirected here due to email testing restrictions.
+        </div>
+        
         <div class="logo">
           <h1>We Are One (WAO)</h1>
         </div>
@@ -110,9 +120,9 @@ const sendPasswordResetEmail = async (userEmail, resetToken, resetUrl) => {
         <div class="reset-text">
           <p>Hello,</p>
           
-          <p>We received a request to reset your password for your We Are One account. If you didn't make this request, you can safely ignore this email.</p>
+          <p>We received a request to reset the password for the account: <strong>${originalRecipient}</strong></p>
           
-          <p>To reset your password, click the button below:</p>
+          <p>To reset the password, click the button below:</p>
           
           <div style="text-align: center;">
             <a href="${resetUrl}" class="cta-button">Reset Password</a>
@@ -134,8 +144,8 @@ const sendPasswordResetEmail = async (userEmail, resetToken, resetUrl) => {
         </div>
         
         <div class="footer">
-          <p>This email was sent to ${userEmail} because you requested a password reset for your We Are One account.</p>
-          <p>If you didn't request this reset, please ignore this email or contact us if you have concerns.</p>
+          <p>This email was intended for ${originalRecipient} for their We Are One account password reset.</p>
+          <p>In testing mode, all emails are redirected to this verified address.</p>
         </div>
       </body>
       </html>
@@ -147,8 +157,8 @@ const sendPasswordResetEmail = async (userEmail, resetToken, resetUrl) => {
     // Send email using Resend
     const { data, error } = await resend.emails.send({
       from: 'We Are One Support <onboarding@resend.dev>',
-      to: [userEmail],
-      subject: 'Reset Your Password - We Are One',
+      to: [actualRecipient],
+      subject: `Password Reset for ${originalRecipient} - We Are One`,
       html: resetEmailContent,
     });
 
@@ -227,12 +237,20 @@ const sendWelcomeEmail = async (userData) => {
       </html>
     `;
 
-    // Send welcome email using Resend
+    // Send welcome email using Resend (TEMPORARY: Route to verified address)
+    const originalRecipient = userData.email;
+    const actualRecipient = 'weareone0624@gmail.com';
+    
     const { data, error } = await resend.emails.send({
       from: 'We Are One Support <onboarding@resend.dev>',
-      to: [userData.email],
-      subject: 'Welcome to We Are One - Your Mental Health Support Community',
-      html: welcomeEmailContent,
+      to: [actualRecipient],
+      subject: `Welcome Email for ${originalRecipient} - We Are One`,
+      html: `
+        <div style="background-color: #e3f2fd; border: 1px solid #2196f3; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <strong>🔧 TESTING MODE:</strong> This welcome email was intended for <strong>${originalRecipient}</strong> but redirected here due to email testing restrictions.
+        </div>
+        ${welcomeEmailContent}
+      `,
     });
 
     if (error) {
