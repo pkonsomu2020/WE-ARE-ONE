@@ -9,7 +9,7 @@ interface ProtectedPageProps {
   pageName: string;
 }
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string) || 'https://weareone.co.ke';
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string) || 'https://we-are-one-api.onrender.com';
 
 export const ProtectedPage = ({ children, requiredPermission, pageName }: ProtectedPageProps) => {
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);

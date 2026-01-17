@@ -1,4 +1,4 @@
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string) || "https://weareone.co.ke";
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string) || "https://we-are-one-api.onrender.com";
 const ADMIN_KEY = (import.meta.env.VITE_ADMIN_API_KEY as string) || "3090375ecb2326add24b37c7fd9b5fce4959c766677cdd4fd32eb67fa383db44";
 
 async function request(path: string, init?: RequestInit) {
@@ -8,14 +8,15 @@ async function request(path: string, init?: RequestInit) {
   } catch { }
 
   const url = `${API_BASE_URL}${path}`;
-  
-  // Add adminEmail as query parameter instead of header to avoid CORS issues
-  const separator = url.includes('?') ? '&' : '?';
-  const urlWithAdmin = `${url}${separator}adminEmail=admin@weareone.co.ke`;
 
   const headers: Record<string, string> = {
     ...(init?.headers || {})
   };
+
+  // Only add Content-Type for non-FormData requests
+  if (!(init?.body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json';
+  }
 
   // PRIORITIZE JWT TOKEN - only use admin key as fallback
   if (ADMIN_TOKEN) {
@@ -24,7 +25,7 @@ async function request(path: string, init?: RequestInit) {
     headers['x-admin-key'] = ADMIN_KEY;
   }
 
-  const res = await fetch(urlWithAdmin, {
+  const res = await fetch(url, {
     ...init,
     headers,
     credentials: 'include'
@@ -155,7 +156,6 @@ class FileRepositoryAPI {
   async createCategory(category: Partial<FileCategory>): Promise<FileCategory> {
     const response = await request(`${this.baseUrl}/categories`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(category)
     });
     return response.data;
@@ -164,7 +164,6 @@ class FileRepositoryAPI {
   async updateCategory(id: number, category: Partial<FileCategory>): Promise<void> {
     await request(`${this.advancedUrl}/categories/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(category)
     });
   }
@@ -200,7 +199,6 @@ class FileRepositoryAPI {
   }
 
   async uploadFile(formData: FormData): Promise<FileUploadResponse> {
-    formData.append('adminEmail', 'admin@weareone.co.ke');
     return await request(`${this.baseUrl}/upload`, {
       method: 'POST',
       body: formData
@@ -218,7 +216,6 @@ class FileRepositoryAPI {
       mimeType: string;
     }>;
   }> {
-    formData.append('adminEmail', 'admin@weareone.co.ke');
     return await request(`${this.baseUrl}/upload-multiple`, {
       method: 'POST',
       body: formData
@@ -234,39 +231,51 @@ class FileRepositoryAPI {
   }): Promise<void> {
     await request(`${this.baseUrl}/files/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...data, adminEmail: 'admin@weareone.co.ke' })
+      body: JSON.stringify(data)
     });
   }
 
   async deleteFile(id: number): Promise<void> {
-    await request(`${this.baseUrl}/files/${id}?adminEmail=admin@weareone.co.ke`, {
+    await request(`${this.baseUrl}/files/${id}`, {
       method: 'DELETE'
     });
   }
 
   async downloadFile(id: number): Promise<Blob> {
-    const url = `${API_BASE_URL}${this.baseUrl}/download/${id}?adminEmail=admin@weareone.co.ke`;
+    let ADMIN_TOKEN: string | null = null;
+    try {
+      ADMIN_TOKEN = localStorage.getItem('wao_admin_token');
+    } catch { }
+
+    const headers: Record<string, string> = {};
+    
+    // PRIORITIZE JWT TOKEN - only use admin key as fallback
+    if (ADMIN_TOKEN) {
+      headers['Authorization'] = `Bearer ${ADMIN_TOKEN}`;
+    } else {
+      headers['x-admin-key'] = ADMIN_KEY;
+    }
+
+    const url = `${API_BASE_URL}${this.baseUrl}/download/${id}`;
     const response = await fetch(url, {
-      headers: {
-        'x-admin-key': ADMIN_KEY,
-      }
+      headers,
+      credentials: 'include'
     });
+    
     if (!response.ok) throw new Error('Download failed');
     return response.blob();
   }
 
   // Statistics
   async getStats(): Promise<FileStatsResponse> {
-    return await request(`${this.baseUrl}/stats?adminEmail=admin@weareone.co.ke`);
+    return await request(`${this.baseUrl}/stats`);
   }
 
   // Advanced features
   async searchFiles(filters: SearchFilters): Promise<FilesResponse> {
     return await request(`${this.advancedUrl}/search`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...filters, adminEmail: 'admin@weareone.co.ke' })
+      body: JSON.stringify(filters)
     });
   }
 
@@ -277,8 +286,7 @@ class FileRepositoryAPI {
   }): Promise<ShareLinkResponse> {
     return await request(`${this.advancedUrl}/files/${fileId}/share`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...options, adminEmail: 'admin@weareone.co.ke' })
+      body: JSON.stringify(options || {})
     });
   }
 
@@ -290,9 +298,10 @@ class FileRepositoryAPI {
     ip_address?: string;
     created_at: string;
   }>> {
-    const queryParams = new URLSearchParams({ adminEmail: 'admin@weareone.co.ke' });
+    const queryParams = new URLSearchParams();
     if (limit) queryParams.append('limit', String(limit));
-    const response = await request(`${this.advancedUrl}/files/${fileId}/history?${queryParams.toString()}`);
+    const queryString = queryParams.toString();
+    const response = await request(`${this.advancedUrl}/files/${fileId}/history${queryString ? `?${queryString}` : ''}`);
     return response.data;
   }
 
@@ -303,8 +312,7 @@ class FileRepositoryAPI {
   }> {
     return await request(`${this.advancedUrl}/bulk/category`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fileIds, categoryId, adminEmail: 'admin@weareone.co.ke' })
+      body: JSON.stringify({ fileIds, categoryId })
     });
   }
 
@@ -315,8 +323,7 @@ class FileRepositoryAPI {
   }> {
     return await request(`${this.advancedUrl}/bulk`, {
       method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fileIds, adminEmail: 'admin@weareone.co.ke' })
+      body: JSON.stringify({ fileIds })
     });
   }
 
@@ -343,7 +350,7 @@ class FileRepositoryAPI {
       }>;
     };
   }> {
-    return await request(`${this.advancedUrl}/storage/stats?adminEmail=admin@weareone.co.ke`);
+    return await request(`${this.advancedUrl}/storage/stats`);
   }
 
   async cleanupExpiredShares(): Promise<{
@@ -353,8 +360,7 @@ class FileRepositoryAPI {
   }> {
     return await request(`${this.advancedUrl}/cleanup/expired-shares`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ adminEmail: 'admin@weareone.co.ke' })
+      body: JSON.stringify({})
     });
   }
 

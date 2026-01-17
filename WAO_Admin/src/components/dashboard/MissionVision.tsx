@@ -96,7 +96,7 @@ const MissionVision = () => {
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  onClick={() => window.open('https://weareone.co.ke/#mission', '_blank')}
+                  onClick={() => window.open(`${(import.meta.env.VITE_MAIN_WEBSITE_URL as string) || 'https://weareone.co.ke'}/#mission`, '_blank')}
                 >
                   <ExternalLink className="w-4 h-4" />
                 </Button>
@@ -116,7 +116,7 @@ const MissionVision = () => {
                 variant="ghost" 
                 size="sm" 
                 className="text-orange-600 hover:text-orange-700"
-                onClick={() => window.open('https://weareone.co.ke/#mission', '_blank')}
+                onClick={() => window.open(`${(import.meta.env.VITE_MAIN_WEBSITE_URL as string) || 'https://weareone.co.ke'}/#mission`, '_blank')}
               >
                 <ExternalLink className="w-4 h-4 mr-1" />
                 View on Website
@@ -140,7 +140,7 @@ const MissionVision = () => {
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  onClick={() => window.open('https://weareone.co.ke/#about', '_blank')}
+                  onClick={() => window.open(`${(import.meta.env.VITE_MAIN_WEBSITE_URL as string) || 'https://weareone.co.ke'}/#about`, '_blank')}
                 >
                   <ExternalLink className="w-4 h-4" />
                 </Button>
@@ -160,7 +160,7 @@ const MissionVision = () => {
                 variant="ghost" 
                 size="sm" 
                 className="text-blue-600 hover:text-blue-700"
-                onClick={() => window.open('https://weareone.co.ke/#about', '_blank')}
+                onClick={() => window.open(`${(import.meta.env.VITE_MAIN_WEBSITE_URL as string) || 'https://weareone.co.ke'}/#about`, '_blank')}
               >
                 <ExternalLink className="w-4 h-4 mr-1" />
                 View on Website

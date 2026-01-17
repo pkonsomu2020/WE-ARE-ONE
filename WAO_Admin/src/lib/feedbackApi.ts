@@ -1,5 +1,5 @@
 // Create our own request function since api.request doesn't exist
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string) || "https://weareone.co.ke";
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string) || "https://we-are-one-api.onrender.com";
 const ADMIN_KEY = (import.meta.env.VITE_ADMIN_API_KEY as string) || "3090375ecb2326add24b37c7fd9b5fce4959c766677cdd4fd32eb67fa383db44";
 
 async function request(path: string, init?: RequestInit) {

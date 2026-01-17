@@ -141,15 +141,20 @@ const EventSchedulerPage = () => {
       setCreators([]);
       return;
     }
-    const uniqueCreators = Array.from(new Set(
-      events
-        .map(event => {
-          if (!event) return null;
-          return event.createdByEmail || event.createdByName || event.createdBy;
-        })
-        .filter((value): value is string => !!value && typeof value === 'string')
-    ));
-    setCreators(uniqueCreators);
+    try {
+      const uniqueCreators = Array.from(new Set(
+        events
+          .filter(event => event && typeof event === 'object')
+          .map(event => {
+            return event.createdByEmail || event.createdByName || event.createdBy;
+          })
+          .filter((value): value is string => !!value && typeof value === 'string')
+      ));
+      setCreators(uniqueCreators);
+    } catch (error) {
+      console.error('Error processing creators:', error);
+      setCreators([]);
+    }
   }, [events]);
 
   const loadEvents = async () => {

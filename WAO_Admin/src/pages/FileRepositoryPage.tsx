@@ -78,15 +78,20 @@ const FileRepositoryPage = () => {
       setUploaders([]);
       return;
     }
-    const uniqueUploaders = Array.from(new Set(
-      files
-        .map(file => {
-          if (!file) return null;
-          return file.uploaded_by_email || file.uploader_name || file.uploaded_by;
-        })
-        .filter((value): value is string => !!value && typeof value === 'string')
-    ));
-    setUploaders(uniqueUploaders);
+    try {
+      const uniqueUploaders = Array.from(new Set(
+        files
+          .filter(file => file && typeof file === 'object')
+          .map(file => {
+            return file.uploaded_by_email || file.uploader_name || file.uploaded_by;
+          })
+          .filter((value): value is string => !!value && typeof value === 'string')
+      ));
+      setUploaders(uniqueUploaders);
+    } catch (error) {
+      console.error('Error processing uploaders:', error);
+      setUploaders([]);
+    }
   }, [files]);
 
   const loadData = async () => {
