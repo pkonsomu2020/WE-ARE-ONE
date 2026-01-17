@@ -74,14 +74,17 @@ const FileRepositoryPage = () => {
   }, []);
 
   useEffect(() => {
-    if (!files || !Array.isArray(files) || files.length === 0) {
+    if (!Array.isArray(files) || files.length === 0) {
       setUploaders([]);
       return;
     }
     const uniqueUploaders = Array.from(new Set(
       files
-        .map(file => file.uploaded_by_email || file.uploader_name || file.uploaded_by)
-        .filter((value): value is string => !!value)
+        .map(file => {
+          if (!file) return null;
+          return file.uploaded_by_email || file.uploader_name || file.uploaded_by;
+        })
+        .filter((value): value is string => !!value && typeof value === 'string')
     ));
     setUploaders(uniqueUploaders);
   }, [files]);
@@ -92,31 +95,67 @@ const FileRepositoryPage = () => {
 
       // Load files
       const filesResponse = await fileRepositoryAPI.getFiles();
-      if (filesResponse.success) {
-        setFiles(filesResponse.data.files);
-      }
+      const filesData = filesResponse?.success && filesResponse?.data?.files ? filesResponse.data.files : [];
+      setFiles(filesData);
 
       // Load categories
-      const categoriesResponse = await fileRepositoryAPI.getCategories();
-      setCategories(categoriesResponse);
+      try {
+        const categoriesResponse = await fileRepositoryAPI.getCategories();
+        setCategories(Array.isArray(categoriesResponse) ? categoriesResponse : []);
+      } catch (error) {
+        console.error('Failed to load categories:', error);
+        setCategories([]);
+      }
 
       // Load stats
-      const statsResponse = await fileRepositoryAPI.getStats();
-      if (statsResponse.success) {
-        // Calculate total downloads from the files array instead
-        const totalDownloads = filesResponse.success
-          ? filesResponse.data.files.reduce((sum, file) => sum + (file.download_count || 0), 0)
-          : 0;
+      try {
+        const statsResponse = await fileRepositoryAPI.getStats();
+        if (statsResponse?.success && statsResponse?.data) {
+          // Calculate total downloads from the files array instead
+          const totalDownloads = Array.isArray(filesData)
+            ? filesData.reduce((sum, file) => sum + (file.download_count || 0), 0)
+            : 0;
 
+          setStats({
+            totalFiles: statsResponse.data.totalFiles || 0,
+            totalSize: statsResponse.data.totalSize || 0,
+            totalDownloads: totalDownloads,
+            storageUsed: fileRepositoryAPI.formatFileSize(statsResponse.data.totalSize || 0)
+          });
+        } else {
+          // Fallback stats if API fails
+          setStats({
+            totalFiles: filesData.length,
+            totalSize: 0,
+            totalDownloads: Array.isArray(filesData) 
+              ? filesData.reduce((sum, file) => sum + (file.download_count || 0), 0) 
+              : 0,
+            storageUsed: '0 GB'
+          });
+        }
+      } catch (error) {
+        console.error('Failed to load stats:', error);
+        // Fallback stats if API fails
         setStats({
-          totalFiles: statsResponse.data.totalFiles,
-          totalSize: statsResponse.data.totalSize,
-          totalDownloads: totalDownloads,
-          storageUsed: fileRepositoryAPI.formatFileSize(statsResponse.data.totalSize)
+          totalFiles: filesData.length,
+          totalSize: 0,
+          totalDownloads: Array.isArray(filesData) 
+            ? filesData.reduce((sum, file) => sum + (file.download_count || 0), 0) 
+            : 0,
+          storageUsed: '0 GB'
         });
       }
     } catch (error) {
       console.error('Failed to load file repository data:', error);
+      // Set safe defaults
+      setFiles([]);
+      setCategories([]);
+      setStats({
+        totalFiles: 0,
+        totalSize: 0,
+        totalDownloads: 0,
+        storageUsed: '0 GB'
+      });
     } finally {
       setLoading(false);
     }
@@ -147,18 +186,25 @@ const FileRepositoryPage = () => {
   };
 
   const filteredDocuments = useMemo(() => {
-    if (!files || !Array.isArray(files)) {
+    if (!Array.isArray(files)) {
       return [];
     }
     
     return files.filter(file => {
-      const nameMatches = file.original_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        file.uploaded_by.toLowerCase().includes(searchTerm.toLowerCase());
-      const categoryMatches = selectedCategory === 'all' || file.category_name === selectedCategory;
-      const typeMatches = selectedType === 'all' || file.mime_type.includes(selectedType);
-      const uploaderValue = file.uploaded_by_email || file.uploader_name || file.uploaded_by;
-      const uploaderMatches = selectedUploader === 'all' || uploaderValue === selectedUploader;
-      return nameMatches && categoryMatches && typeMatches && uploaderMatches;
+      if (!file) return false;
+      
+      try {
+        const nameMatches = (file.original_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (file.uploaded_by || '').toLowerCase().includes(searchTerm.toLowerCase());
+        const categoryMatches = selectedCategory === 'all' || file.category_name === selectedCategory;
+        const typeMatches = selectedType === 'all' || (file.mime_type || '').includes(selectedType);
+        const uploaderValue = file.uploaded_by_email || file.uploader_name || file.uploaded_by;
+        const uploaderMatches = selectedUploader === 'all' || uploaderValue === selectedUploader;
+        return nameMatches && categoryMatches && typeMatches && uploaderMatches;
+      } catch (error) {
+        console.error('Error filtering file:', file, error);
+        return false;
+      }
     });
   }, [files, searchTerm, selectedCategory, selectedType, selectedUploader]);
 

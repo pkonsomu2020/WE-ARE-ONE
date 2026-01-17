@@ -137,14 +137,17 @@ const EventSchedulerPage = () => {
   }, []);
 
   useEffect(() => {
-    if (events.length === 0) {
+    if (!Array.isArray(events) || events.length === 0) {
       setCreators([]);
       return;
     }
     const uniqueCreators = Array.from(new Set(
       events
-        .map(event => event.createdByEmail || event.createdByName || event.createdBy)
-        .filter((value): value is string => !!value)
+        .map(event => {
+          if (!event) return null;
+          return event.createdByEmail || event.createdByName || event.createdBy;
+        })
+        .filter((value): value is string => !!value && typeof value === 'string')
     ));
     setCreators(uniqueCreators);
   }, [events]);
@@ -153,8 +156,11 @@ const EventSchedulerPage = () => {
     try {
       setLoading(true);
       const response = await api.eventScheduler.getEvents();
-      if (response.success) {
+      if (response?.success && Array.isArray(response.data)) {
         setEvents(response.data);
+      } else {
+        console.warn('Invalid events response:', response);
+        setEvents([]);
       }
     } catch (error) {
       console.error('Failed to load events:', error);
@@ -168,30 +174,70 @@ const EventSchedulerPage = () => {
   const loadStats = async () => {
     try {
       const response = await api.eventScheduler.getStats();
-      if (response.success) {
+      if (response?.success && response?.data) {
         setStats(response.data);
+      } else {
+        console.warn('Invalid stats response:', response);
+        setStats({
+          totalEvents: 0,
+          thisWeekEvents: 0,
+          meetingsCount: 0,
+          pendingReminders: 0,
+          upcomingEvents: []
+        });
       }
     } catch (error) {
       console.error('Failed to load stats:', error);
+      setStats({
+        totalEvents: 0,
+        thisWeekEvents: 0,
+        meetingsCount: 0,
+        pendingReminders: 0,
+        upcomingEvents: []
+      });
     }
   };
 
   const filteredEvents = useMemo(() => {
+    if (!Array.isArray(events)) {
+      return [];
+    }
+    
     if (selectedCreator === 'all') {
       return events;
     }
     return events.filter(event => {
+      if (!event) return false;
       const creatorKey = event.createdByEmail || event.createdByName || event.createdBy;
       return creatorKey === selectedCreator;
     });
   }, [events, selectedCreator]);
 
-  const upcomingEventsList = useMemo(() => (
-    filteredEvents
-      .filter(event => formatDate(event.start) >= new Date())
-      .sort((a, b) => formatDate(a.start).getTime() - formatDate(b.start).getTime())
-      .slice(0, 5)
-  ), [filteredEvents]);
+  const upcomingEventsList = useMemo(() => {
+    if (!Array.isArray(filteredEvents)) {
+      return [];
+    }
+    
+    return filteredEvents
+      .filter(event => {
+        if (!event || !event.start) return false;
+        try {
+          return formatDate(event.start) >= new Date();
+        } catch (error) {
+          console.error('Error filtering event:', event, error);
+          return false;
+        }
+      })
+      .sort((a, b) => {
+        try {
+          return formatDate(a.start).getTime() - formatDate(b.start).getTime();
+        } catch (error) {
+          console.error('Error sorting events:', a, b, error);
+          return 0;
+        }
+      })
+      .slice(0, 5);
+  }, [filteredEvents]);
 
   const getEventTypeColor = (type: string) => {
     switch (type) {
@@ -219,14 +265,6 @@ const EventSchedulerPage = () => {
     }
   };
 
-  const formatTime = (dateString: string) => {
-    return formatTimeString(dateString);
-  };
-
-  const formatDateDisplay = (dateString: string) => {
-    return formatDateString(dateString);
-  };
-
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
     const month = date.getMonth();
@@ -251,10 +289,20 @@ const EventSchedulerPage = () => {
   };
 
   const getEventsForDate = (date: Date, eventList: CalendarEvent[] = filteredEvents) => {
+    if (!Array.isArray(eventList)) {
+      return [];
+    }
+    
     const dateString = date.toISOString().split('T')[0];
-    return eventList.filter(event =>
-      event.start.split('T')[0] === dateString
-    );
+    return eventList.filter(event => {
+      if (!event || !event.start) return false;
+      try {
+        return event.start.split('T')[0] === dateString;
+      } catch (error) {
+        console.error('Error filtering event by date:', event, error);
+        return false;
+      }
+    });
   };
 
   const handleDateClick = (date: Date) => {
@@ -791,7 +839,7 @@ const EventSchedulerPage = () => {
                         className={`text-xs p-1 rounded border ${getEventTypeColor(event.type)} truncate`}
                         title={event.title}
                       >
-                        {formatTime(event.start)} {event.title}
+                        {formatTimeString(event.start)} {event.title}
                       </div>
                     ))}
                     {dayEvents.length > 2 && (
@@ -861,7 +909,7 @@ const EventSchedulerPage = () => {
                           <div className="flex items-center space-x-4 text-sm text-gray-500">
                             <div className="flex items-center">
                               <Clock className="w-4 h-4 mr-1" />
-                              {formatDateDisplay(event.start)} • {formatTime(event.start)} - {formatTime(event.end)}
+                              {formatDateString(event.start)} • {formatTimeString(event.start)} - {formatTimeString(event.end)}
                             </div>
                             {event.location && (
                               <div className="flex items-center">

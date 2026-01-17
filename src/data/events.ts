@@ -30,7 +30,7 @@ export const events: EventItem[] = [
   {
     id: 'kanunga-falls',
     title: 'Kanunga Falls Meetup',
-    image: '/EVENTS/WAO_KanungaFalls.jpg',
+    image: '/EVENTS/WAO_NatureTrail.jpg',
     date: 'SUNDAY 12TH OCT, 2025 10:00AM - 6:00PM',
     location: 'Kanunga Falls',
     price: 'KES 1600',
@@ -40,7 +40,7 @@ export const events: EventItem[] = [
     tickets: [
       { name: 'Standard', price: 'KES 1600', status: 'Available' }
     ],
-    photos: ['/EVENTS/WAO_KanungaFalls.jpg'],
+    photos: ['/EVENTS/WAO_NatureTrail.jpg'],
     mapEmbed: 'https://www.google.com/maps?q=Kanunga+Falls&output=embed',
   },
   {

@@ -109,6 +109,12 @@ const Header = () => {
             >
               Events
             </Link>
+            <Link
+              to="/therapy"
+              className={`px-3 py-2 rounded transition-colors ${location.pathname === '/therapy' ? 'bg-ngo-orange text-white' : 'text-gray-600 hover:text-ngo-orange'}`}
+            >
+              Therapy
+            </Link>
             
             {isAuthenticated ? (
               <UserProfile />
@@ -200,6 +206,12 @@ const Header = () => {
                 className={`px-3 py-2 rounded transition-colors ${location.pathname.startsWith('/events') ? 'bg-ngo-orange text-white' : 'text-gray-600 hover:text-ngo-orange'}`}
               >
                 Events
+              </Link>
+              <Link
+                to="/therapy"
+                className={`px-3 py-2 rounded transition-colors ${location.pathname === '/therapy' ? 'bg-ngo-orange text-white' : 'text-gray-600 hover:text-ngo-orange'}`}
+              >
+                Therapy
               </Link>
               
               {isAuthenticated ? (

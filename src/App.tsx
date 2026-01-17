@@ -18,6 +18,7 @@ import ChatMood from "./pages/ChatMood";
 import ChatJournal from "./pages/ChatJournal";
 import ChatSettings from "./pages/ChatSettings";
 import ChatAI from "./pages/ChatAI";
+import Therapy from "./pages/Therapy";
 import Analytics from "@/components/Analytics";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,7 @@ const App = () => (
             <Route path="/events/:id" element={<EventDetails />} />
             <Route path="/events/:id/attending" element={<EventPoster />} />
             <Route path="/events" element={<Events />} />
+            <Route path="/therapy" element={<Therapy />} />
             <Route path="/chat/*" element={<ChatPage />}>
               <Route index element={<ChatAI />} />
               <Route path="home" element={<ChatHome />} />
