@@ -266,7 +266,7 @@ const FileRepositoryPage = () => {
     } catch (error) {
       console.error('Upload failed:', error);
       // Show error message (you can add a toast notification here)
-      alert('Upload failed. Please try again.');
+      addNotification('Upload failed. Please try again.', 'error');
     } finally {
       setUploading(false);
     }
@@ -315,7 +315,7 @@ const FileRepositoryPage = () => {
       });
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || 'Failed to delete file';
-      alert(errorMessage);
+      addNotification(errorMessage, 'error');
       console.error('Delete failed:', error);
     }
   };

@@ -176,7 +176,7 @@ const FeedbackCenterPage = () => {
       await loadData();
     } catch (error) {
       console.error('Failed to submit message:', error);
-      alert('Failed to submit message. Please try again.');
+      addNotification('Failed to submit message. Please try again.', 'error');
     }
   };
 
@@ -191,7 +191,7 @@ const FeedbackCenterPage = () => {
       }
     } catch (error) {
       console.error('Failed to view message:', error);
-      alert('Failed to load message details');
+      addNotification('Failed to load message details', 'error');
     } finally {
       setLoadingMessage(false);
     }
@@ -552,11 +552,11 @@ const FeedbackCenterPage = () => {
                           if (replyText && replyText.trim()) {
                             try {
                               await feedbackAPI.addReply(message.id, replyText);
-                              alert('Reply sent successfully!');
+                              addNotification('Reply sent successfully!', 'success');
                               await loadData();
                             } catch (error) {
                               console.error('Failed to send reply:', error);
-                              alert('Failed to send reply');
+                              addNotification('Failed to send reply', 'error');
                             }
                           }
                         }}
@@ -575,11 +575,11 @@ const FeedbackCenterPage = () => {
                             onClick={async () => {
                               try {
                                 await feedbackAPI.updateMessageStatus(message.id, 'resolved');
-                                alert('Message marked as resolved');
+                                addNotification('Message marked as resolved', 'success');
                                 await loadData();
                               } catch (error) {
                                 console.error('Failed to update status:', error);
-                                alert('Failed to update status');
+                                addNotification('Failed to update status', 'error');
                               }
                             }}
                           >
@@ -591,11 +591,11 @@ const FeedbackCenterPage = () => {
                               if (assignTo && assignTo.trim()) {
                                 try {
                                   await feedbackAPI.updateMessageStatus(message.id, 'in_progress', assignTo);
-                                  alert(`Message assigned to ${assignTo}`);
+                                  addNotification(`Message assigned to ${assignTo}`, 'success');
                                   await loadData();
                                 } catch (error) {
                                   console.error('Failed to assign:', error);
-                                  alert('Failed to assign message');
+                                  addNotification('Failed to assign message', 'error');
                                 }
                               }
                             }}
@@ -608,14 +608,14 @@ const FeedbackCenterPage = () => {
                               if (newPriority && ['low', 'medium', 'high'].includes(newPriority.toLowerCase())) {
                                 try {
                                   await feedbackAPI.updateMessagePriority(message.id, newPriority.toLowerCase() as 'low' | 'medium' | 'high');
-                                  alert(`Priority changed to ${newPriority}`);
+                                  addNotification(`Priority changed to ${newPriority}`, 'success');
                                   await loadData();
                                 } catch (error) {
                                   console.error('Failed to update priority:', error);
-                                  alert('Failed to update priority');
+                                  addNotification('Failed to update priority', 'error');
                                 }
                               } else if (newPriority) {
-                                alert('Invalid priority. Please enter: low, medium, or high');
+                                addNotification('Invalid priority. Please enter: low, medium, or high', 'error');
                               }
                             }}
                           >
@@ -627,11 +627,11 @@ const FeedbackCenterPage = () => {
                               if (confirm(`Are you sure you want to delete "${message.subject}"?`)) {
                                 try {
                                   await feedbackAPI.deleteMessage(message.id);
-                                  alert('Message deleted successfully');
+                                  addNotification('Message deleted successfully', 'success');
                                   await loadData();
                                 } catch (error) {
                                   console.error('Failed to delete message:', error);
-                                  alert('Failed to delete message');
+                                  addNotification('Failed to delete message', 'error');
                                 }
                               }
                             }}
