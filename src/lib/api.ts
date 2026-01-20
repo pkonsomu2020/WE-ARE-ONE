@@ -10,7 +10,9 @@ const getApiBaseUrl = () => {
   // Check if we have a custom API URL from environment
   if (import.meta.env.VITE_API_BASE_URL) {
     // Clean any whitespace/newlines from environment variable
-    return import.meta.env.VITE_API_BASE_URL.trim();
+    const envUrl = import.meta.env.VITE_API_BASE_URL.trim();
+    // If the environment variable doesn't end with /api, add it
+    return envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`;
   }
 
   // Default to correct Render backend URL
