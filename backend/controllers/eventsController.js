@@ -112,8 +112,18 @@ async function registerForEvent(req, res) {
       acceptUpdates: acceptUpdates ? 1 : 0,
     });
 
+    // Test database connection first
     try {
-      const [result] = await pool.execute(
+      await pool.execute('SELECT 1 as test');
+      console.log('✅ Database connection test passed');
+    } catch (connError) {
+      console.error('❌ Database connection test failed:', connError.message);
+      throw new Error(`Database connection failed: ${connError.message}`);
+    }
+
+    let result;
+    try {
+      const [insertResult] = await pool.execute(
         `INSERT INTO event_registrations
           (event_id, full_name, email, phone, experience_text, accept_terms, accept_updates)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -128,9 +138,17 @@ async function registerForEvent(req, res) {
         ]
       );
 
+      result = insertResult;
       console.log('✅ Event registration saved successfully with ID:', result.insertId);
       console.log('📊 Database result object:', result);
       console.log('📊 Registration details:', { eventId, fullName, email, phone, isFree });
+      
+      // If insertId is still undefined, there's a database issue
+      if (!result.insertId) {
+        console.error('⚠️ Database insert succeeded but no insertId returned');
+        console.error('⚠️ This might indicate a database configuration issue');
+        throw new Error('Database insert succeeded but no insertId returned');
+      }
     } catch (dbError) {
       console.error('❌ Database insert failed:', dbError.message);
       console.error('❌ Full database error:', dbError);
