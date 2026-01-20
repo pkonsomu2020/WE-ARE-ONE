@@ -101,6 +101,17 @@ async function registerForEvent(req, res) {
       );
     }
 
+    console.log('📝 Attempting to insert event registration...');
+    console.log('📝 Insert parameters:', {
+      eventId,
+      fullName,
+      email,
+      phone,
+      experience: experience || null,
+      acceptTerms: acceptTerms ? 1 : 0,
+      acceptUpdates: acceptUpdates ? 1 : 0,
+    });
+
     const [result] = await pool.execute(
       `INSERT INTO event_registrations
         (event_id, full_name, email, phone, experience_text, accept_terms, accept_updates)
@@ -117,6 +128,7 @@ async function registerForEvent(req, res) {
     );
 
     console.log('✅ Event registration saved successfully with ID:', result.insertId);
+    console.log('📊 Database result object:', result);
     console.log('📊 Registration details:', { eventId, fullName, email, phone, isFree });
 
     // Ticket number allocation will occur after admin marks payment as paid
@@ -176,10 +188,11 @@ async function registerForEvent(req, res) {
       `,
     }).then((result) => {
       console.log('✅ User confirmation email sent successfully to:', email);
+      console.log('📧 Full Resend response:', JSON.stringify(result, null, 2));
       console.log('📧 Email ID:', result?.data?.id || result?.id || 'No ID returned');
     }).catch((err) => {
       console.error('❌ Event registration user email error:', err.message);
-      console.error('❌ Full error:', err);
+      console.error('❌ Full error object:', JSON.stringify(err, null, 2));
     });
 
     return res.json({ success: true, message: 'Registration received! We will get back to you shortly.' });
