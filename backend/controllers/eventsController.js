@@ -143,7 +143,8 @@ async function registerForEvent(req, res) {
         <p><em>Registration ID: ${result.insertId}</em></p>
       `,
     }).then((result) => {
-      console.log('✅ Admin email sent successfully:', result.data?.id);
+      console.log('✅ Admin email sent successfully to:', adminEmail);
+      console.log('📧 Email ID:', result?.data?.id || result?.id || 'No ID returned');
     }).catch((err) => {
       console.error('❌ Event registration admin email error:', err.message);
       console.error('❌ Full error:', err);
@@ -172,7 +173,8 @@ async function registerForEvent(req, res) {
         <p>— We Are One</p>
       `,
     }).then((result) => {
-      console.log('✅ User confirmation email sent successfully:', result.data?.id);
+      console.log('✅ User confirmation email sent successfully to:', email);
+      console.log('📧 Email ID:', result?.data?.id || result?.id || 'No ID returned');
     }).catch((err) => {
       console.error('❌ Event registration user email error:', err.message);
       console.error('❌ Full error:', err);
