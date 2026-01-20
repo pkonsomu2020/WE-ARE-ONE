@@ -116,6 +116,9 @@ async function registerForEvent(req, res) {
       ]
     );
 
+    console.log('✅ Event registration saved successfully with ID:', result.insertId);
+    console.log('📊 Registration details:', { eventId, fullName, email, phone, isFree });
+
     // Ticket number allocation will occur after admin marks payment as paid
 
     // Send admin notification (non-blocking)
@@ -156,7 +159,6 @@ async function registerForEvent(req, res) {
     resend.emails.send({
       from: 'We Are One Events <onboarding@resend.dev>',
       to: [email],
-      bcc: ['weareone0624@gmail.com'], // Admin gets a copy
       subject: isFree ? `Event Registration Confirmation` : `Ticket Request – Pending Verification`,
       html: `
         <p>Hi ${fullName},</p>
