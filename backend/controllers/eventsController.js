@@ -147,7 +147,7 @@ async function registerForEvent(req, res) {
     console.log('📧 Resend API key configured:', !!process.env.RESEND_API_KEY);
     
     resend.emails.send({
-      from: 'We Are One Events <onboarding@resend.dev>',
+      from: 'We Are One Events <events@weareone.co.ke>',
       to: [adminEmail],
       subject: `New Event Registration - ${eventId} (from ${email})`,
       html: `
@@ -171,17 +171,15 @@ async function registerForEvent(req, res) {
       console.error('❌ Full error:', err);
     });
 
-    // Send user confirmation (non-blocking) - TEMPORARY: Send to admin email until domain is verified
+    // Send user confirmation (non-blocking) - Now can send to actual user email!
     console.log('📧 Attempting to send user confirmation email to:', email);
-    console.log('⚠️ TEMPORARY: Sending to admin email due to Resend domain restriction');
+    console.log('✅ Using verified domain: weareone.co.ke');
     
     resend.emails.send({
-      from: 'We Are One Events <onboarding@resend.dev>',
-      to: ['weareone0624@gmail.com'], // TEMPORARY: Until domain is verified
-      subject: `[FOR ${email}] ${isFree ? 'Event Registration Confirmation' : 'Ticket Request – Pending Verification'}`,
+      from: 'We Are One Events <events@weareone.co.ke>',
+      to: [email], // Now can send to actual user email!
+      subject: isFree ? `Event Registration Confirmation` : `Ticket Request – Pending Verification`,
       html: `
-        <p><strong>This email is for: ${email}</strong></p>
-        <hr>
         <p>Hi ${fullName},</p>
         ${isFree ? `
           <p>Thank you for registering for <strong>${eventId}</strong>. This is a free event—no payment is required.</p>
@@ -194,11 +192,9 @@ async function registerForEvent(req, res) {
           <p>Our team will verify the payment and send your unique ticket number shortly. If verification fails, we will notify you.</p>
         `}
         <p>— We Are One</p>
-        <hr>
-        <p><em>Note: This email was sent to admin due to Resend domain restrictions. Please forward to ${email}</em></p>
       `,
     }).then((result) => {
-      console.log('✅ User confirmation email sent successfully to admin (for forwarding to:', email + ')');
+      console.log('✅ User confirmation email sent successfully to:', email);
       console.log('📧 Full Resend response:', JSON.stringify(result, null, 2));
       console.log('📧 Email ID:', result?.data?.id || result?.id || 'No ID returned');
     }).catch((err) => {
