@@ -372,6 +372,9 @@ async function handleInsertQuery(query, params) {
     // Handle event_registrations INSERT
     if (tableName === 'event_registrations' && params && params.length >= 7) {
       const [eventId, fullName, email, phone, experienceText, acceptTerms, acceptUpdates] = params;
+      
+      console.log('🔧 Inserting event registration into Supabase...');
+      
       const { data, error } = await supabase
         .from('event_registrations')
         .insert({
@@ -385,8 +388,13 @@ async function handleInsertQuery(query, params) {
         })
         .select();
       
-      if (error) throw error;
-      return [[], { affectedRows: 1, insertId: data[0]?.id || 1 }];
+      if (error) {
+        console.error('❌ Supabase insert error:', error);
+        throw error;
+      }
+      
+      console.log('✅ Supabase insert successful:', data);
+      return [[], { affectedRows: 1, insertId: data[0]?.id }];
     }
     
     // Handle event_payments INSERT
@@ -407,7 +415,7 @@ async function handleInsertQuery(query, params) {
         .select();
       
       if (error) throw error;
-      return [[], { affectedRows: 1, insertId: data[0]?.id || 1 }];
+      return [[], { affectedRows: 1, insertId: data[0]?.id }];
     }
     
     // Handle other INSERT queries as needed
