@@ -57,25 +57,39 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: function (origin, callback) {
+    console.log('🔍 CORS check for origin:', origin);
+    
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) {
+      console.log('✅ CORS: No origin - allowing');
       return callback(null, true);
     }
 
     // Allow all localhost origins for development
     if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      console.log('✅ CORS: Localhost origin - allowing');
       return callback(null, true);
     }
 
     // Allow all weareone.co.ke subdomains (including admin.weareone.co.ke)
     if (origin.includes('weareone.co.ke')) {
+      console.log('✅ CORS: weareone.co.ke domain - allowing');
+      return callback(null, true);
+    }
+
+    // Allow all Vercel app domains
+    if (origin.includes('vercel.app')) {
+      console.log('✅ CORS: Vercel domain - allowing');
       return callback(null, true);
     }
 
     // Check against allowed origins for production
     if (allowedOrigins.includes(origin)) {
+      console.log('✅ CORS: Found in allowed origins - allowing');
       callback(null, true);
     } else {
+      console.log('❌ CORS: Origin not allowed:', origin);
+      console.log('📋 Allowed origins:', allowedOrigins);
       callback(new Error('Not allowed by CORS'));
     }
   },

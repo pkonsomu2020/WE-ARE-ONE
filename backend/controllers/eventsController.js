@@ -121,6 +121,10 @@ async function registerForEvent(req, res) {
     // Send admin notification (non-blocking)
     const adminEmail = process.env.EVENTS_ADMIN_EMAIL || 'weareone0624@gmail.com';
     
+    console.log('📧 Attempting to send admin notification email...');
+    console.log('📧 Admin email:', adminEmail);
+    console.log('📧 Resend API key configured:', !!process.env.RESEND_API_KEY);
+    
     resend.emails.send({
       from: 'We Are One Events <onboarding@resend.dev>',
       to: [adminEmail],
@@ -138,9 +142,16 @@ async function registerForEvent(req, res) {
         <p><strong>Accept Updates:</strong> ${acceptUpdates ? 'Yes' : 'No'}</p>
         <p><em>Registration ID: ${result.insertId}</em></p>
       `,
-    }).catch((err) => console.error('Event registration admin email error:', err.message));
+    }).then((result) => {
+      console.log('✅ Admin email sent successfully:', result.data?.id);
+    }).catch((err) => {
+      console.error('❌ Event registration admin email error:', err.message);
+      console.error('❌ Full error:', err);
+    });
 
     // Send user confirmation (non-blocking) - now to actual recipient with BCC to admin
+    console.log('📧 Attempting to send user confirmation email to:', email);
+    
     resend.emails.send({
       from: 'We Are One Events <onboarding@resend.dev>',
       to: [email],
@@ -160,7 +171,12 @@ async function registerForEvent(req, res) {
         `}
         <p>— We Are One</p>
       `,
-    }).catch((err) => console.error('Event registration user email error:', err.message));
+    }).then((result) => {
+      console.log('✅ User confirmation email sent successfully:', result.data?.id);
+    }).catch((err) => {
+      console.error('❌ Event registration user email error:', err.message);
+      console.error('❌ Full error:', err);
+    });
 
     return res.json({ success: true, message: 'Registration received! We will get back to you shortly.' });
   } catch (error) {
