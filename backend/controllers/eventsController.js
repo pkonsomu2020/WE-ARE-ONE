@@ -112,24 +112,30 @@ async function registerForEvent(req, res) {
       acceptUpdates: acceptUpdates ? 1 : 0,
     });
 
-    const [result] = await pool.execute(
-      `INSERT INTO event_registrations
-        (event_id, full_name, email, phone, experience_text, accept_terms, accept_updates)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [
-        eventId,
-        fullName,
-        email,
-        phone,
-        experience || null,
-        acceptTerms ? 1 : 0,
-        acceptUpdates ? 1 : 0,
-      ]
-    );
+    try {
+      const [result] = await pool.execute(
+        `INSERT INTO event_registrations
+          (event_id, full_name, email, phone, experience_text, accept_terms, accept_updates)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          eventId,
+          fullName,
+          email,
+          phone,
+          experience || null,
+          acceptTerms ? 1 : 0,
+          acceptUpdates ? 1 : 0,
+        ]
+      );
 
-    console.log('✅ Event registration saved successfully with ID:', result.insertId);
-    console.log('📊 Database result object:', result);
-    console.log('📊 Registration details:', { eventId, fullName, email, phone, isFree });
+      console.log('✅ Event registration saved successfully with ID:', result.insertId);
+      console.log('📊 Database result object:', result);
+      console.log('📊 Registration details:', { eventId, fullName, email, phone, isFree });
+    } catch (dbError) {
+      console.error('❌ Database insert failed:', dbError.message);
+      console.error('❌ Full database error:', dbError);
+      throw new Error(`Database insert failed: ${dbError.message}`);
+    }
 
     // Ticket number allocation will occur after admin marks payment as paid
 
@@ -165,14 +171,17 @@ async function registerForEvent(req, res) {
       console.error('❌ Full error:', err);
     });
 
-    // Send user confirmation (non-blocking) - now to actual recipient with BCC to admin
+    // Send user confirmation (non-blocking) - TEMPORARY: Send to admin email until domain is verified
     console.log('📧 Attempting to send user confirmation email to:', email);
+    console.log('⚠️ TEMPORARY: Sending to admin email due to Resend domain restriction');
     
     resend.emails.send({
       from: 'We Are One Events <onboarding@resend.dev>',
-      to: [email],
-      subject: isFree ? `Event Registration Confirmation` : `Ticket Request – Pending Verification`,
+      to: ['weareone0624@gmail.com'], // TEMPORARY: Until domain is verified
+      subject: `[FOR ${email}] ${isFree ? 'Event Registration Confirmation' : 'Ticket Request – Pending Verification'}`,
       html: `
+        <p><strong>This email is for: ${email}</strong></p>
+        <hr>
         <p>Hi ${fullName},</p>
         ${isFree ? `
           <p>Thank you for registering for <strong>${eventId}</strong>. This is a free event—no payment is required.</p>
@@ -185,9 +194,11 @@ async function registerForEvent(req, res) {
           <p>Our team will verify the payment and send your unique ticket number shortly. If verification fails, we will notify you.</p>
         `}
         <p>— We Are One</p>
+        <hr>
+        <p><em>Note: This email was sent to admin due to Resend domain restrictions. Please forward to ${email}</em></p>
       `,
     }).then((result) => {
-      console.log('✅ User confirmation email sent successfully to:', email);
+      console.log('✅ User confirmation email sent successfully to admin (for forwarding to:', email + ')');
       console.log('📧 Full Resend response:', JSON.stringify(result, null, 2));
       console.log('📧 Email ID:', result?.data?.id || result?.id || 'No ID returned');
     }).catch((err) => {
