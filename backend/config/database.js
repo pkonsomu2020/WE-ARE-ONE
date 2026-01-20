@@ -227,6 +227,46 @@ async function handleSelectQuery(query, params) {
         return [data, { affectedRows: data.length }];
       }
       
+      // Handle event_payments SELECT with WHERE clause
+      if (tableName === 'event_payments' && query.includes('mpesa_code = ?') && params[0]) {
+        const { data, error } = await supabase
+          .from('event_payments')
+          .select('*')
+          .eq('mpesa_code', params[0])
+          .limit(1);
+        
+        if (error) throw error;
+        return [data, { affectedRows: data.length }];
+      }
+      
+      // Handle users SELECT with WHERE clause for event registration check
+      if (tableName === 'users' && query.includes('email = ?') && params[0]) {
+        const cacheKey = `user_${params[0]}`;
+        const cached = userCache.get(cacheKey);
+        if (cached && (Date.now() - cached.timestamp) < USER_CACHE_DURATION) {
+          console.log('📋 Using cached user data');
+          return [cached.data, { affectedRows: cached.data.length }];
+        }
+        
+        const { data, error } = await supabase
+          .from('users')
+          .select('id')
+          .eq('email', params[0])
+          .limit(1);
+        
+        if (error) throw error;
+        
+        // Cache user data
+        if (data.length > 0) {
+          userCache.set(cacheKey, {
+            data: data,
+            timestamp: Date.now()
+          });
+        }
+        
+        return [data, { affectedRows: data.length }];
+      }
+      
       // Handle other WHERE conditions as needed
       if (query.includes('email = ? OR phone = ?') && params.length >= 2) {
         // User existence check for registration
@@ -322,6 +362,47 @@ async function handleInsertQuery(query, params) {
           emergency_contact_relationship: emergencyContactRelationship,
           live_location: liveLocation,
           personal_statement: personalStatement
+        })
+        .select();
+      
+      if (error) throw error;
+      return [[], { affectedRows: 1, insertId: data[0]?.id || 1 }];
+    }
+    
+    // Handle event_registrations INSERT
+    if (tableName === 'event_registrations' && params && params.length >= 7) {
+      const [eventId, fullName, email, phone, experienceText, acceptTerms, acceptUpdates] = params;
+      const { data, error } = await supabase
+        .from('event_registrations')
+        .insert({
+          event_id: eventId,
+          full_name: fullName,
+          email: email,
+          phone: phone,
+          experience_text: experienceText,
+          accept_terms: acceptTerms,
+          accept_updates: acceptUpdates
+        })
+        .select();
+      
+      if (error) throw error;
+      return [[], { affectedRows: 1, insertId: data[0]?.id || 1 }];
+    }
+    
+    // Handle event_payments INSERT
+    if (tableName === 'event_payments' && params && params.length >= 8) {
+      const [eventId, fullName, email, phone, ticketType, amount, mpesaCode, status] = params;
+      const { data, error } = await supabase
+        .from('event_payments')
+        .insert({
+          event_id: eventId,
+          full_name: fullName,
+          email: email,
+          phone: phone,
+          ticket_type: ticketType,
+          amount: amount,
+          mpesa_code: mpesaCode,
+          status: status
         })
         .select();
       
