@@ -167,6 +167,11 @@ async function handleSelectQuery(query, params) {
   // Ensure warm connection before database operations
   await ensureWarmConnection();
   
+  // Handle connection test queries like "SELECT 1 as test"
+  if (query.toLowerCase().includes('select 1') && !query.toLowerCase().includes('from')) {
+    return [[{ test: 1 }], { affectedRows: 1 }];
+  }
+  
   const tableMatch = query.match(/from\s+(\w+)/i);
   if (tableMatch) {
     const tableName = tableMatch[1];
