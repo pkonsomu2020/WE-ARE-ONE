@@ -192,16 +192,56 @@ const Index = () => {
             Read the official constitution of We Are One (WAO). You can view it below or open it in a new tab.
           </p>
           <div className="bg-white rounded-lg shadow overflow-hidden">
-            <iframe
-              title="WAO Constitution PDF"
-              src={'/THE%20CONSTITUTION%20FINAL%20EDIT.pdf#view=FitH'}
-              className="w-full"
-              style={{ height: '80vh', border: 'none' }}
-            />
+            <div className="relative">
+              {/* Primary PDF viewer using object tag */}
+              <object
+                data="/THE%20CONSTITUTION%20FINAL%20EDIT.pdf"
+                type="application/pdf"
+                className="w-full"
+                style={{ height: '80vh' }}
+              >
+                {/* Fallback iframe for browsers that don't support object tag */}
+                <iframe
+                  title="WAO Constitution PDF"
+                  src="/THE%20CONSTITUTION%20FINAL%20EDIT.pdf"
+                  className="w-full"
+                  style={{ height: '80vh', border: 'none' }}
+                  loading="lazy"
+                >
+                  {/* Final fallback for browsers that don't support either */}
+                  <div className="flex items-center justify-center bg-gray-100 p-8" style={{ height: '80vh' }}>
+                    <div className="text-center">
+                      <div className="text-6xl mb-4">📄</div>
+                      <h3 className="text-xl font-bold mb-4">PDF Viewer Not Supported</h3>
+                      <p className="text-gray-600 mb-6">
+                        Your browser doesn't support PDF viewing. Please use the buttons below to view or download the constitution.
+                      </p>
+                      <div className="space-x-4">
+                        <a
+                          href="/THE%20CONSTITUTION%20FINAL%20EDIT.pdf"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-block px-5 py-2 bg-ngo-orange text-white rounded shadow hover:bg-orange-600 transition"
+                        >
+                          Open in New Tab
+                        </a>
+                        <a
+                          href="/THE%20CONSTITUTION%20FINAL%20EDIT.pdf"
+                          download="WAO_Constitution.pdf"
+                          className="inline-block px-5 py-2 border border-ngo-orange text-ngo-orange rounded hover:bg-orange-50 transition"
+                        >
+                          Download PDF
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </iframe>
+              </object>
+            </div>
           </div>
           <div className="mt-4 flex items-center justify-center gap-4">
             <a
-              href={'/THE%20CONSTITUTION%20FINAL%20EDIT.pdf'}
+              href="/THE%20CONSTITUTION%20FINAL%20EDIT.pdf"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-block px-5 py-2 bg-ngo-orange text-white rounded shadow hover:bg-orange-600 transition"
@@ -209,8 +249,8 @@ const Index = () => {
               Open in New Tab
             </a>
             <a
-              href={'/THE%20CONSTITUTION%20FINAL%20EDIT.pdf'}
-              download
+              href="/THE%20CONSTITUTION%20FINAL%20EDIT.pdf"
+              download="WAO_Constitution.pdf"
               className="inline-block px-5 py-2 border border-ngo-orange text-ngo-orange rounded hover:bg-orange-50 transition"
             >
               Download PDF
