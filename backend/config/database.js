@@ -384,8 +384,8 @@ async function handleInsertQuery(query, params) {
           email: email,
           phone: phone,
           experience_text: experienceText,
-          accept_terms: acceptTerms,
-          accept_updates: acceptUpdates
+          accept_terms: Boolean(acceptTerms), // Convert to boolean
+          accept_updates: Boolean(acceptUpdates) // Convert to boolean
         })
         .select();
       
@@ -429,8 +429,8 @@ async function handleInsertQuery(query, params) {
                 email: email,
                 phone: phone,
                 experience_text: experienceText,
-                accept_terms: acceptTerms,
-                accept_updates: acceptUpdates
+                accept_terms: Boolean(acceptTerms),
+                accept_updates: Boolean(acceptUpdates)
               })
               .select();
             
@@ -448,6 +448,15 @@ async function handleInsertQuery(query, params) {
             const { data: retryData, error: retryError } = await supabase
               .from('event_registrations')
               .insert({
+                event_id: eventId,
+                full_name: fullName,
+                email: email,
+                phone: phone,
+                experience_text: experienceText,
+                accept_terms: Boolean(acceptTerms),
+                accept_updates: Boolean(acceptUpdates)
+              })
+              .select();
                 event_id: eventId,
                 full_name: fullName,
                 email: email,
