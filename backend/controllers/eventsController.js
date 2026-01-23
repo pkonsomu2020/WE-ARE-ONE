@@ -223,7 +223,18 @@ async function registerForEvent(req, res) {
     return res.json({ success: true, message: 'Registration received! We will get back to you shortly.' });
   } catch (error) {
     console.error('Event registration error:', error);
-    return res.status(500).json({ success: false, message: 'Failed to save registration' });
+    console.error('Error stack:', error.stack);
+    console.error('Error message:', error.message);
+    
+    // Return detailed error for debugging (remove in production)
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Failed to save registration',
+      debug: {
+        error: error.message,
+        stack: error.stack?.split('\n').slice(0, 3).join('\n') // First 3 lines of stack
+      }
+    });
   }
 }
 
