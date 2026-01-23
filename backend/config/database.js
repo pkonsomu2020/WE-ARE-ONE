@@ -457,15 +457,6 @@ async function handleInsertQuery(query, params) {
                 accept_updates: Boolean(acceptUpdates)
               })
               .select();
-                event_id: eventId,
-                full_name: fullName,
-                email: email,
-                phone: phone,
-                experience_text: experienceText,
-                accept_terms: acceptTerms,
-                accept_updates: acceptUpdates
-              })
-              .select();
             
             if (retryError) {
               console.error('❌ Retry insert failed:', retryError);
