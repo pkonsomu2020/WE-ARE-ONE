@@ -208,15 +208,47 @@ router.get('/event-payments', async (req, res) => {
       return res.json({ success: true, payments: paymentsCache, cached: true });
     }
 
-    console.log('📊 Admin API: Fetching payments from database...');
-    const [rows] = await pool.execute('SELECT * FROM event_payments ORDER BY created_at DESC');
-    console.log(`✅ Admin API: Found ${rows.length} payments`);
+    console.log('📊 Admin API: Fetching payments and registrations from database...');
     
-    // Cache the payments
-    paymentsCache = rows || [];
+    // Get paid orders from event_payments table
+    const [paidOrders] = await pool.execute('SELECT * FROM event_payments ORDER BY created_at DESC');
+    
+    // Get free registrations from event_registrations table
+    const [freeRegistrations] = await pool.execute('SELECT * FROM event_registrations ORDER BY created_at DESC');
+    
+    // Transform free registrations to match the payment format
+    const transformedFreeRegistrations = freeRegistrations.map(reg => ({
+      id: `free_${reg.id}`, // Prefix with 'free_' to distinguish from paid orders
+      event_id: reg.event_id,
+      full_name: reg.full_name,
+      email: reg.email,
+      phone: reg.phone,
+      ticket_type: 'Free',
+      amount: 0,
+      mpesa_code: 'FREE-REGISTRATION',
+      status: 'paid', // Free registrations are automatically "paid"
+      confirmation_message: 'Free event registration',
+      created_at: reg.created_at,
+      updated_at: reg.created_at,
+      // Additional fields from registrations
+      experience_text: reg.experience_text,
+      accept_terms: reg.accept_terms,
+      accept_updates: reg.accept_updates
+    }));
+    
+    // Combine both arrays and sort by created_at
+    const allOrders = [...paidOrders, ...transformedFreeRegistrations].sort((a, b) => 
+      new Date(b.created_at) - new Date(a.created_at)
+    );
+    
+    console.log(`✅ Admin API: Found ${paidOrders.length} paid orders and ${freeRegistrations.length} free registrations`);
+    console.log(`✅ Admin API: Total orders: ${allOrders.length}`);
+    
+    // Cache the combined orders
+    paymentsCache = allOrders;
     paymentsCacheTime = now;
     
-    res.json({ success: true, payments: rows || [] });
+    res.json({ success: true, payments: allOrders });
   } catch (e) {
     console.error('❌ Admin API: List payments error:', e);
     res.status(500).json({ success: false, message: 'Failed to load payments' });
@@ -335,15 +367,26 @@ router.get('/dashboard/stats', async (req, res) => {
 
     console.log('📊 Fetching fresh dashboard stats...');
     
-    // Get total orders
-    const [totalOrdersResult] = await pool.execute(
+    // Get total paid orders
+    const [totalPaidOrdersResult] = await pool.execute(
       'SELECT COUNT(*) as count FROM event_payments'
     );
+    
+    // Get total free registrations
+    const [totalFreeRegistrationsResult] = await pool.execute(
+      'SELECT COUNT(*) as count FROM event_registrations'
+    );
+    
+    // Calculate total orders (paid + free)
+    const totalOrders = totalPaidOrdersResult[0].count + totalFreeRegistrationsResult[0].count;
     
     // Get paid orders
     const [paidOrdersResult] = await pool.execute(
       'SELECT COUNT(*) as count FROM event_payments WHERE status = "paid"'
     );
+    
+    // Add free registrations to paid count (since free registrations are automatically "paid")
+    const paidOrders = paidOrdersResult[0].count + totalFreeRegistrationsResult[0].count;
     
     // Get pending complaints (placeholder - will be replaced when feedback API is implemented)
     const pendingComplaints = 0;
@@ -360,8 +403,8 @@ router.get('/dashboard/stats', async (req, res) => {
     );
     
     const stats = {
-      totalOrders: totalOrdersResult[0].count,
-      paidOrders: paidOrdersResult[0].count,
+      totalOrders: totalOrders,
+      paidOrders: paidOrders,
       activeEvents: activeEvents,
       pendingComplaints: pendingComplaints,
       upcomingMeetings: upcomingMeetings,
