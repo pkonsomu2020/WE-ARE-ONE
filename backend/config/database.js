@@ -483,7 +483,12 @@ async function handleInsertQuery(query, params) {
       }
       
       console.log('✅ Supabase insert successful:', data);
-      return [[], { affectedRows: 1, insertId: data[0]?.id }];
+      console.log('✅ Insert data structure:', JSON.stringify(data, null, 2));
+      
+      const insertId = data && data[0] && data[0].id ? data[0].id : Date.now(); // Fallback to timestamp
+      console.log('✅ Using insertId:', insertId);
+      
+      return [[], { affectedRows: 1, insertId: insertId }];
     }
     
     // Handle event_payments INSERT
