@@ -64,4 +64,6 @@ services:
       - key: ADMIN_DEFAULT_NAME
         value: WAO Admin
       - key: EVENTS_ADMIN_EMAIL
-        value: events@weareone.co.ke
+        value: weareone0624@gmail.com
+      - key: RESEND_API_KEY
+        sync: false

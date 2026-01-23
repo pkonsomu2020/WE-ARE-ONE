@@ -158,7 +158,7 @@ async function registerForEvent(req, res) {
     // Ticket number allocation will occur after admin marks payment as paid
 
     // Send admin notification (non-blocking)
-    const adminEmail = process.env.EVENTS_ADMIN_EMAIL || 'weareone0624@gmail.com';
+    const adminEmail = 'weareone0624@gmail.com'; // Fixed admin email
     
     console.log('📧 Attempting to send admin notification email...');
     console.log('📧 Admin email:', adminEmail);

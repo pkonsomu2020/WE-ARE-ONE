@@ -375,7 +375,8 @@ async function handleInsertQuery(query, params) {
       
       console.log('🔧 Inserting event registration into Supabase...');
       
-      const { data, error } = await supabase
+      // First attempt - normal insert
+      let { data, error } = await supabase
         .from('event_registrations')
         .insert({
           event_id: eventId,
@@ -387,6 +388,89 @@ async function handleInsertQuery(query, params) {
           accept_updates: acceptUpdates
         })
         .select();
+      
+      // If primary key constraint violation, fix the sequence
+      if (error && error.code === '23505' && error.message.includes('event_registrations_pkey')) {
+        console.log('🔧 Primary key conflict detected, fixing sequence...');
+        
+        try {
+          // Get the current maximum ID
+          const { data: maxData, error: maxError } = await supabase
+            .from('event_registrations')
+            .select('id')
+            .order('id', { ascending: false })
+            .limit(1);
+          
+          if (maxError) {
+            console.error('❌ Failed to get max ID:', maxError);
+            throw error; // Throw original error
+          }
+          
+          const maxId = maxData && maxData.length > 0 ? maxData[0].id : 0;
+          console.log(`🔧 Current max ID: ${maxId}`);
+          
+          // Reset the sequence using direct SQL execution
+          // Note: Supabase doesn't support custom RPC functions by default, so we use direct SQL
+          const { error: seqError } = await supabase.rpc('exec_sql', {
+            sql: `SELECT setval('event_registrations_id_seq', ${maxId + 1}, false);`
+          }).catch(() => ({ error: 'RPC not available' }));
+          
+          if (seqError || seqError?.error) {
+            console.log('⚠️ Sequence reset via RPC not available, trying alternative approach...');
+            
+            // Alternative: Try inserting with a much higher ID to bypass conflicts
+            const safeId = maxId + 100; // Use a safe ID far ahead
+            const { data: altData, error: altError } = await supabase
+              .from('event_registrations')
+              .insert({
+                id: safeId,
+                event_id: eventId,
+                full_name: fullName,
+                email: email,
+                phone: phone,
+                experience_text: experienceText,
+                accept_terms: acceptTerms,
+                accept_updates: acceptUpdates
+              })
+              .select();
+            
+            if (altError) {
+              console.error('❌ Alternative insert failed:', altError);
+              throw error; // Throw original error
+            }
+            
+            console.log('✅ Alternative insert successful with ID:', safeId);
+            return [[], { affectedRows: 1, insertId: altData[0]?.id }];
+          } else {
+            console.log('✅ Sequence reset successful, retrying insert...');
+            
+            // Retry the original insert
+            const { data: retryData, error: retryError } = await supabase
+              .from('event_registrations')
+              .insert({
+                event_id: eventId,
+                full_name: fullName,
+                email: email,
+                phone: phone,
+                experience_text: experienceText,
+                accept_terms: acceptTerms,
+                accept_updates: acceptUpdates
+              })
+              .select();
+            
+            if (retryError) {
+              console.error('❌ Retry insert failed:', retryError);
+              throw error; // Throw original error
+            }
+            
+            data = retryData;
+            error = null;
+          }
+        } catch (fixError) {
+          console.error('❌ Failed to fix sequence:', fixError);
+          throw error; // Throw original error
+        }
+      }
       
       if (error) {
         console.error('❌ Supabase insert error:', error);
