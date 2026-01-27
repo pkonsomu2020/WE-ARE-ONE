@@ -674,23 +674,56 @@ const sendManualReminder = async (req, res) => {
     // Get all attendees
     const { data: attendees, error: attendeesError } = await supabase
       .from('event_attendees')
-      .select(`
-        *,
-        admin_profiles (
-          full_name,
-          email
-        )
-      `)
+      .select('*')
       .eq('event_id', id);
 
     if (attendeesError) {
       throw attendeesError;
     }
 
-    const recipients = (attendees || []).map(attendee => ({
-      email: attendee.admin_profiles?.email || attendee.external_email,
-      full_name: attendee.admin_profiles?.full_name || attendee.external_name || attendee.external_email
-    })).filter(recipient => recipient.email);
+    // Get admin profiles separately for admin attendees
+    const adminIds = (attendees || [])
+      .filter(a => a.admin_profile_id)
+      .map(a => a.admin_profile_id);
+
+    let adminProfiles = [];
+    if (adminIds.length > 0) {
+      const { data: profiles, error: profilesError } = await supabase
+        .from('admin_profiles')
+        .select('id, full_name, email')
+        .in('id', adminIds);
+
+      if (!profilesError && profiles) {
+        adminProfiles = profiles;
+      }
+    }
+
+    // Build recipients list
+    const recipients = [];
+    
+    for (const attendee of attendees || []) {
+      if (attendee.admin_profile_id) {
+        const profile = adminProfiles.find(p => p.id === attendee.admin_profile_id);
+        if (profile && profile.email) {
+          recipients.push({
+            email: profile.email,
+            full_name: profile.full_name || `Admin ${attendee.admin_profile_id}`
+          });
+        }
+      } else if (attendee.external_email) {
+        recipients.push({
+          email: attendee.external_email,
+          full_name: attendee.external_name || attendee.external_email
+        });
+      }
+    }
+
+    if (recipients.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No valid recipients found for this event'
+      });
+    }
 
     // Send reminder notifications
     await sendEventNotification(event, 'reminder', recipients);
@@ -744,21 +777,9 @@ const processAutomaticReminders = async (req, res) => {
     // Get reminders that need to be sent
     const { data: pendingReminders, error: remindersError } = await supabase
       .from('event_reminders')
-      .select(`
-        *,
-        scheduled_events (
-          title,
-          type,
-          description,
-          start_datetime,
-          end_datetime,
-          location,
-          meeting_link
-        )
-      `)
+      .select('*')
       .eq('is_sent', false)
-      .lte('reminder_datetime', new Date().toISOString())
-      .eq('scheduled_events.status', 'scheduled');
+      .lte('reminder_datetime', new Date().toISOString());
 
     if (remindersError) {
       throw remindersError;
@@ -768,16 +789,23 @@ const processAutomaticReminders = async (req, res) => {
 
     for (const reminder of pendingReminders || []) {
       try {
+        // Get event details
+        const { data: event, error: eventError } = await supabase
+          .from('scheduled_events')
+          .select('*')
+          .eq('id', reminder.event_id)
+          .eq('status', 'scheduled')
+          .single();
+
+        if (eventError || !event) {
+          console.log(`Event ${reminder.event_id} not found or not scheduled, skipping reminder`);
+          continue;
+        }
+
         // Get attendees for this event
         const { data: attendees, error: attendeesError } = await supabase
           .from('event_attendees')
-          .select(`
-            *,
-            admin_profiles (
-              full_name,
-              email
-            )
-          `)
+          .select('*')
           .eq('event_id', reminder.event_id);
 
         if (attendeesError) {
@@ -785,13 +813,45 @@ const processAutomaticReminders = async (req, res) => {
           continue;
         }
 
-        const recipients = (attendees || []).map(attendee => ({
-          email: attendee.admin_profiles?.email || attendee.external_email,
-          full_name: attendee.admin_profiles?.full_name || attendee.external_name || attendee.external_email
-        })).filter(recipient => recipient.email);
+        // Get admin profiles separately for admin attendees
+        const adminIds = (attendees || [])
+          .filter(a => a.admin_profile_id)
+          .map(a => a.admin_profile_id);
+
+        let adminProfiles = [];
+        if (adminIds.length > 0) {
+          const { data: profiles, error: profilesError } = await supabase
+            .from('admin_profiles')
+            .select('id, full_name, email')
+            .in('id', adminIds);
+
+          if (!profilesError && profiles) {
+            adminProfiles = profiles;
+          }
+        }
+
+        // Build recipients list
+        const recipients = [];
+        
+        for (const attendee of attendees || []) {
+          if (attendee.admin_profile_id) {
+            const profile = adminProfiles.find(p => p.id === attendee.admin_profile_id);
+            if (profile && profile.email) {
+              recipients.push({
+                email: profile.email,
+                full_name: profile.full_name || `Admin ${attendee.admin_profile_id}`
+              });
+            }
+          } else if (attendee.external_email) {
+            recipients.push({
+              email: attendee.external_email,
+              full_name: attendee.external_name || attendee.external_email
+            });
+          }
+        }
 
         // Send reminder notifications
-        await sendEventNotification(reminder.scheduled_events, 'reminder', recipients);
+        await sendEventNotification(event, 'reminder', recipients);
 
         // Mark reminder as sent
         const { error: updateReminderError } = await supabase
@@ -822,7 +882,7 @@ const processAutomaticReminders = async (req, res) => {
         }
 
         processedCount++;
-        console.log(`✅ Processed reminder for event: ${reminder.scheduled_events?.title}`);
+        console.log(`✅ Processed reminder for event: ${event.title}`);
 
       } catch (error) {
         console.error(`❌ Failed to process reminder for event ${reminder.event_id}:`, error.message);
