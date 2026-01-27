@@ -844,26 +844,37 @@ router.get('/stats', async (req, res) => {
     // Get recent uploads (last 10)
     const { data: recentUploads, error: recentError } = await supabase
       .from('files')
-      .select(`
-        original_name,
-        file_size,
-        uploaded_by,
-        created_at,
-        file_categories (
-          name
-        )
-      `)
+      .select('original_name, file_size, uploaded_by, created_at, category_id')
       .eq('status', 'active')
       .order('created_at', { ascending: false })
       .limit(10);
 
-    const formattedRecentUploads = recentError ? [] : (recentUploads || []).map(file => ({
-      original_name: file.original_name,
-      file_size: file.file_size,
-      uploaded_by: file.uploaded_by,
-      created_at: file.created_at,
-      category_name: file.file_categories?.name || null
-    }));
+    // Get categories for recent uploads
+    const formattedRecentUploads = [];
+    if (!recentError && recentUploads) {
+      for (const file of recentUploads) {
+        let categoryName = null;
+        if (file.category_id) {
+          const { data: categoryData, error: categoryError } = await supabase
+            .from('file_categories')
+            .select('name')
+            .eq('id', file.category_id)
+            .limit(1);
+
+          if (!categoryError && categoryData && categoryData.length > 0) {
+            categoryName = categoryData[0].name;
+          }
+        }
+
+        formattedRecentUploads.push({
+          original_name: file.original_name,
+          file_size: file.file_size,
+          uploaded_by: file.uploaded_by,
+          created_at: file.created_at,
+          category_name: categoryName
+        });
+      }
+    }
 
     // Format file types for compatibility
     const filesByType = {};
@@ -901,13 +912,7 @@ router.get('/access-logs', async (req, res) => {
 
     let query = supabase
       .from('file_access_log')
-      .select(`
-        *,
-        files (
-          original_name,
-          mime_type
-        )
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
 
     // Filter by file ID if provided
@@ -920,10 +925,35 @@ router.get('/access-logs', async (req, res) => {
     const to = from + limit - 1;
     query = query.range(from, to);
 
-    const { data: logs, error, count } = await query;
+    const { data: logs, error } = await query;
 
     if (error) {
       throw error;
+    }
+
+    // Get file info separately for each log entry
+    const formattedLogs = [];
+    if (logs) {
+      for (const log of logs) {
+        let fileInfo = { original_name: null, mime_type: null };
+        
+        if (log.file_id) {
+          const { data: fileData, error: fileError } = await supabase
+            .from('files')
+            .select('original_name, mime_type')
+            .eq('id', log.file_id)
+            .limit(1);
+
+          if (!fileError && fileData && fileData.length > 0) {
+            fileInfo = fileData[0];
+          }
+        }
+
+        formattedLogs.push({
+          ...log,
+          files: fileInfo
+        });
+      }
     }
 
     // Get total count for pagination
@@ -941,7 +971,7 @@ router.get('/access-logs', async (req, res) => {
     res.json({
       success: true,
       data: {
-        logs: logs || [],
+        logs: formattedLogs,
         pagination: {
           page,
           limit,
