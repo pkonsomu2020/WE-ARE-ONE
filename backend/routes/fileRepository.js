@@ -1003,6 +1003,35 @@ router.get('/access-logs', async (req, res) => {
   }
 });
 
+// Get all files including inactive ones (for debugging)
+router.get('/files/all-status', async (req, res) => {
+  try {
+    const { data: files, error } = await supabase
+      .from('files')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    res.json({
+      success: true,
+      data: {
+        files: files || [],
+        total: files ? files.length : 0
+      }
+    });
+  } catch (error) {
+    console.error('Failed to fetch all files:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch all files',
+      error: error.message
+    });
+  }
+});
+
 // Clean up orphaned files (files in database but missing physical files)
 router.post('/cleanup-orphaned', async (req, res) => {
   try {
