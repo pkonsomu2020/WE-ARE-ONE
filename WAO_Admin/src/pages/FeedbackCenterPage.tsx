@@ -491,9 +491,16 @@ const FeedbackCenterPage = () => {
                       <p className="text-gray-700 mb-3 line-clamp-2">{message.message}</p>
                       
                       <div className="flex items-center space-x-4 text-sm text-gray-500">
-                        <div className="flex items-center">
-                          <User className="w-4 h-4 mr-1" />
-                          {message.name}
+                        <div className="flex items-center space-x-2">
+                          <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-semibold">
+                            {message.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="flex items-center">
+                              <User className="w-4 h-4 mr-1" />
+                              <span className="font-medium">{message.name}</span>
+                            </div>
+                          </div>
                         </div>
                         <div className="flex items-center">
                           <Mail className="w-4 h-4 mr-1" />
@@ -510,19 +517,32 @@ const FeedbackCenterPage = () => {
                       </div>
 
                       {(message.replies_count || 0) > 0 && (
-                        <div className="flex items-center text-sm text-gray-500 mt-2">
-                          <Reply className="w-4 h-4 mr-1" />
-                          {message.replies_count} {message.replies_count === 1 ? 'reply' : 'replies'}
-                          {message.last_reply_by && (
-                            <span className="ml-2">
-                              • Last reply by {message.last_reply_by}
-                              {message.last_reply_at && (
-                                <span className="ml-1 text-xs text-gray-400">
-                                  ({formatDateTime(message.last_reply_at)})
-                                </span>
-                              )}
+                        <div className="mt-3 pl-4 border-l-2 border-gray-200">
+                          <div className="flex items-center text-sm text-gray-600 mb-2">
+                            <MessageCircle className="w-4 h-4 mr-1" />
+                            <span className="font-medium">
+                              {message.replies_count} {message.replies_count === 1 ? 'reply' : 'replies'}
                             </span>
-                          )}
+                            {message.last_reply_by && (
+                              <>
+                                <span className="mx-2">•</span>
+                                <span>Latest by {message.last_reply_by}</span>
+                                {message.last_reply_at && (
+                                  <span className="ml-1 text-xs text-gray-400">
+                                    {formatDateTime(message.last_reply_at)}
+                                  </span>
+                                )}
+                              </>
+                            )}
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center text-white text-xs font-semibold">
+                              {(message.last_reply_by || 'A').charAt(0).toUpperCase()}
+                            </div>
+                            <div className="flex-1 text-xs text-gray-500">
+                              <span className="font-medium">{message.last_reply_by || 'Admin'}</span> replied
+                            </div>
+                          </div>
                         </div>
                       )}
                       
@@ -548,17 +568,73 @@ const FeedbackCenterPage = () => {
                         size="sm" 
                         variant="outline"
                         onClick={async () => {
-                          const replyText = prompt('Enter your reply:');
-                          if (replyText && replyText.trim()) {
-                            try {
-                              await feedbackAPI.addReply(message.id, replyText);
-                              addNotification('Reply sent successfully!', 'success');
-                              await loadData();
-                            } catch (error) {
-                              console.error('Failed to send reply:', error);
-                              addNotification('Failed to send reply', 'error');
+                          // Create a more sophisticated reply dialog
+                          const replyDialog = document.createElement('div');
+                          replyDialog.innerHTML = `
+                            <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center;">
+                              <div style="background: white; padding: 24px; border-radius: 8px; width: 90%; max-width: 500px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
+                                <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600;">Reply to "${message.subject}"</h3>
+                                <div style="margin-bottom: 16px; padding: 12px; background: #f8f9fa; border-radius: 6px; border-left: 4px solid #007bff;">
+                                  <div style="font-weight: 500; margin-bottom: 4px;">${message.name}</div>
+                                  <div style="font-size: 14px; color: #666; margin-bottom: 8px;">${message.email}</div>
+                                  <div style="font-size: 14px; color: #333;">${message.message.substring(0, 150)}${message.message.length > 150 ? '...' : ''}</div>
+                                </div>
+                                <textarea id="quickReplyText" placeholder="Write your reply..." style="width: 100%; height: 100px; padding: 12px; border: 1px solid #ddd; border-radius: 6px; resize: vertical; font-family: inherit; font-size: 14px;" required></textarea>
+                                <div style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center;">
+                                  <div style="font-size: 12px; color: #666;">Replying as ${adminProfile?.fullName || 'Admin'}</div>
+                                  <div>
+                                    <button id="cancelReply" style="margin-right: 8px; padding: 8px 16px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer;">Cancel</button>
+                                    <button id="sendReply" style="padding: 8px 16px; background: #ea580c; color: white; border: none; border-radius: 4px; cursor: pointer;">Send Reply</button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          `;
+                          
+                          document.body.appendChild(replyDialog);
+                          
+                          const textarea = document.getElementById('quickReplyText') as HTMLTextAreaElement;
+                          const cancelBtn = document.getElementById('cancelReply');
+                          const sendBtn = document.getElementById('sendReply');
+                          
+                          textarea.focus();
+                          
+                          const cleanup = () => {
+                            document.body.removeChild(replyDialog);
+                          };
+                          
+                          cancelBtn?.addEventListener('click', cleanup);
+                          
+                          sendBtn?.addEventListener('click', async () => {
+                            const replyText = textarea.value.trim();
+                            if (replyText) {
+                              try {
+                                await feedbackAPI.addReply(message.id, replyText);
+                                addNotification('Reply sent successfully!', 'success');
+                                await loadData();
+                                cleanup();
+                              } catch (error) {
+                                console.error('Failed to send reply:', error);
+                                addNotification('Failed to send reply', 'error');
+                              }
                             }
-                          }
+                          });
+                          
+                          // Close on escape key
+                          const handleEscape = (e: KeyboardEvent) => {
+                            if (e.key === 'Escape') {
+                              cleanup();
+                              document.removeEventListener('keydown', handleEscape);
+                            }
+                          };
+                          document.addEventListener('keydown', handleEscape);
+                          
+                          // Close on backdrop click
+                          replyDialog.addEventListener('click', (e) => {
+                            if (e.target === replyDialog) {
+                              cleanup();
+                            }
+                          });
                         }}
                       >
                         <Reply className="w-4 h-4 mr-1" />
@@ -710,7 +786,7 @@ const FeedbackCenterPage = () => {
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Responses</CardTitle>
+                  <CardTitle className="text-lg">Conversation</CardTitle>
                   <CardDescription>
                     {selectedReplies.length > 0
                       ? `${selectedReplies.length} response${selectedReplies.length === 1 ? '' : 's'} from admins`
@@ -718,28 +794,151 @@ const FeedbackCenterPage = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {selectedReplies.length > 0 ? (
-                    selectedReplies.map(reply => (
-                      <div key={reply.id} className="rounded-md border border-gray-200 p-3">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm">
-                          <div>
-                            <p className="font-semibold text-gray-800">
-                              {reply.responder_name || reply.admin_name || 'Admin'}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {reply.responder_email || 'Email not available'}
-                              {reply.responder_role && ` • ${reply.responder_role}`}
-                            </p>
-                          </div>
-                          <span className="text-xs text-gray-400">
-                            {formatDateTime(reply.created_at)}
-                          </span>
+                  {/* Original Message */}
+                  <div className="bg-gray-50 rounded-lg p-4 border-l-4 border-blue-500">
+                    <div className="flex items-start space-x-3">
+                      <div className="flex-shrink-0">
+                        <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                          {selectedMessage?.name.charAt(0).toUpperCase()}
                         </div>
-                        <p className="mt-2 text-sm text-gray-700 whitespace-pre-wrap">{reply.reply_text}</p>
                       </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-gray-500">No responses yet.</p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <p className="text-sm font-semibold text-gray-900">
+                            {selectedMessage?.name}
+                          </p>
+                          <span className="text-xs text-gray-500">•</span>
+                          <p className="text-xs text-gray-500">
+                            {selectedMessage?.email}
+                          </p>
+                          <span className="text-xs text-gray-500">•</span>
+                          <p className="text-xs text-gray-500">
+                            {formatDateTime(selectedMessage?.created_at || '')}
+                          </p>
+                        </div>
+                        <div className="flex items-center space-x-2 mb-2">
+                          <Badge className={`text-xs ${getTypeColor(selectedMessage?.type || '')}`}>
+                            {selectedMessage?.type.charAt(0).toUpperCase() + selectedMessage?.type.slice(1)}
+                          </Badge>
+                          <Badge className={`text-xs ${getPriorityColor(selectedMessage?.priority || '')}`}>
+                            {selectedMessage?.priority.charAt(0).toUpperCase() + selectedMessage?.priority.slice(1)} Priority
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                          {selectedMessage?.message}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Replies Thread */}
+                  {selectedReplies.length > 0 && (
+                    <div className="space-y-3 ml-6">
+                      {selectedReplies.map((reply, index) => (
+                        <div key={reply.id} className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                          <div className="flex items-start space-x-3">
+                            <div className="flex-shrink-0">
+                              <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white font-semibold text-xs">
+                                {(reply.responder_name || reply.admin_name || 'A').charAt(0).toUpperCase()}
+                              </div>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center space-x-2 mb-1">
+                                <p className="text-sm font-semibold text-gray-900">
+                                  {reply.responder_name || reply.admin_name || 'Admin'}
+                                </p>
+                                {reply.responder_role && (
+                                  <>
+                                    <span className="text-xs text-gray-500">•</span>
+                                    <Badge variant="outline" className="text-xs">
+                                      {reply.responder_role}
+                                    </Badge>
+                                  </>
+                                )}
+                                <span className="text-xs text-gray-500">•</span>
+                                <p className="text-xs text-gray-500">
+                                  {formatDateTime(reply.created_at)}
+                                </p>
+                              </div>
+                              {reply.responder_email && (
+                                <p className="text-xs text-gray-500 mb-2">
+                                  {reply.responder_email}
+                                </p>
+                              )}
+                              <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                                {reply.reply_text}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Add Reply Form */}
+                  <div className="border-t pt-4 mt-6">
+                    <div className="flex items-start space-x-3">
+                      <div className="flex-shrink-0">
+                        <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-semibold text-xs">
+                          {(adminProfile?.fullName || 'Y').charAt(0).toUpperCase()}
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <form
+                          onSubmit={async (e) => {
+                            e.preventDefault();
+                            const formData = new FormData(e.target as HTMLFormElement);
+                            const replyText = formData.get('replyText') as string;
+                            
+                            if (replyText && replyText.trim() && selectedMessage) {
+                              try {
+                                await feedbackAPI.addReply(selectedMessage.id, replyText);
+                                addNotification('Reply sent successfully!', 'success');
+                                
+                                // Reload the message details to show the new reply
+                                const response = await feedbackAPI.getMessage(selectedMessage.id);
+                                if (response.success) {
+                                  setSelectedReplies(response.data.replies);
+                                }
+                                
+                                // Clear the form
+                                (e.target as HTMLFormElement).reset();
+                                
+                                // Reload the main messages list
+                                await loadData();
+                              } catch (error) {
+                                console.error('Failed to send reply:', error);
+                                addNotification('Failed to send reply', 'error');
+                              }
+                            }
+                          }}
+                          className="space-y-3"
+                        >
+                          <Textarea
+                            name="replyText"
+                            placeholder="Write your reply..."
+                            className="min-h-[80px] resize-none"
+                            required
+                          />
+                          <div className="flex justify-between items-center">
+                            <p className="text-xs text-gray-500">
+                              Replying as {adminProfile?.fullName || 'Admin'}
+                            </p>
+                            <Button type="submit" size="sm" className="bg-orange-600 hover:bg-orange-700">
+                              <Send className="w-4 h-4 mr-2" />
+                              Send Reply
+                            </Button>
+                          </div>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
+
+                  {selectedReplies.length === 0 && (
+                    <div className="text-center py-8 text-gray-500">
+                      <MessageCircle className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                      <p className="text-sm">No responses yet. Be the first to reply!</p>
+                    </div>
                   )}
                 </CardContent>
               </Card>

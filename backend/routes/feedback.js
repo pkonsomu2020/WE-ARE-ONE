@@ -40,10 +40,22 @@ router.get('/messages', authenticateAdmin, async (req, res) => {
     const priority = req.query.priority;
     const search = req.query.search;
 
-    // Build query
+    // Build query with reply information
     let query = supabase
       .from('feedback_messages')
-      .select('*, feedback_replies(count)');
+      .select(`
+        *,
+        feedback_replies (
+          id,
+          created_at,
+          admin_profile_id,
+          admin_profiles (
+            full_name,
+            email,
+            role
+          )
+        )
+      `);
 
     // Add filters
     if (type && type !== 'all') {
@@ -94,11 +106,23 @@ router.get('/messages', authenticateAdmin, async (req, res) => {
 
     const { count: total } = await totalQuery;
 
-    // Format messages with replies count
-    const formattedMessages = (messages || []).map(message => ({
-      ...message,
-      replies_count: message.feedback_replies ? message.feedback_replies.length : 0
-    }));
+    // Format messages with replies information
+    const formattedMessages = (messages || []).map(message => {
+      const replies = message.feedback_replies || [];
+      const repliesCount = replies.length;
+      
+      // Get the latest reply
+      const latestReply = replies.length > 0 
+        ? replies.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
+        : null;
+
+      return {
+        ...message,
+        replies_count: repliesCount,
+        last_reply_by: latestReply?.admin_profiles?.full_name || null,
+        last_reply_at: latestReply?.created_at || null
+      };
+    });
 
     res.json({
       success: true,
@@ -282,10 +306,35 @@ router.post('/messages/:id/replies', authenticateAdmin, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Reply text is required' });
     }
 
+    // Get admin profile information for the reply
+    let adminProfileId = null;
+    let responderName = 'Admin';
+    let responderEmail = '';
+    let responderRole = 'Admin';
+
+    // Try to get admin profile from token or admin key
+    if (req.admin && req.admin.id) {
+      adminProfileId = req.admin.id;
+      
+      // Get admin profile details
+      const { data: adminProfile, error: profileError } = await supabase
+        .from('admin_profiles')
+        .select('id, full_name, email, role')
+        .eq('id', req.admin.id)
+        .single();
+
+      if (!profileError && adminProfile) {
+        responderName = adminProfile.full_name || 'Admin';
+        responderEmail = adminProfile.email || '';
+        responderRole = adminProfile.role || 'Admin';
+      }
+    }
+
     const { data, error } = await supabase
       .from('feedback_replies')
       .insert({
         message_id: messageId,
+        admin_profile_id: adminProfileId,
         reply_text: replyText
       })
       .select();
@@ -297,7 +346,12 @@ router.post('/messages/:id/replies', authenticateAdmin, async (req, res) => {
     res.json({
       success: true,
       message: 'Reply added successfully',
-      data: { id: data[0].id }
+      data: { 
+        id: data[0].id,
+        responder_name: responderName,
+        responder_email: responderEmail,
+        responder_role: responderRole
+      }
     });
   } catch (error) {
     console.error('Error adding reply:', error);
@@ -366,10 +420,18 @@ router.get('/messages/:id', authenticateAdmin, async (req, res) => {
       throw messageError;
     }
 
-    // Get replies for this message
+    // Get replies for this message with admin profile information
     const { data: replies, error: repliesError } = await supabase
       .from('feedback_replies')
-      .select('*')
+      .select(`
+        *,
+        admin_profiles (
+          id,
+          full_name,
+          email,
+          role
+        )
+      `)
       .eq('message_id', messageId)
       .order('created_at', { ascending: true });
 
@@ -377,11 +439,20 @@ router.get('/messages/:id', authenticateAdmin, async (req, res) => {
       throw repliesError;
     }
 
+    // Format replies with admin profile information
+    const formattedReplies = (replies || []).map(reply => ({
+      ...reply,
+      responder_name: reply.admin_profiles?.full_name || 'Admin',
+      responder_email: reply.admin_profiles?.email || '',
+      responder_role: reply.admin_profiles?.role || 'Admin',
+      admin_name: reply.admin_profiles?.full_name || 'Admin'
+    }));
+
     res.json({
       success: true,
       data: {
         message,
-        replies: replies || []
+        replies: formattedReplies
       }
     });
   } catch (error) {
