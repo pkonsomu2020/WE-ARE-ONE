@@ -1,28 +1,82 @@
-const { pool } = require('../config/database');
+const { supabase, supabaseAdmin } = require('../config/database');
+
+// Ensure notifications table exists
+(async function ensureNotificationsTable() {
+  try {
+    console.log('🔧 Ensuring notifications table exists...');
+    
+    // Check if notifications table exists
+    const { data, error } = await supabaseAdmin
+      .from('notifications')
+      .select('id')
+      .limit(1);
+    
+    if (error && error.code === '42P01') {
+      console.log('📝 Notifications table does not exist. Please create it in Supabase dashboard:');
+      console.log(`
+        CREATE TABLE notifications (
+          id SERIAL PRIMARY KEY,
+          title VARCHAR(255) NOT NULL,
+          message TEXT NOT NULL,
+          type VARCHAR(50) DEFAULT 'info',
+          source VARCHAR(50) DEFAULT 'system',
+          action_url VARCHAR(500),
+          is_read BOOLEAN DEFAULT FALSE,
+          created_at TIMESTAMP DEFAULT NOW(),
+          updated_at TIMESTAMP DEFAULT NOW()
+        );
+
+        -- Create indexes for better performance
+        CREATE INDEX idx_notifications_is_read ON notifications(is_read);
+        CREATE INDEX idx_notifications_created_at ON notifications(created_at);
+        CREATE INDEX idx_notifications_source ON notifications(source);
+      `);
+    } else if (!error) {
+      console.log('✅ Notifications table exists');
+    }
+  } catch (error) {
+    console.error('⚠️ Failed to check notifications table:', error.message);
+  }
+})();
 
 class NotificationService {
   // Create a new notification
   async createNotification({ title, message, type = 'info', source = 'system', actionUrl = null }) {
     try {
-      const [result] = await pool.execute(
-        `INSERT INTO notifications (title, message, type, source, action_url) 
-         VALUES (?, ?, ?, ?, ?)`,
-        [title, message, type, source, actionUrl]
-      );
+      const { data, error } = await supabase
+        .from('notifications')
+        .insert({
+          title,
+          message,
+          type,
+          source,
+          action_url: actionUrl
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Failed to create notification:', error);
+        return {
+          success: false,
+          message: 'Failed to create notification',
+          error: error.message
+        };
+      }
 
       console.log(`📢 Notification created: ${title}`);
       return {
         success: true,
-        notificationId: result.insertId,
+        notificationId: data.id,
         data: {
-          id: result.insertId,
+          id: data.id,
           title,
           message,
           type,
           source,
           actionUrl,
           isRead: false,
-          createdAt: new Date()
+          createdAt: data.created_at
         }
       };
     } catch (error) {
@@ -38,38 +92,48 @@ class NotificationService {
   // Get all notifications (with pagination)
   async getNotifications(limit = 50, offset = 0) {
     try {
-      const [notifications] = await pool.execute(
-        `SELECT id, title, message, type, source, action_url as actionUrl, 
-                is_read as isRead, created_at as createdAt, updated_at as updatedAt
-         FROM notifications 
-         ORDER BY created_at DESC 
-         LIMIT ? OFFSET ?`,
-        [limit, offset]
-      );
+      // Get notifications with pagination
+      const { data: notifications, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      if (error) {
+        throw error;
+      }
 
       // Get total count
-      const [countResult] = await pool.execute(
-        'SELECT COUNT(*) as total FROM notifications'
-      );
-      const total = countResult[0].total;
+      const { count: total, error: countError } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true });
+
+      if (countError) {
+        throw countError;
+      }
 
       // Get unread count
-      const [unreadResult] = await pool.execute(
-        'SELECT COUNT(*) as unread FROM notifications WHERE is_read = FALSE'
-      );
-      const unreadCount = unreadResult[0].unread;
+      const { count: unreadCount, error: unreadError } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_read', false);
+
+      if (unreadError) {
+        throw unreadError;
+      }
 
       return {
         success: true,
         data: {
-          notifications: notifications.map(notification => ({
+          notifications: (notifications || []).map(notification => ({
             ...notification,
-            isRead: Boolean(notification.isRead),
-            timestamp: new Date(notification.createdAt)
+            actionUrl: notification.action_url,
+            isRead: Boolean(notification.is_read),
+            timestamp: notification.created_at ? new Date(notification.created_at) : null
           })),
-          total,
-          unreadCount,
-          hasMore: (offset + limit) < total
+          total: total || 0,
+          unreadCount: unreadCount || 0,
+          hasMore: (offset + limit) < (total || 0)
         }
       };
     } catch (error) {
@@ -85,13 +149,18 @@ class NotificationService {
   // Get unread notifications count
   async getUnreadCount() {
     try {
-      const [result] = await pool.execute(
-        'SELECT COUNT(*) as count FROM notifications WHERE is_read = FALSE'
-      );
+      const { count, error } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_read', false);
+
+      if (error) {
+        throw error;
+      }
 
       return {
         success: true,
-        count: result[0].count
+        count: count || 0
       };
     } catch (error) {
       console.error('❌ Failed to get unread count:', error);
@@ -106,12 +175,20 @@ class NotificationService {
   // Mark notification as read
   async markAsRead(notificationId) {
     try {
-      const [result] = await pool.execute(
-        'UPDATE notifications SET is_read = TRUE, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-        [notificationId]
-      );
+      const { data, error } = await supabase
+        .from('notifications')
+        .update({ 
+          is_read: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', notificationId)
+        .select();
 
-      if (result.affectedRows === 0) {
+      if (error) {
+        throw error;
+      }
+
+      if (!data || data.length === 0) {
         return {
           success: false,
           message: 'Notification not found'
@@ -135,13 +212,22 @@ class NotificationService {
   // Mark all notifications as read
   async markAllAsRead() {
     try {
-      const [result] = await pool.execute(
-        'UPDATE notifications SET is_read = TRUE, updated_at = CURRENT_TIMESTAMP WHERE is_read = FALSE'
-      );
+      const { data, error } = await supabase
+        .from('notifications')
+        .update({ 
+          is_read: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('is_read', false)
+        .select();
+
+      if (error) {
+        throw error;
+      }
 
       return {
         success: true,
-        message: `Marked ${result.affectedRows} notifications as read`
+        message: `Marked ${data ? data.length : 0} notifications as read`
       };
     } catch (error) {
       console.error('❌ Failed to mark all notifications as read:', error);
@@ -156,12 +242,17 @@ class NotificationService {
   // Delete notification
   async deleteNotification(notificationId) {
     try {
-      const [result] = await pool.execute(
-        'DELETE FROM notifications WHERE id = ?',
-        [notificationId]
-      );
+      const { data, error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', notificationId)
+        .select();
 
-      if (result.affectedRows === 0) {
+      if (error) {
+        throw error;
+      }
+
+      if (!data || data.length === 0) {
         return {
           success: false,
           message: 'Notification not found'
@@ -185,11 +276,19 @@ class NotificationService {
   // Clear all notifications
   async clearAllNotifications() {
     try {
-      const [result] = await pool.execute('DELETE FROM notifications');
+      const { data, error } = await supabase
+        .from('notifications')
+        .delete()
+        .neq('id', 0) // Delete all records
+        .select();
+
+      if (error) {
+        throw error;
+      }
 
       return {
         success: true,
-        message: `Cleared ${result.affectedRows} notifications`
+        message: `Cleared ${data ? data.length : 0} notifications`
       };
     } catch (error) {
       console.error('❌ Failed to clear all notifications:', error);
@@ -201,19 +300,29 @@ class NotificationService {
     }
   }
 
-  // Clean old notifications (older than 30 days)
+  // Clean old notifications (older than specified days)
   async cleanOldNotifications(daysOld = 30) {
     try {
-      const [result] = await pool.execute(
-        'DELETE FROM notifications WHERE created_at < DATE_SUB(NOW(), INTERVAL ? DAY)',
-        [daysOld]
-      );
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - daysOld);
 
-      console.log(`🧹 Cleaned ${result.affectedRows} old notifications (older than ${daysOld} days)`);
+      const { data, error } = await supabase
+        .from('notifications')
+        .delete()
+        .lt('created_at', cutoffDate.toISOString())
+        .select();
+
+      if (error) {
+        throw error;
+      }
+
+      const deletedCount = data ? data.length : 0;
+      console.log(`🧹 Cleaned ${deletedCount} old notifications (older than ${daysOld} days)`);
+      
       return {
         success: true,
-        message: `Cleaned ${result.affectedRows} old notifications`,
-        deletedCount: result.affectedRows
+        message: `Cleaned ${deletedCount} old notifications`,
+        deletedCount
       };
     } catch (error) {
       console.error('❌ Failed to clean old notifications:', error);
