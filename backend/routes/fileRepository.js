@@ -1012,6 +1012,7 @@ router.get('/files/all-status', async (req, res) => {
       .order('created_at', { ascending: false });
 
     if (error) {
+      console.error('All-status query error:', error);
       throw error;
     }
 
