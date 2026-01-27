@@ -411,7 +411,7 @@ router.get('/files', async (req, res) => {
     let query = supabase
       .from('files')
       .select('*')
-      .eq('status', 'active');
+      .in('status', ['active']); // Only show active files, exclude missing_file status
 
     // Add search filter
     if (search) {
@@ -471,7 +471,7 @@ router.get('/files', async (req, res) => {
     let totalQuery = supabase
       .from('files')
       .select('*', { count: 'exact', head: true })
-      .eq('status', 'active');
+      .in('status', ['active']); // Only count active files
 
     if (search) {
       totalQuery = totalQuery.or(`original_name.ilike.%${search}%,uploaded_by.ilike.%${search}%`);
@@ -734,7 +734,7 @@ router.get('/download/:id', async (req, res) => {
     if (!files || files.length === 0) {
       return res.status(404).json({
         success: false,
-        message: 'File not found'
+        message: 'File not found in database'
       });
     }
 
@@ -742,9 +742,22 @@ router.get('/download/:id', async (req, res) => {
 
     // Check if physical file exists
     if (!require('fs').existsSync(file.file_path)) {
+      console.warn(`Physical file missing for ID ${fileId}: ${file.file_path}`);
+      
+      // Mark file as missing in database for future cleanup
+      await supabase
+        .from('files')
+        .update({ 
+          status: 'missing_file',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', fileId);
+
       return res.status(404).json({
         success: false,
-        message: 'Physical file not found'
+        message: 'File not available for download',
+        details: 'The physical file is missing from the server. This file may have been uploaded to a different environment or deleted.',
+        suggestion: 'Please re-upload the file or contact the administrator.'
       });
     }
 
@@ -985,6 +998,66 @@ router.get('/access-logs', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch access logs',
+      error: error.message
+    });
+  }
+});
+
+// Clean up orphaned files (files in database but missing physical files)
+router.post('/cleanup-orphaned', async (req, res) => {
+  try {
+    // Get all active files
+    const { data: files, error } = await supabase
+      .from('files')
+      .select('id, filename, file_path, original_name')
+      .eq('status', 'active');
+
+    if (error) {
+      throw error;
+    }
+
+    let orphanedCount = 0;
+    let checkedCount = 0;
+    const orphanedFiles = [];
+
+    for (const file of files || []) {
+      checkedCount++;
+      
+      // Check if physical file exists
+      if (!require('fs').existsSync(file.file_path)) {
+        orphanedCount++;
+        orphanedFiles.push({
+          id: file.id,
+          name: file.original_name,
+          path: file.file_path
+        });
+
+        // Mark as missing
+        await supabase
+          .from('files')
+          .update({ 
+            status: 'missing_file',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', file.id);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Cleanup completed. Found ${orphanedCount} orphaned files out of ${checkedCount} total files.`,
+      data: {
+        checkedCount,
+        orphanedCount,
+        orphanedFiles: orphanedFiles.slice(0, 10) // Show first 10 for reference
+      }
+    });
+
+  } catch (error) {
+    console.error('Failed to cleanup orphaned files:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to cleanup orphaned files',
       error: error.message
     });
   }
