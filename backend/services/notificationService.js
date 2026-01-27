@@ -43,42 +43,60 @@ class NotificationService {
   // Create a new notification
   async createNotification({ title, message, type = 'info', source = 'system', actionUrl = null }) {
     try {
-      const { data, error } = await supabase
-        .from('notifications')
-        .insert({
-          title,
-          message,
-          type,
-          source,
-          action_url: actionUrl
-        })
-        .select()
-        .single();
+      // First, try to reset the sequence if there's a conflict
+      let insertAttempts = 0;
+      const maxAttempts = 3;
+      
+      while (insertAttempts < maxAttempts) {
+        try {
+          const { data, error } = await supabase
+            .from('notifications')
+            .insert({
+              title,
+              message,
+              type,
+              source,
+              action_url: actionUrl
+            })
+            .select()
+            .single();
 
-      if (error) {
-        console.error('❌ Failed to create notification:', error);
-        return {
-          success: false,
-          message: 'Failed to create notification',
-          error: error.message
-        };
-      }
+          if (error) {
+            // Check if it's a duplicate key error
+            if (error.message && error.message.includes('duplicate key value violates unique constraint')) {
+              console.log(`⚠️ Duplicate key error on attempt ${insertAttempts + 1}, trying to reset sequence...`);
+              
+              // Try to reset the sequence
+              await this.resetNotificationsSequence();
+              insertAttempts++;
+              continue;
+            } else {
+              throw error;
+            }
+          }
 
-      console.log(`📢 Notification created: ${title}`);
-      return {
-        success: true,
-        notificationId: data.id,
-        data: {
-          id: data.id,
-          title,
-          message,
-          type,
-          source,
-          actionUrl,
-          isRead: false,
-          createdAt: data.created_at
+          console.log(`📢 Notification created: ${title}`);
+          return {
+            success: true,
+            notificationId: data.id,
+            data: {
+              id: data.id,
+              title,
+              message,
+              type,
+              source,
+              actionUrl,
+              isRead: false,
+              createdAt: data.created_at
+            }
+          };
+        } catch (attemptError) {
+          if (insertAttempts === maxAttempts - 1) {
+            throw attemptError;
+          }
+          insertAttempts++;
         }
-      };
+      }
     } catch (error) {
       console.error('❌ Failed to create notification:', error);
       return {
@@ -86,6 +104,54 @@ class NotificationService {
         message: 'Failed to create notification',
         error: error.message
       };
+    }
+  }
+
+  // Reset notifications sequence to prevent duplicate key errors
+  async resetNotificationsSequence() {
+    try {
+      // Get the current maximum ID
+      const { data: maxResult, error: maxError } = await supabase
+        .from('notifications')
+        .select('id')
+        .order('id', { ascending: false })
+        .limit(1);
+
+      if (maxError) {
+        console.error('Error getting max notification ID:', maxError);
+        return;
+      }
+
+      const maxId = maxResult && maxResult.length > 0 ? maxResult[0].id : 0;
+      const nextId = maxId + 1;
+
+      // Reset the sequence using SQL
+      const { error: resetError } = await supabase.rpc('reset_notifications_sequence', {
+        new_value: nextId
+      });
+
+      if (resetError) {
+        console.error('Error resetting notifications sequence:', resetError);
+        // If the function doesn't exist, try to create it
+        const createFunctionSQL = `
+          CREATE OR REPLACE FUNCTION reset_notifications_sequence(new_value INTEGER)
+          RETURNS VOID AS $$
+          BEGIN
+            PERFORM setval('notifications_id_seq', new_value, false);
+          END;
+          $$ LANGUAGE plpgsql;
+        `;
+        
+        const { error: createError } = await supabase.rpc('exec_sql', { sql: createFunctionSQL });
+        if (!createError) {
+          // Try again after creating the function
+          await supabase.rpc('reset_notifications_sequence', { new_value: nextId });
+        }
+      } else {
+        console.log(`✅ Notifications sequence reset to ${nextId}`);
+      }
+    } catch (error) {
+      console.error('Error in resetNotificationsSequence:', error);
     }
   }
 
