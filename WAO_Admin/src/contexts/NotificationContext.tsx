@@ -99,23 +99,29 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, [loadNotifications]);
 
   const addNotification = useCallback(async (notificationData: Omit<Notification, 'id' | 'timestamp' | 'read'>) => {
+    // Always add to local state first for immediate UI feedback
+    const newNotification: Notification = {
+      ...notificationData,
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      timestamp: new Date(),
+      read: false
+    };
+    setNotifications(prev => [newNotification, ...prev]);
+    setUnreadCount(prev => prev + 1);
+
+    // Try to sync with backend, but don't block UI if it fails
     try {
       const response = await api.notifications.create(notificationData);
       if (response.success) {
-        // Reload notifications to get the latest from backend
-        await loadNotifications();
+        // Optionally reload notifications to get the backend ID
+        // But don't await this to avoid blocking
+        loadNotifications().catch(() => {
+          // Silently ignore reload errors
+        });
       }
     } catch (error) {
-      console.error('Failed to create notification:', error);
-      // Fallback to local state if backend fails
-      const newNotification: Notification = {
-        ...notificationData,
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-        timestamp: new Date(),
-        read: false
-      };
-      setNotifications(prev => [newNotification, ...prev]);
-      setUnreadCount(prev => prev + 1);
+      // Silently handle backend errors - the local notification is already shown
+      console.log('Note: Notification saved locally (backend sync failed)');
     }
   }, [loadNotifications]);
 
