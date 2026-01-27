@@ -83,7 +83,7 @@ const FileRepositoryPage = () => {
         files
           .filter(file => file && typeof file === 'object')
           .map(file => {
-            return file.uploaded_by_email || file.uploader_name || file.uploaded_by;
+            return file.uploaded_by_email || file.uploaded_by_name || file.uploaded_by;
           })
           .filter((value): value is string => !!value && typeof value === 'string')
       ));

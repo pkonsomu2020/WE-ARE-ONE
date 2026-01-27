@@ -59,7 +59,8 @@ export interface FileItem {
   category_id?: number;
   uploaded_by: string;
   uploaded_by_email?: string;
-  uploader_name?: string;
+  uploaded_by_name?: string;
+  uploaded_by_profile_id?: number;
   description?: string;
   tags?: string;
   is_public: boolean;

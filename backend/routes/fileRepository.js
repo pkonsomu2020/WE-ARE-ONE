@@ -220,7 +220,8 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         category_id: categoryId,
         uploaded_by: req.adminEmail || 'admin@weareone.co.ke',
         uploaded_by_email: req.adminEmail || 'admin@weareone.co.ke',
-        uploader_name: 'Admin User'
+        uploaded_by_name: 'Admin User',
+        uploaded_by_profile_id: req.admin?.id || null
       })
       .select();
 
@@ -311,7 +312,8 @@ router.post('/upload-multiple', upload.array('files', 10), async (req, res) => {
           category_id: categoryId,
           uploaded_by: req.adminEmail || 'admin@weareone.co.ke',
           uploaded_by_email: req.adminEmail || 'admin@weareone.co.ke',
-          uploader_name: 'Admin User'
+          uploaded_by_name: 'Admin User',
+          uploaded_by_profile_id: req.admin?.id || null
         })
         .select();
 
@@ -411,7 +413,7 @@ router.get('/files', async (req, res) => {
     let query = supabase
       .from('files')
       .select('*')
-      .in('status', ['active']); // Only show active files, exclude missing_file status
+      .in('status', ['active']); // Only show active files, exclude missing_file and deleted status
 
     // Add search filter
     if (search) {
@@ -1016,11 +1018,36 @@ router.get('/files/all-status', async (req, res) => {
       throw error;
     }
 
+    // Get categories separately and match them
+    const { data: categories, error: categoriesError } = await supabase
+      .from('file_categories')
+      .select('*');
+
+    const categoriesMap = {};
+    if (!categoriesError && categories) {
+      categories.forEach(cat => {
+        categoriesMap[cat.id] = cat;
+      });
+    }
+
+    // Format the response with category info
+    const formattedFiles = (files || []).map(file => ({
+      ...file,
+      category_name: file.category_id && categoriesMap[file.category_id] ? categoriesMap[file.category_id].name : null,
+      category_color: file.category_id && categoriesMap[file.category_id] ? categoriesMap[file.category_id].color : null,
+      category_icon: file.category_id && categoriesMap[file.category_id] ? categoriesMap[file.category_id].icon : null
+    }));
+
     res.json({
       success: true,
       data: {
-        files: files || [],
-        total: files ? files.length : 0
+        files: formattedFiles,
+        total: formattedFiles.length,
+        statusBreakdown: {
+          active: formattedFiles.filter(f => f.status === 'active').length,
+          deleted: formattedFiles.filter(f => f.status === 'deleted').length,
+          missing_file: formattedFiles.filter(f => f.status === 'missing_file').length
+        }
       }
     });
   } catch (error) {
@@ -1028,6 +1055,66 @@ router.get('/files/all-status', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch all files',
+      error: error.message
+    });
+  }
+});
+
+// Restore files from deleted/missing status
+router.post('/files/:id/restore', async (req, res) => {
+  try {
+    const fileId = req.params.id;
+
+    // Check if file exists
+    const { data: existingFiles, error: checkError } = await supabase
+      .from('files')
+      .select('id, status, original_name')
+      .eq('id', fileId)
+      .limit(1);
+
+    if (checkError) {
+      throw checkError;
+    }
+
+    if (!existingFiles || existingFiles.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'File not found'
+      });
+    }
+
+    const file = existingFiles[0];
+
+    if (file.status === 'active') {
+      return res.status(400).json({
+        success: false,
+        message: 'File is already active'
+      });
+    }
+
+    // Restore file to active status
+    const { error: updateError } = await supabase
+      .from('files')
+      .update({ 
+        status: 'active',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', fileId);
+
+    if (updateError) {
+      throw updateError;
+    }
+
+    res.json({
+      success: true,
+      message: `File "${file.original_name}" restored successfully`,
+      data: { id: fileId, status: 'active' }
+    });
+  } catch (error) {
+    console.error('Failed to restore file:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to restore file',
       error: error.message
     });
   }
