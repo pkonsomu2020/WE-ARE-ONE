@@ -516,6 +516,61 @@ router.get('/files', async (req, res) => {
   }
 });
 
+// Get all files including inactive ones (for debugging) - MUST BE BEFORE /files/:id
+router.get('/files/all-status', async (req, res) => {
+  try {
+    const { data: files, error } = await supabase
+      .from('files')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('All-status query error:', error);
+      throw error;
+    }
+
+    // Get categories separately and match them
+    const { data: categories, error: categoriesError } = await supabase
+      .from('file_categories')
+      .select('*');
+
+    const categoriesMap = {};
+    if (!categoriesError && categories) {
+      categories.forEach(cat => {
+        categoriesMap[cat.id] = cat;
+      });
+    }
+
+    // Format the response with category info
+    const formattedFiles = (files || []).map(file => ({
+      ...file,
+      category_name: file.category_id && categoriesMap[file.category_id] ? categoriesMap[file.category_id].name : null,
+      category_color: file.category_id && categoriesMap[file.category_id] ? categoriesMap[file.category_id].color : null,
+      category_icon: file.category_id && categoriesMap[file.category_id] ? categoriesMap[file.category_id].icon : null
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        files: formattedFiles,
+        total: formattedFiles.length,
+        statusBreakdown: {
+          active: formattedFiles.filter(f => f.status === 'active').length,
+          deleted: formattedFiles.filter(f => f.status === 'deleted').length,
+          missing_file: formattedFiles.filter(f => f.status === 'missing_file').length
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Failed to fetch all files:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch all files',
+      error: error.message
+    });
+  }
+});
+
 // Get single file
 router.get('/files/:id', async (req, res) => {
   try {
@@ -721,12 +776,11 @@ router.get('/download/:id', async (req, res) => {
   try {
     const fileId = req.params.id;
 
-    // Get file info from database
+    // Get file info from database - check all statuses for download
     const { data: files, error } = await supabase
       .from('files')
       .select('*')
       .eq('id', fileId)
-      .eq('status', 'active')
       .limit(1);
 
     if (error) {
@@ -741,6 +795,24 @@ router.get('/download/:id', async (req, res) => {
     }
 
     const file = files[0];
+
+    // Check file status
+    if (file.status === 'deleted') {
+      return res.status(404).json({
+        success: false,
+        message: 'File has been deleted',
+        details: 'This file was marked as deleted and is no longer available for download.'
+      });
+    }
+
+    if (file.status === 'missing_file') {
+      return res.status(404).json({
+        success: false,
+        message: 'File not available for download',
+        details: 'The physical file is missing from the server. This file may have been uploaded to a different environment or deleted.',
+        suggestion: 'Please re-upload the file or contact the administrator.'
+      });
+    }
 
     // Check if physical file exists
     if (!require('fs').existsSync(file.file_path)) {
@@ -1000,61 +1072,6 @@ router.get('/access-logs', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch access logs',
-      error: error.message
-    });
-  }
-});
-
-// Get all files including inactive ones (for debugging)
-router.get('/files/all-status', async (req, res) => {
-  try {
-    const { data: files, error } = await supabase
-      .from('files')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('All-status query error:', error);
-      throw error;
-    }
-
-    // Get categories separately and match them
-    const { data: categories, error: categoriesError } = await supabase
-      .from('file_categories')
-      .select('*');
-
-    const categoriesMap = {};
-    if (!categoriesError && categories) {
-      categories.forEach(cat => {
-        categoriesMap[cat.id] = cat;
-      });
-    }
-
-    // Format the response with category info
-    const formattedFiles = (files || []).map(file => ({
-      ...file,
-      category_name: file.category_id && categoriesMap[file.category_id] ? categoriesMap[file.category_id].name : null,
-      category_color: file.category_id && categoriesMap[file.category_id] ? categoriesMap[file.category_id].color : null,
-      category_icon: file.category_id && categoriesMap[file.category_id] ? categoriesMap[file.category_id].icon : null
-    }));
-
-    res.json({
-      success: true,
-      data: {
-        files: formattedFiles,
-        total: formattedFiles.length,
-        statusBreakdown: {
-          active: formattedFiles.filter(f => f.status === 'active').length,
-          deleted: formattedFiles.filter(f => f.status === 'deleted').length,
-          missing_file: formattedFiles.filter(f => f.status === 'missing_file').length
-        }
-      }
-    });
-  } catch (error) {
-    console.error('Failed to fetch all files:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch all files',
       error: error.message
     });
   }
