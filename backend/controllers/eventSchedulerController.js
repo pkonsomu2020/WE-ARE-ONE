@@ -413,18 +413,7 @@ const getEvents = async (req, res) => {
     
     let query = supabase
       .from('scheduled_events')
-      .select(`
-        *,
-        event_attendees (
-          id,
-          admin_profile_id,
-          external_email,
-          external_name,
-          admin_profiles (
-            full_name
-          )
-        )
-      `)
+      .select('*')
       .neq('status', 'cancelled');
     
     if (startDate && endDate) {
@@ -443,14 +432,51 @@ const getEvents = async (req, res) => {
       throw error;
     }
     
-    // Format events for frontend
-    const formattedEvents = (events || []).map(event => {
-      const attendees = event.event_attendees || [];
-      const attendeesList = attendees.map(attendee => 
-        attendee.admin_profiles?.full_name || attendee.external_name || attendee.external_email
-      ).filter(Boolean);
+    // Get attendees separately for each event
+    const formattedEvents = [];
+    
+    for (const event of events || []) {
+      // Get attendees for this event
+      const { data: attendees, error: attendeesError } = await supabase
+        .from('event_attendees')
+        .select('*')
+        .eq('event_id', event.id);
 
-      return {
+      let attendeesList = [];
+      let attendeeCount = 0;
+
+      if (!attendeesError && attendees) {
+        attendeeCount = attendees.length;
+        
+        // Get admin profile names for admin attendees
+        const adminIds = attendees
+          .filter(a => a.admin_profile_id)
+          .map(a => a.admin_profile_id);
+
+        let adminProfiles = [];
+        if (adminIds.length > 0) {
+          const { data: profiles, error: profilesError } = await supabase
+            .from('admin_profiles')
+            .select('id, full_name')
+            .in('id', adminIds);
+
+          if (!profilesError && profiles) {
+            adminProfiles = profiles;
+          }
+        }
+
+        // Build attendees list
+        attendeesList = attendees.map(attendee => {
+          if (attendee.admin_profile_id) {
+            const profile = adminProfiles.find(p => p.id === attendee.admin_profile_id);
+            return profile ? profile.full_name : `Admin ${attendee.admin_profile_id}`;
+          } else {
+            return attendee.external_name || attendee.external_email;
+          }
+        }).filter(Boolean);
+      }
+
+      formattedEvents.push({
         id: event.id,
         title: event.title,
         type: event.type,
@@ -460,7 +486,7 @@ const getEvents = async (req, res) => {
         location: event.location,
         meetingLink: event.meeting_link,
         attendees: attendeesList,
-        attendeeCount: attendees.length,
+        attendeeCount: attendeeCount,
         createdBy: event.created_by,
         createdByProfileId: event.created_by_profile_id,
         createdByName: event.created_by_name,
@@ -468,8 +494,8 @@ const getEvents = async (req, res) => {
         reminderSent: event.reminder_sent === true,
         isRecurring: event.is_recurring === true,
         status: event.status
-      };
-    });
+      });
+    }
 
     res.json({
       success: true,

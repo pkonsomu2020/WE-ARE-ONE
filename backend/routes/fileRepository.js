@@ -407,17 +407,10 @@ router.get('/files', async (req, res) => {
     const sortBy = req.query.sortBy || 'created_at';
     const sortOrder = req.query.sortOrder || 'DESC';
 
-    // Build query
+    // Build query without relationship - get files first
     let query = supabase
       .from('files')
-      .select(`
-        *,
-        file_categories (
-          name,
-          color,
-          icon
-        )
-      `)
+      .select('*')
       .eq('status', 'active');
 
     // Add search filter
@@ -448,18 +441,30 @@ router.get('/files', async (req, res) => {
     const to = from + limit - 1;
     query = query.range(from, to);
 
-    const { data: files, error, count } = await query;
+    const { data: files, error } = await query;
 
     if (error) {
       throw error;
     }
 
-    // Format the response to match expected structure
-    const formattedFiles = files.map(file => ({
+    // Get categories separately and match them
+    const { data: categories, error: categoriesError } = await supabase
+      .from('file_categories')
+      .select('*');
+
+    const categoriesMap = {};
+    if (!categoriesError && categories) {
+      categories.forEach(cat => {
+        categoriesMap[cat.id] = cat;
+      });
+    }
+
+    // Format the response with category info
+    const formattedFiles = (files || []).map(file => ({
       ...file,
-      category_name: file.file_categories?.name || null,
-      category_color: file.file_categories?.color || null,
-      category_icon: file.file_categories?.icon || null
+      category_name: file.category_id && categoriesMap[file.category_id] ? categoriesMap[file.category_id].name : null,
+      category_color: file.category_id && categoriesMap[file.category_id] ? categoriesMap[file.category_id].color : null,
+      category_icon: file.category_id && categoriesMap[file.category_id] ? categoriesMap[file.category_id].icon : null
     }));
 
     // Get total count for pagination
@@ -516,14 +521,7 @@ router.get('/files/:id', async (req, res) => {
     
     const { data: files, error } = await supabase
       .from('files')
-      .select(`
-        *,
-        file_categories (
-          name,
-          color,
-          icon
-        )
-      `)
+      .select('*')
       .eq('id', fileId)
       .eq('status', 'active')
       .limit(1);
@@ -540,11 +538,26 @@ router.get('/files/:id', async (req, res) => {
     }
 
     const file = files[0];
+
+    // Get category info separately if file has category_id
+    let categoryInfo = null;
+    if (file.category_id) {
+      const { data: categoryData, error: categoryError } = await supabase
+        .from('file_categories')
+        .select('name, color, icon')
+        .eq('id', file.category_id)
+        .limit(1);
+
+      if (!categoryError && categoryData && categoryData.length > 0) {
+        categoryInfo = categoryData[0];
+      }
+    }
+
     const formattedFile = {
       ...file,
-      category_name: file.file_categories?.name || null,
-      category_color: file.file_categories?.color || null,
-      category_icon: file.file_categories?.icon || null
+      category_name: categoryInfo?.name || null,
+      category_color: categoryInfo?.color || null,
+      category_icon: categoryInfo?.icon || null
     };
 
     res.json({
