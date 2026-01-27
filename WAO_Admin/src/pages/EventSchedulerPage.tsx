@@ -228,7 +228,8 @@ const EventSchedulerPage = () => {
       .filter(event => {
         if (!event || !event.start) return false;
         try {
-          return formatDate(event.start) >= new Date();
+          // Show all events, not just future ones
+          return true;
         } catch (error) {
           console.error('Error filtering event:', event, error);
           return false;
@@ -242,7 +243,7 @@ const EventSchedulerPage = () => {
           return 0;
         }
       })
-      .slice(0, 5);
+      .slice(0, 10); // Show more events
   }, [filteredEvents]);
 
   const getEventTypeColor = (type: string) => {
@@ -319,22 +320,8 @@ const EventSchedulerPage = () => {
 
   // Form validation function
   const isFormInvalid = () => {
-    const now = new Date();
-    const today = now.toISOString().split('T')[0];
-    const currentTime = now.toTimeString().slice(0, 5); // HH:MM format
-    const selectedDate = newEvent.date;
     const startTime = newEvent.startTime;
     const endTime = newEvent.endTime;
-
-    // Check if date is in the past
-    if (selectedDate && selectedDate < today) {
-      return true;
-    }
-
-    // Check if trying to schedule for today but in the past time
-    if (selectedDate === today && startTime && startTime <= currentTime) {
-      return true;
-    }
 
     // Check if end time is after start time
     if (startTime && endTime && startTime >= endTime) {
@@ -372,7 +359,7 @@ const EventSchedulerPage = () => {
 
     // Additional validation before submission
     if (isFormInvalid()) {
-      toast.error('Please check all fields and ensure the date is not in the past');
+      toast.error('Please check all fields and ensure end time is after start time');
       return;
     }
 
@@ -614,14 +601,8 @@ const EventSchedulerPage = () => {
                       type="date"
                       value={newEvent.date}
                       onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
-                      min={new Date().toISOString().split('T')[0]}
                       required
                     />
-                    {newEvent.date && new Date(newEvent.date) < new Date(new Date().toISOString().split('T')[0]) && (
-                      <p className="text-sm text-red-500 mt-1">
-                        ⚠️ Cannot schedule events in the past
-                      </p>
-                    )}
                   </div>
                   <div>
                     <Label htmlFor="startTime">Start Time</Label>
@@ -632,13 +613,6 @@ const EventSchedulerPage = () => {
                       onChange={(e) => setNewEvent({ ...newEvent, startTime: e.target.value })}
                       required
                     />
-                    {newEvent.date === new Date().toISOString().split('T')[0] && 
-                     newEvent.startTime && 
-                     newEvent.startTime <= new Date().toTimeString().slice(0, 5) && (
-                      <p className="text-sm text-red-500 mt-1">
-                        ⚠️ Cannot schedule events in the past time
-                      </p>
-                    )}
                   </div>
                   <div>
                     <Label htmlFor="endTime">End Time</Label>
@@ -923,8 +897,8 @@ const EventSchedulerPage = () => {
       {/* Upcoming Events */}
       <Card>
         <CardHeader>
-          <CardTitle>Upcoming Events</CardTitle>
-          <CardDescription>Next scheduled events and meetings</CardDescription>
+          <CardTitle>All Events</CardTitle>
+          <CardDescription>All scheduled events and meetings</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -1042,7 +1016,7 @@ const EventSchedulerPage = () => {
                 {upcomingEventsList.length === 0 && (
                   <div className="text-center py-12">
                     <CalendarIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No upcoming events</h3>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No events found</h3>
                     <p className="text-gray-600">Schedule your first event to get started</p>
                     <Button
                       className="mt-4 bg-orange-600 hover:bg-orange-700"

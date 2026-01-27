@@ -103,7 +103,7 @@ const AdminAnalyticsPage = () => {
       startDateObj.setDate(startDateObj.getDate() - parseInt(dateRange, 10));
       const startDate = startDateObj.toISOString();
 
-      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : { 'x-admin-key': '3090375ecb2326add24b37c7fd9b5fce4959c766677cdd4fd32eb67fa383db44' };
 
       // Get current admin profile to check role
       const profileResponse = await fetch(
@@ -117,9 +117,9 @@ const AdminAnalyticsPage = () => {
         const isSuper = profile.role === 'Super Admin' || profile.email === 'admin@weareone.co.ke';
         setIsSuperAdmin(isSuper);
         
-        // Don't filter by date for overview - show all admins
+        // Use the new real analytics API
         const overviewResponse = await fetch(
-          `${API_BASE_URL}/api/admin/analytics/overview`,
+          `${API_BASE_URL}/api/real-analytics/overview?startDate=${startDate}&endDate=${endDate}`,
           { headers, credentials: 'include' }
         );
         const overviewJson = await overviewResponse.json();
@@ -143,7 +143,7 @@ const AdminAnalyticsPage = () => {
         }
       }
 
-      const trendsUrl = new URL(`${API_BASE_URL}/api/admin/analytics/trends`);
+      const trendsUrl = new URL(`${API_BASE_URL}/api/real-analytics/trends`);
       trendsUrl.searchParams.set('startDate', startDate);
       trendsUrl.searchParams.set('endDate', endDate);
       if (selectedAdmin !== 'all') {
@@ -167,10 +167,10 @@ const AdminAnalyticsPage = () => {
       const startDateObj = new Date();
       startDateObj.setDate(startDateObj.getDate() - parseInt(dateRange, 10));
       const startDate = startDateObj.toISOString();
-      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : { 'x-admin-key': '3090375ecb2326add24b37c7fd9b5fce4959c766677cdd4fd32eb67fa383db44' };
 
       const response = await fetch(
-        `${API_BASE_URL}/api/admin/analytics/export?type=overview&startDate=${startDate}&endDate=${endDate}`,
+        `${API_BASE_URL}/api/real-analytics/export?type=overview&startDate=${startDate}&endDate=${endDate}`,
         { headers, credentials: 'include' }
       );
       const blob = await response.blob();
