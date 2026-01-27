@@ -11,6 +11,16 @@ const router = express.Router();
   try {
     console.log('🔧 Ensuring file repository tables exist...');
     
+    // Create sequence reset function if it doesn't exist
+    try {
+      const { error: functionError } = await supabaseAdmin.rpc('create_reset_files_sequence_function');
+      if (functionError && !functionError.message.includes('already exists')) {
+        console.warn('Failed to create sequence reset function:', functionError.message);
+      }
+    } catch (funcError) {
+      console.warn('Could not create sequence reset function:', funcError.message);
+    }
+    
     // Check if file_categories table exists
     const { data: categoriesData, error: categoriesError } = await supabaseAdmin
       .from('file_categories')
@@ -65,6 +75,14 @@ const router = express.Router();
           created_at TIMESTAMP DEFAULT NOW(),
           updated_at TIMESTAMP DEFAULT NOW()
         );
+
+        -- Create function to reset sequence
+        CREATE OR REPLACE FUNCTION reset_files_sequence(new_value INTEGER)
+        RETURNS VOID AS $$
+        BEGIN
+          PERFORM setval('files_id_seq', new_value, false);
+        END;
+        $$ LANGUAGE plpgsql;
       `);
     }
     
@@ -227,6 +245,74 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 
     if (error) {
       console.error('Database insert error:', error);
+      
+      // If it's a primary key constraint error, try to fix the sequence
+      if (error.message && error.message.includes('duplicate key value violates unique constraint')) {
+        console.log('🔧 Attempting to fix sequence for files table...');
+        try {
+          // Get the maximum ID from the files table
+          const { data: maxIdData, error: maxIdError } = await supabaseAdmin
+            .from('files')
+            .select('id')
+            .order('id', { ascending: false })
+            .limit(1);
+
+          if (!maxIdError && maxIdData && maxIdData.length > 0) {
+            const maxId = maxIdData[0].id;
+            console.log(`🔧 Max ID found: ${maxId}, setting sequence to ${maxId + 1}`);
+            
+            // Reset the sequence to the correct value
+            const { error: sequenceError } = await supabaseAdmin.rpc('reset_files_sequence', { new_value: maxId + 1 });
+            
+            if (sequenceError) {
+              console.warn('Failed to reset sequence:', sequenceError.message);
+            } else {
+              console.log('✅ Sequence reset successfully, retrying insert...');
+              
+              // Retry the insert
+              const { data: retryData, error: retryError } = await supabase
+                .from('files')
+                .insert({
+                  filename: req.file.filename,
+                  original_name: req.file.originalname,
+                  file_path: req.file.path,
+                  file_size: req.file.size,
+                  mime_type: req.file.mimetype,
+                  category_id: categoryId,
+                  uploaded_by: req.adminEmail || 'admin@weareone.co.ke',
+                  uploaded_by_email: req.adminEmail || 'admin@weareone.co.ke',
+                  uploaded_by_name: 'Admin User',
+                  uploaded_by_profile_id: req.admin?.id || null
+                })
+                .select();
+
+              if (!retryError && retryData) {
+                // Success on retry
+                const fileData = {
+                  id: retryData[0].id,
+                  filename: req.file.filename,
+                  originalName: req.file.originalname,
+                  mimeType: req.file.mimetype,
+                  size: req.file.size,
+                  path: req.file.path,
+                  uploadedBy: req.adminEmail || 'admin@weareone.co.ke'
+                };
+
+                return res.json({
+                  success: true,
+                  message: 'File uploaded successfully (after sequence fix)',
+                  data: fileData
+                });
+              } else {
+                console.error('Retry insert also failed:', retryError);
+              }
+            }
+          }
+        } catch (sequenceFixError) {
+          console.error('Failed to fix sequence:', sequenceFixError);
+        }
+      }
+      
       throw error;
     }
 
@@ -818,20 +904,29 @@ router.get('/download/:id', async (req, res) => {
     if (!require('fs').existsSync(file.file_path)) {
       console.warn(`Physical file missing for ID ${fileId}: ${file.file_path}`);
       
-      // Mark file as missing in database for future cleanup
-      await supabase
-        .from('files')
-        .update({ 
-          status: 'missing_file',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', fileId);
+      // Only mark as missing if this is an actual download attempt (not a preview/check)
+      // Check if this is a HEAD request or has specific download headers
+      const isActualDownload = req.method === 'GET' && 
+        (req.headers.accept && !req.headers.accept.includes('application/json')) ||
+        req.query.download === 'true';
+
+      if (isActualDownload) {
+        // Mark file as missing in database for future cleanup
+        await supabase
+          .from('files')
+          .update({ 
+            status: 'missing_file',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', fileId);
+      }
 
       return res.status(404).json({
         success: false,
         message: 'File not available for download',
         details: 'The physical file is missing from the server. This file may have been uploaded to a different environment or deleted.',
-        suggestion: 'Please re-upload the file or contact the administrator.'
+        suggestion: 'Please re-upload the file or contact the administrator.',
+        fileMarkedAsMissing: isActualDownload
       });
     }
 
