@@ -110,6 +110,7 @@ const EventSchedulerPage = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'month' | 'week' | 'day'>('month');
   const [showEventForm, setShowEventForm] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [stats, setStats] = useState<EventStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -348,14 +349,15 @@ const EventSchedulerPage = () => {
     return false;
   };
 
-  const checkDateAvailability = async (date: string, startTime: string, endTime: string) => {
+  const checkDateAvailability = async (date: string, startTime: string, endTime: string, excludeEventId?: number) => {
     try {
       const startDateTime = `${date}T${startTime}:00`;
       const endDateTime = `${date}T${endTime}:00`;
 
       const response = await api.eventScheduler.checkAvailability({
         startDateTime,
-        endDateTime
+        endDateTime,
+        excludeEventId
       });
 
       return response.available;
@@ -388,8 +390,13 @@ const EventSchedulerPage = () => {
     setSubmitting(true);
 
     try {
-      // Check date availability
-      const isAvailable = await checkDateAvailability(newEvent.date, newEvent.startTime, newEvent.endTime);
+      // Check date availability (skip for editing the same event)
+      const isAvailable = await checkDateAvailability(
+        newEvent.date, 
+        newEvent.startTime, 
+        newEvent.endTime,
+        editingEvent?.id // Exclude current event when editing
+      );
 
       if (!isAvailable) {
         toast.error('This time slot is already booked. Please choose a different time.');
@@ -397,16 +404,24 @@ const EventSchedulerPage = () => {
         return;
       }
 
-      // Create the event
-      const response = await api.eventScheduler.createEvent(newEvent);
+      let response;
+      if (editingEvent) {
+        // Update existing event
+        response = await api.eventScheduler.updateEvent(editingEvent.id, newEvent);
+      } else {
+        // Create new event
+        response = await api.eventScheduler.createEvent(newEvent);
+      }
 
       if (response.success) {
-        toast.success(`Event created successfully! Notifications sent to ${response.data.attendeesNotified} attendees.`);
+        const action = editingEvent ? 'updated' : 'created';
+        const attendeesMessage = editingEvent ? '' : ` Notifications sent to ${response.data?.attendeesNotified || 0} attendees.`;
+        toast.success(`Event ${action} successfully!${attendeesMessage}`);
 
         // Add notification
         addNotification({
-          title: 'Event Scheduled',
-          message: `"${newEvent.title}" scheduled for ${formatDateString(newEvent.date)} at ${newEvent.startTime}`,
+          title: editingEvent ? 'Event Updated' : 'Event Scheduled',
+          message: `"${newEvent.title}" ${action} for ${formatDateString(newEvent.date)} at ${newEvent.startTime}`,
           type: 'success',
           source: 'event',
           actionUrl: '/admin/events'
@@ -427,6 +442,7 @@ const EventSchedulerPage = () => {
           recurrencePattern: ''
         });
 
+        setEditingEvent(null);
         setShowEventForm(false);
 
         // Reload events and stats
@@ -434,12 +450,13 @@ const EventSchedulerPage = () => {
         await loadStats();
       }
     } catch (error: any) {
-      console.error('Failed to create event:', error);
+      console.error('Failed to submit event:', error);
 
       if (error.message.includes('conflicts')) {
         toast.error('Time slot conflicts with existing event. Please choose a different time.');
       } else {
-        toast.error('Failed to create event. Please try again.');
+        const action = editingEvent ? 'update' : 'create';
+        toast.error(`Failed to ${action} event. Please try again.`);
       }
     } finally {
       setSubmitting(false);
@@ -463,6 +480,30 @@ const EventSchedulerPage = () => {
       console.error('Failed to delete event:', error);
       toast.error('Failed to cancel event');
     }
+  };
+
+  const handleEditEvent = (event: CalendarEvent) => {
+    // Convert the event data to form format
+    const eventDate = new Date(event.start);
+    const startTime = eventDate.toTimeString().slice(0, 5); // HH:MM format
+    const endDate = new Date(event.end);
+    const endTime = endDate.toTimeString().slice(0, 5); // HH:MM format
+    
+    setEditingEvent(event);
+    setNewEvent({
+      title: event.title,
+      type: event.type,
+      description: event.description || '',
+      date: eventDate.toISOString().split('T')[0],
+      startTime: startTime,
+      endTime: endTime,
+      location: event.location || '',
+      meetingLink: event.meetingLink || '',
+      attendees: '', // We don't edit attendees in this simple implementation
+      isRecurring: event.isRecurring || false,
+      recurrencePattern: ''
+    });
+    setShowEventForm(true);
   };
 
   const handleSendReminder = async (eventId: number) => {
@@ -504,7 +545,26 @@ const EventSchedulerPage = () => {
           <h1 className="text-2xl font-bold text-gray-900">Event Scheduler</h1>
           <p className="text-gray-600">Manage calendar events, meetings, and scheduling</p>
         </div>
-        <Dialog open={showEventForm} onOpenChange={setShowEventForm}>
+        <Dialog open={showEventForm} onOpenChange={(open) => {
+          setShowEventForm(open);
+          if (!open) {
+            // Reset form when dialog closes
+            setEditingEvent(null);
+            setNewEvent({
+              title: '',
+              type: 'meeting',
+              date: '',
+              startTime: '',
+              endTime: '',
+              description: '',
+              location: '',
+              meetingLink: '',
+              attendees: '',
+              isRecurring: false,
+              recurrencePattern: ''
+            });
+          }
+        }}>
           <DialogTrigger asChild>
             <Button className="bg-orange-600 hover:bg-orange-700">
               <Plus className="w-4 h-4 mr-2" />
@@ -513,9 +573,9 @@ const EventSchedulerPage = () => {
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
             <DialogHeader className="flex-shrink-0">
-              <DialogTitle>Schedule New Event</DialogTitle>
+              <DialogTitle>{editingEvent ? 'Edit Event' : 'Schedule New Event'}</DialogTitle>
               <DialogDescription>
-                Create a new meeting, organization event, or reminder
+                {editingEvent ? 'Update event details' : 'Create a new meeting, organization event, or reminder'}
               </DialogDescription>
             </DialogHeader>
             <div className="flex-1 overflow-y-auto pr-2">
@@ -683,12 +743,12 @@ const EventSchedulerPage = () => {
                 {submitting ? (
                   <>
                     <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                    Creating...
+                    {editingEvent ? 'Updating...' : 'Creating...'}
                   </>
                 ) : (
                   <>
                     <CalendarIcon className="w-4 h-4 mr-2" />
-                    Schedule Event
+                    {editingEvent ? 'Update Event' : 'Schedule Event'}
                   </>
                 )}
               </Button>
@@ -950,7 +1010,7 @@ const EventSchedulerPage = () => {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEditEvent(event)}>
                                 <Edit className="w-4 h-4 mr-2" />
                                 Edit Event
                               </DropdownMenuItem>
