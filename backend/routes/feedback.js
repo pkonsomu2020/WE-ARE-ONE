@@ -1,53 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const { pool } = require('../config/database');
+const { supabase, supabaseAdmin } = require('../config/database');
 const { authenticateAdmin } = require('../middleware/auth');
 const notificationService = require('../services/notificationService');
-
-// Ensure feedback tables exist
-(async function ensureFeedbackTables() {
-  try {
-    // Messages table
-    await pool.execute(`
-      CREATE TABLE IF NOT EXISTS feedback_messages (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        admin_profile_id INT,
-        name VARCHAR(255) NOT NULL,
-        email VARCHAR(255) NOT NULL,
-        phone VARCHAR(50) NOT NULL,
-        type ENUM('complaint', 'suggestion', 'announcement') NOT NULL,
-        priority ENUM('low', 'medium', 'high') DEFAULT 'medium',
-        status ENUM('new', 'in_progress', 'resolved') DEFAULT 'new',
-        subject VARCHAR(500) NOT NULL,
-        message TEXT NOT NULL,
-        assigned_to VARCHAR(255) NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        INDEX idx_feedback_type (type),
-        INDEX idx_feedback_status (status),
-        INDEX idx_feedback_priority (priority),
-        INDEX idx_feedback_admin (admin_profile_id)
-      )
-    `);
-
-    // Replies table
-    await pool.execute(`
-      CREATE TABLE IF NOT EXISTS feedback_replies (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        message_id INT NOT NULL,
-        admin_profile_id INT,
-        reply_text TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (message_id) REFERENCES feedback_messages(id) ON DELETE CASCADE,
-        INDEX idx_reply_message (message_id)
-      )
-    `);
-
-    console.log('✅ Feedback tables ready');
-  } catch (e) {
-    console.error('⚠️ Failed ensuring feedback tables:', e.message);
-  }
-})();
 
 // Get current admin profile info (simplified - no database queries)
 router.get('/admin-profile', authenticateAdmin, async (req, res) => {
@@ -80,69 +35,80 @@ router.get('/messages', authenticateAdmin, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
-    const offset = (page - 1) * limit;
     const type = req.query.type;
     const status = req.query.status;
     const priority = req.query.priority;
     const search = req.query.search;
 
-    let whereClause = 'WHERE 1=1';
-    let queryParams = [];
+    // Build query
+    let query = supabase
+      .from('feedback_messages')
+      .select('*, feedback_replies(count)');
 
+    // Add filters
     if (type && type !== 'all') {
-      whereClause += ' AND fm.type = ?';
-      queryParams.push(type);
+      query = query.eq('type', type);
     }
 
     if (status && status !== 'all') {
-      whereClause += ' AND fm.status = ?';
-      queryParams.push(status);
+      query = query.eq('status', status);
     }
 
     if (priority && priority !== 'all') {
-      whereClause += ' AND fm.priority = ?';
-      queryParams.push(priority);
+      query = query.eq('priority', priority);
     }
 
     if (search) {
-      whereClause += ' AND (fm.subject LIKE ? OR fm.message LIKE ? OR fm.name LIKE ?)';
-      const searchTerm = `%${search}%`;
-      queryParams.push(searchTerm, searchTerm, searchTerm);
+      query = query.or(`subject.ilike.%${search}%,message.ilike.%${search}%,name.ilike.%${search}%`);
     }
 
-    const query = `
-      SELECT 
-        fm.*,
-        (SELECT COUNT(*) FROM feedback_replies fr WHERE fr.message_id = fm.id) as replies_count
-      FROM feedback_messages fm
-      ${whereClause}
-      ORDER BY fm.created_at DESC
-      LIMIT ? OFFSET ?
-    `;
+    // Add pagination
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+    query = query.range(from, to).order('created_at', { ascending: false });
 
-    queryParams.push(limit, offset);
+    const { data: messages, error, count } = await query;
 
-    const [messages] = await pool.execute(query, queryParams);
+    if (error) {
+      throw error;
+    }
 
-    // Get total count
-    const countQuery = `
-      SELECT COUNT(*) as total
-      FROM feedback_messages fm
-      ${whereClause}
-    `;
+    // Get total count for pagination
+    let totalQuery = supabase
+      .from('feedback_messages')
+      .select('*', { count: 'exact', head: true });
 
-    const [countResult] = await pool.execute(countQuery, queryParams.slice(0, -2));
-    const total = countResult[0].total;
+    // Apply same filters for count
+    if (type && type !== 'all') {
+      totalQuery = totalQuery.eq('type', type);
+    }
+    if (status && status !== 'all') {
+      totalQuery = totalQuery.eq('status', status);
+    }
+    if (priority && priority !== 'all') {
+      totalQuery = totalQuery.eq('priority', priority);
+    }
+    if (search) {
+      totalQuery = totalQuery.or(`subject.ilike.%${search}%,message.ilike.%${search}%,name.ilike.%${search}%`);
+    }
+
+    const { count: total } = await totalQuery;
+
+    // Format messages with replies count
+    const formattedMessages = (messages || []).map(message => ({
+      ...message,
+      replies_count: message.feedback_replies ? message.feedback_replies.length : 0
+    }));
 
     res.json({
       success: true,
       data: {
-        messages,
+        messages: formattedMessages,
         pagination: {
           page,
           limit,
-          total,
-          pages: Math.ceil(total / limit)
+          total: total || 0,
+          pages: Math.ceil((total || 0) / limit)
         }
       }
     });
@@ -152,65 +118,14 @@ router.get('/messages', authenticateAdmin, async (req, res) => {
   }
 });
 
-// Update message priority
-router.put('/messages/:id/priority', authenticateAdmin, async (req, res) => {
-  try {
-    const messageId = req.params.id;
-    const { priority } = req.body;
-
-    if (!['low', 'medium', 'high'].includes(priority)) {
-      return res.status(400).json({ success: false, message: 'Invalid priority' });
-    }
-
-    const [result] = await pool.execute(
-      'UPDATE feedback_messages SET priority = ? WHERE id = ?',
-      [priority, messageId]
-    );
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ success: false, message: 'Message not found' });
-    }
-
-    res.json({
-      success: true,
-      message: 'Message priority updated successfully'
-    });
-  } catch (error) {
-    console.error('Error updating message priority:', error);
-    res.status(500).json({ success: false, message: 'Failed to update message priority' });
-  }
-});
-
-// Assign message to team member
-router.put('/messages/:id/assign', authenticateAdmin, async (req, res) => {
-  try {
-    const messageId = req.params.id;
-    const { assignedTo } = req.body;
-
-    const [result] = await pool.execute(
-      'UPDATE feedback_messages SET assigned_to = ? WHERE id = ?',
-      [assignedTo || null, messageId]
-    );
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ success: false, message: 'Message not found' });
-    }
-
-    res.json({
-      success: true,
-      message: 'Message assigned successfully'
-    });
-  } catch (error) {
-    console.error('Error assigning message:', error);
-    res.status(500).json({ success: false, message: 'Failed to assign message' });
-  }
-});
-
 // Create new feedback message
 router.post('/messages', authenticateAdmin, async (req, res) => {
   try {
     const { name, email, phone, type, priority, subject, message } = req.body;
 
+    console.log('Received feedback message data:', { name, email, phone, type, priority, subject, message });
+
+    // Validate required fields
     if (!name || !email || !phone || !type || !subject || !message) {
       return res.status(400).json({ 
         success: false, 
@@ -218,62 +133,67 @@ router.post('/messages', authenticateAdmin, async (req, res) => {
       });
     }
 
-    const [result] = await pool.execute(
-      `INSERT INTO feedback_messages 
-       (name, email, phone, type, priority, subject, message) 
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [name, email, phone, type, priority || 'medium', subject, message]
-    );
-
-    // Create notification for feedback submission
-    try {
-      await notificationService.createFeedbackNotification(type, subject);
-    } catch (notifError) {
-      console.error('Failed to create notification:', notifError);
+    // Validate enum values (based on your schema)
+    const validTypes = ['complaint', 'suggestion', 'announcement'];
+    const validPriorities = ['low', 'medium', 'high'];
+    
+    if (!validTypes.includes(type)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid type. Must be: complaint, suggestion, or announcement' 
+      });
     }
 
-    res.json({
+    if (priority && !validPriorities.includes(priority)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid priority. Must be: low, medium, or high' 
+      });
+    }
+
+    const insertData = {
+      name,
+      email,
+      phone,
+      type,
+      priority: priority || 'medium',
+      subject,
+      message
+    };
+
+    console.log('Inserting data:', insertData);
+
+    const { data, error } = await supabase
+      .from('feedback_messages')
+      .insert(insertData)
+      .select('id')
+      .single();
+
+    console.log('Supabase response:', { data, error });
+
+    if (error) {
+      console.error('Supabase insert error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Database error: ' + error.message,
+        error: error
+      });
+    }
+
+    console.log('Feedback message created successfully:', data);
+
+    res.status(201).json({
       success: true,
       message: 'Feedback message created successfully',
-      data: { id: result.insertId }
+      data: { id: data?.id || null }
     });
   } catch (error) {
-    console.error('Error creating message:', error);
-    res.status(500).json({ success: false, message: 'Failed to create message' });
-  }
-});
-
-// Get single message with replies
-router.get('/messages/:id', authenticateAdmin, async (req, res) => {
-  try {
-    const messageId = req.params.id;
-
-    // Get message
-    const [messages] = await pool.execute(
-      'SELECT * FROM feedback_messages WHERE id = ?',
-      [messageId]
-    );
-
-    if (messages.length === 0) {
-      return res.status(404).json({ success: false, message: 'Message not found' });
-    }
-
-    // Get replies
-    const [replies] = await pool.execute(
-      'SELECT * FROM feedback_replies WHERE message_id = ? ORDER BY created_at ASC',
-      [messageId]
-    );
-
-    res.json({
-      success: true,
-      data: {
-        message: messages[0],
-        replies: replies
-      }
+    console.error('Error creating feedback message:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to create feedback message',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
-  } catch (error) {
-    console.error('Error fetching message:', error);
-    res.status(500).json({ success: false, message: 'Failed to fetch message' });
   }
 });
 
@@ -283,17 +203,26 @@ router.put('/messages/:id/status', authenticateAdmin, async (req, res) => {
     const messageId = req.params.id;
     const { status, assignedTo } = req.body;
 
-    if (!['new', 'in_progress', 'resolved'].includes(status)) {
-      return res.status(400).json({ success: false, message: 'Invalid status' });
+    // Validate status enum
+    const validStatuses = ['new', 'in_progress', 'resolved'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid status. Must be: new, in_progress, or resolved' 
+      });
     }
 
-    const [result] = await pool.execute(
-      'UPDATE feedback_messages SET status = ?, assigned_to = ? WHERE id = ?',
-      [status, assignedTo || null, messageId]
-    );
+    const { error } = await supabase
+      .from('feedback_messages')
+      .update({ 
+        status, 
+        assigned_to: assignedTo || null,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', messageId);
 
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ success: false, message: 'Message not found' });
+    if (error) {
+      throw error;
     }
 
     res.json({
@@ -303,6 +232,43 @@ router.put('/messages/:id/status', authenticateAdmin, async (req, res) => {
   } catch (error) {
     console.error('Error updating message status:', error);
     res.status(500).json({ success: false, message: 'Failed to update message status' });
+  }
+});
+
+// Update message priority
+router.put('/messages/:id/priority', authenticateAdmin, async (req, res) => {
+  try {
+    const messageId = req.params.id;
+    const { priority } = req.body;
+
+    // Validate priority enum
+    const validPriorities = ['low', 'medium', 'high'];
+    if (!validPriorities.includes(priority)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid priority. Must be: low, medium, or high' 
+      });
+    }
+
+    const { error } = await supabase
+      .from('feedback_messages')
+      .update({ 
+        priority,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', messageId);
+
+    if (error) {
+      throw error;
+    }
+
+    res.json({
+      success: true,
+      message: 'Message priority updated successfully'
+    });
+  } catch (error) {
+    console.error('Error updating message priority:', error);
+    res.status(500).json({ success: false, message: 'Failed to update message priority' });
   }
 });
 
@@ -316,15 +282,22 @@ router.post('/messages/:id/replies', authenticateAdmin, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Reply text is required' });
     }
 
-    const [result] = await pool.execute(
-      'INSERT INTO feedback_replies (message_id, reply_text) VALUES (?, ?)',
-      [messageId, replyText]
-    );
+    const { data, error } = await supabase
+      .from('feedback_replies')
+      .insert({
+        message_id: messageId,
+        reply_text: replyText
+      })
+      .select();
+
+    if (error) {
+      throw error;
+    }
 
     res.json({
       success: true,
       message: 'Reply added successfully',
-      data: { id: result.insertId }
+      data: { id: data[0].id }
     });
   } catch (error) {
     console.error('Error adding reply:', error);
@@ -335,45 +308,40 @@ router.post('/messages/:id/replies', authenticateAdmin, async (req, res) => {
 // Get feedback statistics
 router.get('/stats', authenticateAdmin, async (req, res) => {
   try {
-    // Total messages
-    const [totalMessages] = await pool.execute(
-      'SELECT COUNT(*) as count FROM feedback_messages'
-    );
+    // Get all messages for statistics
+    const { data: messages, error } = await supabase
+      .from('feedback_messages')
+      .select('type, status, priority');
 
-    // Messages by status
-    const [statusStats] = await pool.execute(
-      `SELECT 
-        status,
-        COUNT(*) as count
-       FROM feedback_messages
-       GROUP BY status`
-    );
+    if (error) {
+      throw error;
+    }
 
-    // Messages by type
-    const [typeStats] = await pool.execute(
-      `SELECT 
-        type,
-        COUNT(*) as count
-       FROM feedback_messages
-       GROUP BY type`
-    );
+    const totalMessages = messages ? messages.length : 0;
 
-    // Messages by priority
-    const [priorityStats] = await pool.execute(
-      `SELECT 
-        priority,
-        COUNT(*) as count
-       FROM feedback_messages
-       GROUP BY priority`
-    );
+    // Calculate statistics
+    const byStatus = ['new', 'in_progress', 'resolved'].map(status => ({
+      status,
+      count: messages ? messages.filter(m => m.status === status).length : 0
+    }));
+
+    const byType = ['complaint', 'suggestion', 'announcement'].map(type => ({
+      type,
+      count: messages ? messages.filter(m => m.type === type).length : 0
+    }));
+
+    const byPriority = ['low', 'medium', 'high'].map(priority => ({
+      priority,
+      count: messages ? messages.filter(m => m.priority === priority).length : 0
+    }));
 
     res.json({
       success: true,
       data: {
-        totalMessages: totalMessages[0].count,
-        byStatus: statusStats,
-        byType: typeStats,
-        byPriority: priorityStats
+        totalMessages,
+        byStatus,
+        byType,
+        byPriority
       }
     });
   } catch (error) {
@@ -382,18 +350,58 @@ router.get('/stats', authenticateAdmin, async (req, res) => {
   }
 });
 
+// Get single message with replies
+router.get('/messages/:id', authenticateAdmin, async (req, res) => {
+  try {
+    const messageId = req.params.id;
+
+    // Get the message
+    const { data: message, error: messageError } = await supabase
+      .from('feedback_messages')
+      .select('*')
+      .eq('id', messageId)
+      .single();
+
+    if (messageError) {
+      throw messageError;
+    }
+
+    // Get replies for this message
+    const { data: replies, error: repliesError } = await supabase
+      .from('feedback_replies')
+      .select('*')
+      .eq('message_id', messageId)
+      .order('created_at', { ascending: true });
+
+    if (repliesError) {
+      throw repliesError;
+    }
+
+    res.json({
+      success: true,
+      data: {
+        message,
+        replies: replies || []
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching message:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch message' });
+  }
+});
+
 // Delete message
 router.delete('/messages/:id', authenticateAdmin, async (req, res) => {
   try {
     const messageId = req.params.id;
 
-    const [result] = await pool.execute(
-      'DELETE FROM feedback_messages WHERE id = ?',
-      [messageId]
-    );
+    const { error } = await supabase
+      .from('feedback_messages')
+      .delete()
+      .eq('id', messageId);
 
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ success: false, message: 'Message not found' });
+    if (error) {
+      throw error;
     }
 
     res.json({

@@ -10,6 +10,7 @@ const {
   checkDateAvailability
 } = require('../controllers/eventSchedulerController');
 const { authenticateAdmin } = require('../middleware/auth');
+const { supabase, supabaseAdmin } = require('../config/database');
 
 // Apply admin authentication to all routes
 router.use(authenticateAdmin);
@@ -64,59 +65,59 @@ router.post('/process-reminders', processAutomaticReminders);
 // Get event statistics
 router.get('/stats', async (req, res) => {
   try {
-    const { pool } = require('../config/database');
-    
-    // Get various statistics
-    const [totalEvents] = await pool.execute(
-      'SELECT COUNT(*) as count FROM scheduled_events WHERE status = "scheduled"'
-    );
-    
-    const [thisWeekEvents] = await pool.execute(
-      `SELECT COUNT(*) as count FROM scheduled_events 
-       WHERE status = "scheduled" 
-       AND start_datetime >= DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)
-       AND start_datetime < DATE_ADD(DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY), INTERVAL 7 DAY)`
-    );
-    
-    const [meetingsCount] = await pool.execute(
-      'SELECT COUNT(*) as count FROM scheduled_events WHERE type = "meeting" AND status = "scheduled"'
-    );
-    
-    const [pendingReminders] = await pool.execute(
-      `SELECT COUNT(*) as count FROM scheduled_events 
-       WHERE status = "scheduled" AND reminder_sent = 0 
-       AND start_datetime > NOW()`
-    );
-    
-    const [upcomingEvents] = await pool.execute(
-      `SELECT 
-        se.*,
-        COUNT(ea.id) as attendee_count
-       FROM scheduled_events se
-       LEFT JOIN event_attendees ea ON se.id = ea.event_id
-       WHERE se.status = "scheduled" 
-       AND se.start_datetime > NOW()
-       GROUP BY se.id
-       ORDER BY se.start_datetime ASC
-       LIMIT 5`
-    );
+    // Get various statistics using Supabase
+    const { data: allEvents, error: allEventsError } = await supabase
+      .from('scheduled_events')
+      .select('*')
+      .eq('status', 'scheduled');
+
+    if (allEventsError) {
+      throw allEventsError;
+    }
+
+    const totalEvents = allEvents ? allEvents.length : 0;
+
+    // Calculate this week's events
+    const now = new Date();
+    const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+    const endOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + 6));
+
+    const thisWeekEvents = allEvents ? allEvents.filter(event => {
+      const eventDate = new Date(event.start_datetime);
+      return eventDate >= startOfWeek && eventDate <= endOfWeek;
+    }).length : 0;
+
+    // Count meetings
+    const meetingsCount = allEvents ? allEvents.filter(event => event.type === 'meeting').length : 0;
+
+    // Count pending reminders
+    const pendingReminders = allEvents ? allEvents.filter(event => 
+      !event.reminder_sent && new Date(event.start_datetime) > new Date()
+    ).length : 0;
+
+    // Get upcoming events
+    const upcomingEvents = allEvents ? allEvents
+      .filter(event => new Date(event.start_datetime) > new Date())
+      .sort((a, b) => new Date(a.start_datetime) - new Date(b.start_datetime))
+      .slice(0, 5)
+      .map(event => ({
+        id: event.id,
+        title: event.title,
+        type: event.type,
+        start: event.start_datetime,
+        end: event.end_datetime,
+        location: event.location,
+        attendeeCount: 0 // We'll need to implement attendee counting separately
+      })) : [];
 
     res.json({
       success: true,
       data: {
-        totalEvents: totalEvents[0].count,
-        thisWeekEvents: thisWeekEvents[0].count,
-        meetingsCount: meetingsCount[0].count,
-        pendingReminders: pendingReminders[0].count,
-        upcomingEvents: upcomingEvents.map(event => ({
-          id: event.id,
-          title: event.title,
-          type: event.type,
-          start: event.start_datetime,
-          end: event.end_datetime,
-          location: event.location,
-          attendeeCount: event.attendee_count
-        }))
+        totalEvents,
+        thisWeekEvents,
+        meetingsCount,
+        pendingReminders,
+        upcomingEvents
       }
     });
 
@@ -132,32 +133,38 @@ router.get('/stats', async (req, res) => {
 // Get notification history
 router.get('/notifications', async (req, res) => {
   try {
-    const { pool } = require('../config/database');
     const { eventId, limit = 50 } = req.query;
     
-    let query = `
-      SELECT 
-        en.*,
-        se.title as event_title
-      FROM event_notifications en
-      JOIN scheduled_events se ON en.event_id = se.id
-    `;
-    
-    const params = [];
-    
+    let query = supabase
+      .from('event_notifications')
+      .select(`
+        *,
+        scheduled_events (
+          title
+        )
+      `)
+      .order('created_at', { ascending: false })
+      .limit(parseInt(limit));
+
     if (eventId) {
-      query += ' WHERE en.event_id = ?';
-      params.push(eventId);
+      query = query.eq('event_id', eventId);
     }
-    
-    query += ' ORDER BY en.created_at DESC LIMIT ?';
-    params.push(parseInt(limit));
-    
-    const [notifications] = await pool.execute(query, params);
+
+    const { data: notifications, error } = await query;
+
+    if (error) {
+      throw error;
+    }
+
+    // Format the response
+    const formattedNotifications = (notifications || []).map(notification => ({
+      ...notification,
+      event_title: notification.scheduled_events?.title || 'Unknown Event'
+    }));
     
     res.json({
       success: true,
-      data: notifications
+      data: formattedNotifications
     });
 
   } catch (error) {
