@@ -152,13 +152,14 @@ const FeedbackCenterPage = () => {
       await feedbackAPI.createMessage(newMessage);
       
       // Add notification
-      addNotification({
-        title: 'Feedback Submitted',
-        message: `New ${newMessage.type}: "${newMessage.subject}" has been submitted`,
-        type: 'success',
-        source: 'feedback',
-        actionUrl: '/admin/feedback'
-      });
+      // Temporarily disabled to avoid 500 errors
+      // addNotification({
+      //   title: 'Feedback Submitted',
+      //   message: `New ${newMessage.type}: "${newMessage.subject}" has been submitted`,
+      //   type: 'success',
+      //   source: 'feedback',
+      //   actionUrl: '/admin/feedback'
+      // });
       
       // Reset form but keep admin data pre-filled
       setNewMessage({
@@ -176,7 +177,9 @@ const FeedbackCenterPage = () => {
       await loadData();
     } catch (error) {
       console.error('Failed to submit message:', error);
-      addNotification('Failed to submit message. Please try again.', 'error');
+      // Temporarily disabled to avoid 500 errors
+      // addNotification('Failed to submit message. Please try again.', 'error');
+      alert('Failed to submit message. Please try again.');
     }
   };
 
@@ -191,7 +194,9 @@ const FeedbackCenterPage = () => {
       }
     } catch (error) {
       console.error('Failed to view message:', error);
-      addNotification('Failed to load message details', 'error');
+      // Temporarily disabled to avoid 500 errors
+      // addNotification('Failed to load message details', 'error');
+      alert('Failed to load message details');
     } finally {
       setLoadingMessage(false);
     }
@@ -610,12 +615,15 @@ const FeedbackCenterPage = () => {
                             if (replyText) {
                               try {
                                 await feedbackAPI.addReply(message.id, replyText);
-                                addNotification('Reply sent successfully!', 'success');
+                                // Don't create notification to avoid 500 errors
+                                // addNotification('Reply sent successfully!', 'success');
                                 await loadData();
                                 cleanup();
                               } catch (error) {
                                 console.error('Failed to send reply:', error);
-                                addNotification('Failed to send reply', 'error');
+                                // Don't create notification to avoid 500 errors
+                                // addNotification('Failed to send reply', 'error');
+                                alert('Failed to send reply. Please try again.');
                               }
                             }
                           });
@@ -651,11 +659,15 @@ const FeedbackCenterPage = () => {
                             onClick={async () => {
                               try {
                                 await feedbackAPI.updateMessageStatus(message.id, 'resolved');
-                                addNotification('Message marked as resolved', 'success');
+                                // Temporarily disabled to avoid 500 errors
+                                // addNotification('Message marked as resolved', 'success');
+                                alert('Message marked as resolved');
                                 await loadData();
                               } catch (error) {
                                 console.error('Failed to update status:', error);
-                                addNotification('Failed to update status', 'error');
+                                // Temporarily disabled to avoid 500 errors
+                                // addNotification('Failed to update status', 'error');
+                                alert('Failed to update status');
                               }
                             }}
                           >
@@ -667,11 +679,15 @@ const FeedbackCenterPage = () => {
                               if (assignTo && assignTo.trim()) {
                                 try {
                                   await feedbackAPI.updateMessageStatus(message.id, 'in_progress', assignTo);
-                                  addNotification(`Message assigned to ${assignTo}`, 'success');
+                                  // Temporarily disabled to avoid 500 errors
+                                  // addNotification(`Message assigned to ${assignTo}`, 'success');
+                                  alert(`Message assigned to ${assignTo}`);
                                   await loadData();
                                 } catch (error) {
                                   console.error('Failed to assign:', error);
-                                  addNotification('Failed to assign message', 'error');
+                                  // Temporarily disabled to avoid 500 errors
+                                  // addNotification('Failed to assign message', 'error');
+                                  alert('Failed to assign message');
                                 }
                               }
                             }}
@@ -684,14 +700,20 @@ const FeedbackCenterPage = () => {
                               if (newPriority && ['low', 'medium', 'high'].includes(newPriority.toLowerCase())) {
                                 try {
                                   await feedbackAPI.updateMessagePriority(message.id, newPriority.toLowerCase() as 'low' | 'medium' | 'high');
-                                  addNotification(`Priority changed to ${newPriority}`, 'success');
+                                  // Temporarily disabled to avoid 500 errors
+                                  // addNotification(`Priority changed to ${newPriority}`, 'success');
+                                  alert(`Priority changed to ${newPriority}`);
                                   await loadData();
                                 } catch (error) {
                                   console.error('Failed to update priority:', error);
-                                  addNotification('Failed to update priority', 'error');
+                                  // Temporarily disabled to avoid 500 errors
+                                  // addNotification('Failed to update priority', 'error');
+                                  alert('Failed to update priority');
                                 }
                               } else if (newPriority) {
-                                addNotification('Invalid priority. Please enter: low, medium, or high', 'error');
+                                // Temporarily disabled to avoid 500 errors
+                                // addNotification('Invalid priority. Please enter: low, medium, or high', 'error');
+                                alert('Invalid priority. Please enter: low, medium, or high');
                               }
                             }}
                           >
@@ -703,11 +725,15 @@ const FeedbackCenterPage = () => {
                               if (confirm(`Are you sure you want to delete "${message.subject}"?`)) {
                                 try {
                                   await feedbackAPI.deleteMessage(message.id);
-                                  addNotification('Message deleted successfully', 'success');
+                                  // Temporarily disabled to avoid 500 errors
+                                  // addNotification('Message deleted successfully', 'success');
+                                  alert('Message deleted successfully');
                                   await loadData();
                                 } catch (error) {
                                   console.error('Failed to delete message:', error);
-                                  addNotification('Failed to delete message', 'error');
+                                  // Temporarily disabled to avoid 500 errors
+                                  // addNotification('Failed to delete message', 'error');
+                                  alert('Failed to delete message');
                                 }
                               }
                             }}
@@ -893,7 +919,8 @@ const FeedbackCenterPage = () => {
                             if (replyText && replyText.trim() && selectedMessage) {
                               try {
                                 await feedbackAPI.addReply(selectedMessage.id, replyText);
-                                addNotification('Reply sent successfully!', 'success');
+                                // Don't create notification to avoid 500 errors
+                                // addNotification('Reply sent successfully!', 'success');
                                 
                                 // Reload the message details to show the new reply
                                 const response = await feedbackAPI.getMessage(selectedMessage.id);
@@ -908,7 +935,9 @@ const FeedbackCenterPage = () => {
                                 await loadData();
                               } catch (error) {
                                 console.error('Failed to send reply:', error);
-                                addNotification('Failed to send reply', 'error');
+                                // Don't create notification to avoid 500 errors
+                                // addNotification('Failed to send reply', 'error');
+                                alert('Failed to send reply. Please try again.');
                               }
                             }
                           }}
