@@ -50,7 +50,7 @@ const getOverviewMetrics = async (options = {}) => {
 
     // Get feedback data
     let feedbackQuery = supabase
-      .from('feedback')
+      .from('feedback_messages')
       .select('*');
 
     if (startDate) {
@@ -61,28 +61,41 @@ const getOverviewMetrics = async (options = {}) => {
     }
 
     const { data: feedback, error: feedbackError } = await feedbackQuery;
-    if (feedbackError) throw feedbackError;
-
-    // Get file uploads
-    let filesQuery = supabase
-      .from('files')
-      .select('*');
-
-    if (startDate) {
-      filesQuery = filesQuery.gte('created_at', startDate);
-    }
-    if (endDate) {
-      filesQuery = filesQuery.lte('created_at', endDate);
+    if (feedbackError) {
+      console.warn('Feedback table error (non-blocking):', feedbackError.message);
+      // Continue without feedback data
     }
 
-    const { data: files, error: filesError } = await filesQuery;
-    if (filesError) throw filesError;
+    // Get file uploads - handle potential table name variations
+    let filesData = [];
+    try {
+      const { data: files, error: filesError } = await supabase
+        .from('files')
+        .select('*');
+      
+      if (filesError) {
+        console.warn('Files table error, trying alternative:', filesError.message);
+        // Try alternative table name if exists
+        const { data: altFiles, error: altError } = await supabase
+          .from('file_repository')
+          .select('*');
+        
+        if (!altError) {
+          filesData = altFiles || [];
+        }
+      } else {
+        filesData = files || [];
+      }
+    } catch (error) {
+      console.warn('File data fetch failed (non-blocking):', error.message);
+      filesData = [];
+    }
 
     // Calculate metrics for each admin
     const adminMetrics = adminProfiles.map(admin => {
       const adminActivities = activities?.filter(a => a.admin_profile_id === admin.id) || [];
       const adminEvents = events?.filter(e => e.created_by_profile_id === admin.id) || [];
-      const adminFiles = files?.filter(f => f.uploaded_by === admin.id) || [];
+      const adminFiles = filesData?.filter(f => f.uploaded_by === admin.id || f.uploaded_by_profile_id === admin.id) || [];
       
       // Count different types of activities
       const documentsUploaded = adminActivities.filter(a => a.action === 'document_upload').length;
@@ -114,7 +127,7 @@ const getOverviewMetrics = async (options = {}) => {
         totalAdmins: adminProfiles.length,
         totalActivities: activities?.length || 0,
         totalEvents: events?.length || 0,
-        totalFiles: files?.length || 0,
+        totalFiles: filesData?.length || 0,
         totalFeedback: feedback?.length || 0
       }
     };

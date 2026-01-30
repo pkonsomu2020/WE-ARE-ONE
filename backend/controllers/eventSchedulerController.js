@@ -283,19 +283,23 @@ const createEvent = async (req, res) => {
         end_datetime: endDateTime.toISOString(),
         location,
         meeting_link: meetingLink,
+        created_by: 'Admin',
+        created_by_profile_id: null,
+        created_by_name: null,
+        created_by_email: null,
+        updated_by_profile_id: null,
         is_recurring: isRecurring || false,
-        recurrence_pattern: recurrencePattern,
+        recurrence_pattern: recurrencePattern || null,
         status: 'scheduled',
-        created_by: 'Admin', // Default value, can be updated based on auth
-        created_by_profile_id: null, // Can be set if you have admin profile ID
-        created_by_name: null, // Can be set if you have admin name
-        created_by_email: null // Can be set if you have admin email
+        reminder_sent: false,
+        reminder_sent_at: null
       })
       .select()
       .single();
 
     if (eventError) {
-      throw eventError;
+      console.error('Event creation error:', eventError);
+      throw new Error(`Failed to create event: ${eventError.message}`);
     }
 
     const eventId = eventData.id;

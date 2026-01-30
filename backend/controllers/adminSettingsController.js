@@ -1,4 +1,4 @@
-const { pool } = require('../config/database');
+const { supabase } = require('../config/database');
 const bcrypt = require('bcryptjs');
 const { Resend } = require('resend');
 const fs = require('fs').promises;
@@ -17,35 +17,50 @@ const getAdminProfile = async (req, res) => {
     if (!adminId) {
       return res.status(400).json({
         success: false,
-        message: 'Admin ID not found'
+        message: 'Admin ID not found',
+        debug: { adminId, admin: req.admin, headers: req.headers.authorization ? 'present' : 'missing' }
       });
     }
 
-    // Get admin user from admin_users table
-    const [adminUser] = await pool.execute(
-      'SELECT id, full_name, email, created_at FROM admin_users WHERE id = ?',
-      [adminId]
-    );
+    // Get admin user from admin_users table using Supabase
+    const { data: adminUsers, error: userError } = await supabase
+      .from('admin_users')
+      .select('id, full_name, email, created_at')
+      .eq('id', adminId);
 
-    if (adminUser.length === 0) {
+    if (userError) {
+      console.error('Error fetching admin user:', userError);
+      return res.status(500).json({
+        success: false,
+        message: 'Database error fetching admin user',
+        error: process.env.NODE_ENV === 'development' ? userError.message : undefined
+      });
+    }
+
+    if (!adminUsers || adminUsers.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'Admin user not found'
       });
     }
 
+    const adminUser = adminUsers[0];
+
     // Try to get additional profile info from admin_profiles table
-    const [adminProfile] = await pool.execute(
-      'SELECT phone_number, role, status FROM admin_profiles WHERE email = ?',
-      [adminUser[0].email]
-    );
+    const { data: adminProfiles, error: profileError } = await supabase
+      .from('admin_profiles')
+      .select('phone_number, role, status')
+      .eq('email', adminUser.email);
+
+    // Don't fail if admin_profiles doesn't exist, just use defaults
+    const adminProfile = adminProfiles && adminProfiles.length > 0 ? adminProfiles[0] : null;
 
     const profileData = {
-      fullName: adminUser[0].full_name,
-      email: adminUser[0].email,
-      phone: adminProfile.length > 0 ? adminProfile[0].phone_number : '',
-      role: adminProfile.length > 0 ? adminProfile[0].role : 'Admin',
-      createdAt: adminUser[0].created_at,
+      fullName: adminUser.full_name,
+      email: adminUser.email,
+      phone: adminProfile?.phone_number || '',
+      role: adminProfile?.role || 'Admin',
+      createdAt: adminUser.created_at,
       lastLogin: new Date().toISOString() // Current login time
     };
 
@@ -84,24 +99,43 @@ const updateAdminProfile = async (req, res) => {
       });
     }
 
-    // Update admin_users table
-    await pool.execute(
-      'UPDATE admin_users SET full_name = ?, email = ? WHERE id = ?',
-      [fullName, email, adminId]
-    );
+    // Update admin_users table using Supabase
+    const { error: userUpdateError } = await supabase
+      .from('admin_users')
+      .update({ 
+        full_name: fullName, 
+        email: email 
+      })
+      .eq('id', adminId);
+
+    if (userUpdateError) {
+      console.error('Error updating admin user:', userUpdateError);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to update admin user',
+        error: process.env.NODE_ENV === 'development' ? userUpdateError.message : undefined
+      });
+    }
 
     // Update admin_profiles table if exists
     try {
-      const [existingProfile] = await pool.execute(
-        'SELECT id FROM admin_profiles WHERE email = ?',
-        [email]
-      );
+      const { data: existingProfiles, error: checkError } = await supabase
+        .from('admin_profiles')
+        .select('id')
+        .eq('email', email);
 
-      if (existingProfile.length > 0) {
-        await pool.execute(
-          'UPDATE admin_profiles SET full_name = ?, phone_number = ? WHERE email = ?',
-          [fullName, phone || '', email]
-        );
+      if (!checkError && existingProfiles && existingProfiles.length > 0) {
+        const { error: profileUpdateError } = await supabase
+          .from('admin_profiles')
+          .update({ 
+            full_name: fullName, 
+            phone_number: phone || '' 
+          })
+          .eq('email', email);
+
+        if (profileUpdateError) {
+          console.warn('Error updating admin profile (non-blocking):', profileUpdateError);
+        }
       }
     } catch (profileError) {
       console.log('Admin profiles table not accessible:', profileError.message);
@@ -167,13 +201,22 @@ const changeAdminPassword = async (req, res) => {
       });
     }
 
-    // Get current password hash
-    const [adminUser] = await pool.execute(
-      'SELECT password_hash FROM admin_users WHERE id = ?',
-      [adminId]
-    );
+    // Get current password hash using Supabase
+    const { data: adminUsers, error: fetchError } = await supabase
+      .from('admin_users')
+      .select('password_hash')
+      .eq('id', adminId);
 
-    if (adminUser.length === 0) {
+    if (fetchError) {
+      console.error('Error fetching admin user:', fetchError);
+      return res.status(500).json({
+        success: false,
+        message: 'Database error',
+        error: process.env.NODE_ENV === 'development' ? fetchError.message : undefined
+      });
+    }
+
+    if (!adminUsers || adminUsers.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'Admin user not found'
@@ -181,7 +224,7 @@ const changeAdminPassword = async (req, res) => {
     }
 
     // Verify current password
-    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, adminUser[0].password_hash);
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, adminUsers[0].password_hash);
     if (!isCurrentPasswordValid) {
       return res.status(400).json({
         success: false,
@@ -192,11 +235,20 @@ const changeAdminPassword = async (req, res) => {
     // Hash new password
     const newPasswordHash = await bcrypt.hash(newPassword, 12);
 
-    // Update password
-    await pool.execute(
-      'UPDATE admin_users SET password_hash = ? WHERE id = ?',
-      [newPasswordHash, adminId]
-    );
+    // Update password using Supabase
+    const { error: updateError } = await supabase
+      .from('admin_users')
+      .update({ password_hash: newPasswordHash })
+      .eq('id', adminId);
+
+    if (updateError) {
+      console.error('Error updating password:', updateError);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to update password',
+        error: process.env.NODE_ENV === 'development' ? updateError.message : undefined
+      });
+    }
 
     // Create notification for password change
     await notificationService.createSettingsNotification(
@@ -298,16 +350,20 @@ const updateSystemSettings = async (req, res) => {
 // Get notification settings
 const getNotificationSettings = async (req, res) => {
   try {
-    // Get real notification settings from admin_profiles table
-    const [adminProfiles] = await pool.execute(
-      `SELECT 
-        ap.id,
-        ap.full_name,
-        ap.email,
-        ap.email_notifications
-       FROM admin_profiles ap
-       WHERE ap.status = 'active'`
-    );
+    // Get real notification settings from admin_profiles table using Supabase
+    const { data: adminProfiles, error: profilesError } = await supabase
+      .from('admin_profiles')
+      .select(`
+        id,
+        full_name,
+        email,
+        email_notifications
+      `)
+      .eq('status', 'active');
+
+    if (profilesError) {
+      console.warn('Error fetching admin profiles (using defaults):', profilesError);
+    }
 
     // Default notification settings
     const defaultSettings = {
@@ -328,11 +384,11 @@ const getNotificationSettings = async (req, res) => {
       success: true,
       data: {
         settings: defaultSettings,
-        adminProfiles: adminProfiles.map(profile => ({
+        adminProfiles: (adminProfiles || []).map(profile => ({
           id: profile.id,
           name: profile.full_name,
           email: profile.email,
-          emailNotifications: profile.email_notifications === 1
+          emailNotifications: profile.email_notifications === true
         }))
       }
     });
@@ -389,30 +445,39 @@ const exportData = async (req, res) => {
 
     switch (type) {
       case 'orders':
-        // Export real event payments/orders
-        const [orders] = await pool.execute(
-          `SELECT * FROM event_payments ORDER BY created_at DESC`
-        );
-        data = orders;
+        // Export real event payments/orders using Supabase
+        const { data: orders, error: ordersError } = await supabase
+          .from('event_payments')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (ordersError) throw ordersError;
+        data = orders || [];
         filename = `orders_export_${new Date().toISOString().split('T')[0]}`;
         break;
 
       case 'users':
-        // Export real user registrations
-        const [users] = await pool.execute(
-          'SELECT full_name, email, phone, gender, age, location, created_at FROM users ORDER BY created_at DESC'
-        );
-        data = users;
+        // Export real user registrations using Supabase
+        const { data: users, error: usersError } = await supabase
+          .from('users')
+          .select('full_name, email, phone, gender, age, location, created_at')
+          .order('created_at', { ascending: false });
+        
+        if (usersError) throw usersError;
+        data = users || [];
         filename = `users_export_${new Date().toISOString().split('T')[0]}`;
         break;
 
       case 'feedback':
-        // Export real feedback data
+        // Export real feedback data using Supabase
         try {
-          const [feedback] = await pool.execute(
-            'SELECT * FROM feedback_messages ORDER BY created_at DESC'
-          );
-          data = feedback;
+          const { data: feedback, error: feedbackError } = await supabase
+            .from('feedback_messages')
+            .select('*')
+            .order('created_at', { ascending: false });
+          
+          if (feedbackError) throw feedbackError;
+          data = feedback || [];
         } catch (err) {
           data = [{ message: 'No feedback data available' }];
         }
@@ -420,17 +485,29 @@ const exportData = async (req, res) => {
         break;
 
       case 'analytics':
-        // Export real analytics data
-        const [userStats] = await pool.execute('SELECT COUNT(*) as total_users FROM users');
-        const [orderStats] = await pool.execute('SELECT COUNT(*) as total_orders, SUM(amount) as total_amount FROM event_payments WHERE status = "paid"');
-        const [eventStats] = await pool.execute('SELECT COUNT(*) as total_events FROM scheduled_events WHERE status = "scheduled"');
+        // Export real analytics data using Supabase
+        const { data: userStats, error: userError } = await supabase
+          .from('users')
+          .select('*', { count: 'exact', head: true });
+        
+        const { data: orderStats, error: orderError } = await supabase
+          .from('event_payments')
+          .select('amount')
+          .eq('status', 'paid');
+        
+        const { data: eventStats, error: eventError } = await supabase
+          .from('scheduled_events')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'scheduled');
+        
+        const totalRevenue = orderStats?.reduce((sum, order) => sum + (order.amount || 0), 0) || 0;
         
         data = [{
           report_date: new Date().toISOString(),
-          total_users: userStats[0].total_users,
-          total_orders: orderStats[0].total_orders || 0,
-          total_revenue: orderStats[0].total_amount || 0,
-          total_events: eventStats[0].total_events || 0
+          total_users: userStats?.length || 0,
+          total_orders: orderStats?.length || 0,
+          total_revenue: totalRevenue,
+          total_events: eventStats?.length || 0
         }];
         filename = `analytics_report_${new Date().toISOString().split('T')[0]}`;
         break;
@@ -467,22 +544,33 @@ const exportData = async (req, res) => {
 // Create backup
 const createBackup = async (req, res) => {
   try {
-    // Get real database statistics
-    const [userCount] = await pool.execute('SELECT COUNT(*) as count FROM users');
-    const [orderCount] = await pool.execute('SELECT COUNT(*) as count FROM event_payments');
-    const [eventCount] = await pool.execute('SELECT COUNT(*) as count FROM scheduled_events');
-    const [adminCount] = await pool.execute('SELECT COUNT(*) as count FROM admin_users');
+    // Get real database statistics using Supabase
+    const { count: userCount } = await supabase
+      .from('users')
+      .select('*', { count: 'exact', head: true });
+    
+    const { count: orderCount } = await supabase
+      .from('event_payments')
+      .select('*', { count: 'exact', head: true });
+    
+    const { count: eventCount } = await supabase
+      .from('scheduled_events')
+      .select('*', { count: 'exact', head: true });
+    
+    const { count: adminCount } = await supabase
+      .from('admin_users')
+      .select('*', { count: 'exact', head: true });
 
     const backupInfo = {
       backupId: `backup_${Date.now()}`,
       createdAt: new Date().toISOString(),
       tables: {
-        users: userCount[0].count,
-        event_payments: orderCount[0].count,
-        scheduled_events: eventCount[0].count,
-        admin_users: adminCount[0].count
+        users: userCount || 0,
+        event_payments: orderCount || 0,
+        scheduled_events: eventCount || 0,
+        admin_users: adminCount || 0
       },
-      size: `${((userCount[0].count + orderCount[0].count + eventCount[0].count) * 0.001).toFixed(1)} MB`,
+      size: `${(((userCount || 0) + (orderCount || 0) + (eventCount || 0)) * 0.001).toFixed(1)} MB`,
       status: 'completed'
     };
 
@@ -507,16 +595,24 @@ const createBackup = async (req, res) => {
 // Get storage info
 const getStorageInfo = async (req, res) => {
   try {
-    // Calculate real storage usage from database
-    const [userCount] = await pool.execute('SELECT COUNT(*) as count FROM users');
-    const [messageCount] = await pool.execute('SELECT COUNT(*) as count FROM feedback_messages');
-    const [eventCount] = await pool.execute('SELECT COUNT(*) as count FROM scheduled_events');
+    // Calculate real storage usage from database using Supabase
+    const { count: userCount } = await supabase
+      .from('users')
+      .select('*', { count: 'exact', head: true });
+    
+    const { count: messageCount } = await supabase
+      .from('feedback_messages')
+      .select('*', { count: 'exact', head: true });
+    
+    const { count: eventCount } = await supabase
+      .from('scheduled_events')
+      .select('*', { count: 'exact', head: true });
 
     // Rough calculation of storage usage
     const estimatedSize = (
-      (userCount[0].count * 1024) + // ~1KB per user
-      (messageCount[0].count * 512) + // ~512B per message
-      (eventCount[0].count * 256) // ~256B per event
+      ((userCount || 0) * 1024) + // ~1KB per user
+      ((messageCount || 0) * 512) + // ~512B per message
+      ((eventCount || 0) * 256) // ~256B per event
     );
 
     const storageInfo = {

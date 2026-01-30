@@ -279,23 +279,31 @@ router.put('/messages/:id/priority', authenticateAdmin, async (req, res) => {
 router.post('/messages/:id/replies', authenticateAdmin, async (req, res) => {
   try {
     const messageId = req.params.id;
-    const { replyText } = req.body;
+    const { replyText, message } = req.body;
+    
+    // Accept both 'replyText' and 'message' for flexibility
+    const replyContent = replyText || message;
 
-    if (!replyText) {
-      return res.status(400).json({ success: false, message: 'Reply text is required' });
+    if (!replyContent || replyContent.trim() === '') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Reply text is required',
+        debug: { receivedBody: req.body, messageId }
+      });
     }
 
     // Simple reply insertion without complex admin profile lookup
     const { data, error } = await supabase
       .from('feedback_replies')
       .insert({
-        message_id: messageId,
+        message_id: parseInt(messageId),
         admin_profile_id: null, // Simplified for now
-        reply_text: replyText
+        reply_text: replyContent.trim()
       })
       .select();
 
     if (error) {
+      console.error('Supabase error creating reply:', error);
       throw error;
     }
 
@@ -311,7 +319,11 @@ router.post('/messages/:id/replies', authenticateAdmin, async (req, res) => {
     });
   } catch (error) {
     console.error('Error adding reply:', error);
-    res.status(500).json({ success: false, message: 'Failed to add reply' });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to add reply',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
