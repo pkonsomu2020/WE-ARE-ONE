@@ -113,17 +113,23 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     try {
       const response = await api.notifications.create(notificationData);
       if (response.success) {
-        // Optionally reload notifications to get the backend ID
-        // But don't await this to avoid blocking
-        loadNotifications().catch(() => {
-          // Silently ignore reload errors
-        });
+        // Update the local notification with the backend ID if available
+        if (response.notificationId) {
+          setNotifications(prev => 
+            prev.map(n => 
+              n.id === newNotification.id 
+                ? { ...n, id: response.notificationId.toString() }
+                : n
+            )
+          );
+        }
       }
     } catch (error) {
       // Silently handle backend errors - the local notification is already shown
-      console.log('Note: Notification saved locally (backend sync failed)');
+      console.log('Note: Notification saved locally (backend sync failed):', error.message);
+      // Don't throw or show error to user - the notification is still visible locally
     }
-  }, [loadNotifications]);
+  }, []);
 
   const markAsRead = useCallback(async (id: string) => {
     try {

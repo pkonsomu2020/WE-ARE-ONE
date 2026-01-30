@@ -165,7 +165,7 @@ async function registerForEvent(req, res) {
     console.log('📧 Resend API key configured:', !!process.env.RESEND_API_KEY);
     
     resend.emails.send({
-      from: 'We Are One Events <events@weareone.co.ke>',
+      from: 'We Are One Events <weareone0624@gmail.com>',
       to: [adminEmail],
       subject: `New Event Registration - ${eventId} (from ${email})`,
       html: `
@@ -194,7 +194,7 @@ async function registerForEvent(req, res) {
     console.log('✅ Using verified domain: weareone.co.ke');
     
     resend.emails.send({
-      from: 'We Are One Events <events@weareone.co.ke>',
+      from: 'We Are One Events <weareone0624@gmail.com>',
       to: [email], // Now can send to actual user email!
       subject: isFree ? `Event Registration Confirmation` : `Ticket Request – Pending Verification`,
       html: `

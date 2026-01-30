@@ -2,16 +2,12 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../config/database');
 const adminAuth = require('../middleware/adminAuth');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: process.env.EMAIL_PORT,
-  secure: false,
-  auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
-});
+// Initialize Resend with API key
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Bootstrap a default admin from env if provided (runs once at startup)
 (async function ensureDefaultAdmin() {
@@ -337,7 +333,13 @@ router.put('/event-payments/:id', async (req, res) => {
           <p>Your payment is still pending verification. We will get back to you shortly.</p>
         `;
 
-    transporter.sendMail({ from: process.env.EMAIL_FROM, to: payment.email, subject, html: body }).catch((err) => {
+    // Send email using Resend
+    resend.emails.send({ 
+      from: 'We Are One Events <weareone0624@gmail.com>', 
+      to: [payment.email], 
+      subject, 
+      html: body 
+    }).catch((err) => {
       console.warn('Email send failed (non-blocking):', err?.message);
     });
 

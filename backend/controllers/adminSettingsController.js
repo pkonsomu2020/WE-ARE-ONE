@@ -1,21 +1,13 @@
 const { pool } = require('../config/database');
 const bcrypt = require('bcryptjs');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const fs = require('fs').promises;
 const path = require('path');
 const notificationService = require('../services/notificationService');
 require('dotenv').config();
 
-// Email transporter setup
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: process.env.EMAIL_PORT,
-  secure: false,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+// Initialize Resend with API key
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Get admin profile
 const getAdminProfile = async (req, res) => {
@@ -235,8 +227,8 @@ const getSystemSettings = async (req, res) => {
       siteName: 'We Are One Admin Portal',
       siteUrl: process.env.FRONTEND_URL || 'https://admin.weareone.co.ke',
       mainWebsiteUrl: 'https://weareone.co.ke',
-      organizationEmail: process.env.EMAIL_FROM || 'admin@weareone.co.ke',
-      supportEmail: 'support@weareone.co.ke',
+      organizationEmail: process.env.EMAIL_FROM || 'weareone0624@gmail.com',
+      supportEmail: 'weareone0624@gmail.com',
       darkMode: false,
       maintenanceMode: false,
       registrationEnabled: true,
@@ -623,12 +615,16 @@ const sendTestNotification = async (req, res) => {
       </div>
     `;
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_FROM,
-      to: recipient,
+    const { data, error } = await resend.emails.send({
+      from: 'We Are One Admin <weareone0624@gmail.com>',
+      to: [recipient],
       subject: `🧪 Test Notification - ${type}`,
       html: testEmailContent
     });
+
+    if (error) {
+      throw new Error(`Resend API error: ${error.message}`);
+    }
 
     res.json({
       success: true,

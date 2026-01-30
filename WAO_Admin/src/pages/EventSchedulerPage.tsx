@@ -117,6 +117,8 @@ const EventSchedulerPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [selectedCreator, setSelectedCreator] = useState('all');
   const [creators, setCreators] = useState<string[]>([]);
+  const [viewingEvent, setViewingEvent] = useState<CalendarEvent | null>(null);
+  const [showViewDialog, setShowViewDialog] = useState(false);
 
   const [newEvent, setNewEvent] = useState({
     title: '',
@@ -505,6 +507,11 @@ const EventSchedulerPage = () => {
       console.error('Failed to send reminder:', error);
       toast.error('Failed to send reminder');
     }
+  };
+
+  const handleViewEvent = (event: CalendarEvent) => {
+    setViewingEvent(event);
+    setShowViewDialog(true);
   };
 
   const navigateMonth = (direction: 'prev' | 'next') => {
@@ -973,7 +980,11 @@ const EventSchedulerPage = () => {
                         </div>
 
                         <div className="flex items-center space-x-2">
-                          <Button size="sm" variant="outline">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handleViewEvent(event)}
+                          >
                             <Eye className="w-4 h-4 mr-1" />
                             View
                           </Button>
@@ -1032,6 +1043,162 @@ const EventSchedulerPage = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Event View Dialog */}
+      <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{viewingEvent?.title}</DialogTitle>
+            <DialogDescription>
+              Event details and information
+            </DialogDescription>
+          </DialogHeader>
+          
+          {viewingEvent && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-gray-600">Event Type</Label>
+                  <div className="mt-1">
+                    <Badge className={`${getEventTypeColor(viewingEvent.type)} flex items-center gap-1 w-fit`}>
+                      {getEventTypeIcon(viewingEvent.type)}
+                      {viewingEvent.type.replace('_', ' ').charAt(0).toUpperCase() + viewingEvent.type.replace('_', ' ').slice(1)}
+                    </Badge>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-600">Status</Label>
+                  <div className="mt-1">
+                    <Badge variant="outline" className="flex items-center gap-1 w-fit">
+                      {viewingEvent.reminderSent ? (
+                        <>
+                          <Mail className="w-3 h-3" />
+                          Reminder Sent
+                        </>
+                      ) : (
+                        <>
+                          <Clock className="w-3 h-3" />
+                          Pending
+                        </>
+                      )}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-gray-600">Date & Time</Label>
+                  <div className="mt-1 flex items-center text-gray-900">
+                    <Clock className="w-4 h-4 mr-2" />
+                    <div>
+                      <div>{formatDateString(viewingEvent.start)}</div>
+                      <div className="text-sm text-gray-500">
+                        {formatTimeString(viewingEvent.start)} - {formatTimeString(viewingEvent.end)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-600">Attendees</Label>
+                  <div className="mt-1 flex items-center text-gray-900">
+                    <Users className="w-4 h-4 mr-2" />
+                    {viewingEvent.attendeeCount || viewingEvent.attendees?.length || 0} attendees
+                  </div>
+                </div>
+              </div>
+
+              {viewingEvent.location && (
+                <div>
+                  <Label className="text-sm font-medium text-gray-600">Location</Label>
+                  <div className="mt-1 flex items-center text-gray-900">
+                    <MapPin className="w-4 h-4 mr-2" />
+                    {viewingEvent.location}
+                  </div>
+                </div>
+              )}
+
+              {viewingEvent.meetingLink && (
+                <div>
+                  <Label className="text-sm font-medium text-gray-600">Meeting Link</Label>
+                  <div className="mt-1 flex items-center text-gray-900">
+                    <Video className="w-4 h-4 mr-2" />
+                    <a 
+                      href={viewingEvent.meetingLink} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 underline"
+                    >
+                      Join Meeting
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {viewingEvent.description && (
+                <div>
+                  <Label className="text-sm font-medium text-gray-600">Description</Label>
+                  <div className="mt-1 text-gray-900 whitespace-pre-wrap">
+                    {viewingEvent.description}
+                  </div>
+                </div>
+              )}
+
+              {(viewingEvent.createdByName || viewingEvent.createdBy) && (
+                <div>
+                  <Label className="text-sm font-medium text-gray-600">Created By</Label>
+                  <div className="mt-1 flex items-center text-gray-900">
+                    <User className="w-4 h-4 mr-2" />
+                    <div>
+                      <div>{viewingEvent.createdByName || viewingEvent.createdBy}</div>
+                      {viewingEvent.createdByEmail && (
+                        <div className="text-sm text-gray-500">{viewingEvent.createdByEmail}</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {viewingEvent.isRecurring && (
+                <div>
+                  <Label className="text-sm font-medium text-gray-600">Recurrence</Label>
+                  <div className="mt-1">
+                    <Badge variant="outline" className="flex items-center gap-1 w-fit">
+                      <CalendarIcon className="w-3 h-3" />
+                      Recurring Event
+                    </Badge>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end space-x-2 pt-4 border-t">
+                <Button variant="outline" onClick={() => setShowViewDialog(false)}>
+                  Close
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    setShowViewDialog(false);
+                    handleEditEvent(viewingEvent);
+                  }}
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit Event
+                </Button>
+                {viewingEvent.meetingLink && (
+                  <Button 
+                    onClick={() => window.open(viewingEvent.meetingLink, '_blank')}
+                    className="bg-orange-600 hover:bg-orange-700"
+                  >
+                    <Video className="w-4 h-4 mr-2" />
+                    Join Meeting
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

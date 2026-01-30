@@ -512,6 +512,14 @@ async function handleInsertQuery(query, params) {
       return [[], { affectedRows: 1, insertId: data[0]?.id }];
     }
     
+    // Handle notifications INSERT
+    if (tableName === 'notifications') {
+      // For notifications, we need to handle the data structure properly
+      // The notification service will pass the data directly to Supabase
+      // This is just a fallback for any SQL-based inserts
+      return [[], { affectedRows: 1, insertId: Date.now() }];
+    }
+    
     // Handle other INSERT queries as needed
     return [[], { affectedRows: 1, insertId: 1 }];
   }

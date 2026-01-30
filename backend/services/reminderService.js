@@ -1,5 +1,8 @@
 const { pool, supabase } = require('../config/database');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
+
+// Initialize Resend with API key
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Simple reminder service without node-cron dependency
 class ReminderService {
@@ -8,19 +11,12 @@ class ReminderService {
     this.intervalId = null;
     this.checkInterval = 5 * 60 * 1000; // Check every 5 minutes
     
-    // Email transporter with better timeout settings
-    this.transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
-      port: process.env.EMAIL_PORT,
-      secure: false,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      },
-      connectionTimeout: 60000,
-      greetingTimeout: 30000,
-      socketTimeout: 60000
-    });
+    // Test Resend configuration
+    if (process.env.RESEND_API_KEY) {
+      console.log('✅ Resend API key configured for reminder service');
+    } else {
+      console.log('⚠️ Resend API key not found - reminder emails will not work');
+    }
   }
 
   start() {
@@ -148,19 +144,26 @@ class ReminderService {
         </div>
       `;
 
-      // Send to all active admins with better error handling
+      // Send to all active admins using Resend with better error handling
       let successCount = 0;
       let failureCount = 0;
 
       for (const admin of adminProfiles) {
         try {
-          await this.transporter.sendMail({
-            from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
-            to: admin.email,
+          const { data, error } = await resend.emails.send({
+            from: 'We Are One Events <weareone0624@gmail.com>',
+            to: [admin.email],
             subject: subject,
             html: emailBody
           });
-          successCount++;
+
+          if (error) {
+            console.error(`❌ Resend error for ${admin.email}:`, error);
+            failureCount++;
+          } else {
+            console.log(`✅ Reminder sent to ${admin.email} - Email ID: ${data.id}`);
+            successCount++;
+          }
         } catch (error) {
           console.error(`❌ Failed to send reminder to ${admin.email}:`, error.message);
           failureCount++;

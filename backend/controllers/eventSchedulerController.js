@@ -1,18 +1,10 @@
 const { supabase, supabaseAdmin } = require('../config/database');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const notificationService = require('../services/notificationService');
 require('dotenv').config();
 
-// Email transporter setup
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: process.env.EMAIL_PORT,
-  secure: false,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+// Initialize Resend with API key
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Get all admin profiles for notifications
 const getAllAdminProfiles = async () => {
@@ -176,12 +168,19 @@ const sendEventNotification = async (event, notificationType, recipients) => {
 
   for (const recipient of recipients) {
     try {
-      await transporter.sendMail({
-        from: process.env.EMAIL_FROM,
-        to: recipient.email,
+      const { data, error } = await resend.emails.send({
+        from: 'We Are One Events <weareone0624@gmail.com>',
+        to: [recipient.email],
         subject: template.subject,
         html: template.getBody(event, recipient)
       });
+
+      if (error) {
+        console.error(`❌ Failed to send email to ${recipient.email}:`, error);
+        continue;
+      }
+
+      console.log(`✅ Email sent to ${recipient.email} - Email ID: ${data.id}`);
 
       // Log the notification
       const { error: logError } = await supabase
@@ -193,7 +192,8 @@ const sendEventNotification = async (event, notificationType, recipients) => {
           recipient_name: recipient.full_name || recipient.name,
           sent_at: new Date().toISOString(),
           email_subject: template.subject,
-          email_status: 'sent'
+          email_status: 'sent',
+          email_id: data.id
         });
 
       if (logError) {

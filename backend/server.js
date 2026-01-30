@@ -257,14 +257,13 @@ app.listen(PORT, () => {
 
   // Start the reminder service for automatic notifications
   if (process.env.NODE_ENV === 'production') {
-    // Check if email configuration is available
-    if (process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-      // TEMPORARILY DISABLED FOR PERFORMANCE TESTING
-      // reminderService.start();
-      console.log('⚠️ Reminder service temporarily disabled for performance testing');
+    // Check if Resend email configuration is available
+    if (process.env.RESEND_API_KEY) {
+      reminderService.start();
+      console.log('✅ Reminder service started successfully with Resend');
     } else {
-      console.log('⚠️ Reminder service disabled - Email configuration missing');
-      console.log('💡 Set EMAIL_HOST, EMAIL_USER, and EMAIL_PASS to enable reminders');
+      console.log('⚠️ Reminder service disabled - Resend API key missing');
+      console.log('💡 Set RESEND_API_KEY to enable reminders');
     }
   } else {
     console.log('⚠️ Reminder service disabled in development mode');

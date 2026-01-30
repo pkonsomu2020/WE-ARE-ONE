@@ -11,7 +11,7 @@ router.get('/admin-profile', authenticateAdmin, async (req, res) => {
     const profileData = {
       id: req.admin?.id || 1,
       fullName: process.env.ADMIN_DEFAULT_NAME || 'WAO Admin',
-      email: process.env.ADMIN_DEFAULT_EMAIL || 'admin@weareone.co.ke',
+      email: process.env.ADMIN_DEFAULT_EMAIL || 'weareone0624@gmail.com',
       phone: '+254712345678',
       role: 'Super Admin',
       status: 'active'
