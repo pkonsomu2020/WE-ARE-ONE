@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const { pool } = require('../config/database');
+const { supabase } = require('../config/database');
 
 module.exports = async function adminAuth(req, res, next) {
   try {
@@ -26,19 +26,22 @@ module.exports = async function adminAuth(req, res, next) {
         return res.status(403).json({ success: false, message: 'Invalid or expired token' });
       }
 
-      // Confirm admin user exists
+      // Confirm admin user exists using Supabase
       console.log('🔍 Looking up admin user with ID:', decoded.adminId);
-      const [rows] = await pool.execute('SELECT id, email FROM admin_users WHERE id = ?', [decoded.adminId]);
+      const { data: adminUsers, error } = await supabase
+        .from('admin_users')
+        .select('id, email')
+        .eq('id', decoded.adminId);
       
-      if (rows.length === 0) {
-        console.log('❌ Admin user not found in database');
+      if (error || !adminUsers || adminUsers.length === 0) {
+        console.log('❌ Admin user not found in database:', error?.message);
         return res.status(401).json({ success: false, message: 'Unauthorized' });
       }
 
-      console.log('✅ Admin user found:', rows[0].email);
+      console.log('✅ Admin user found:', adminUsers[0].email);
       
-      req.admin = rows[0];
-      req.adminId = rows[0].id;
+      req.admin = adminUsers[0];
+      req.adminId = adminUsers[0].id;
       
       console.log('✅ JWT AdminAuth completed successfully');
       console.log('🔍 Set req.adminId:', req.adminId);
@@ -50,6 +53,25 @@ module.exports = async function adminAuth(req, res, next) {
     const adminKey = req.headers['x-admin-key'];
     if (adminKey && adminKey === process.env.ADMIN_API_KEY) {
       console.log('🔑 Using admin key authentication (fallback)');
+      
+      // Set a default admin for API key authentication
+      // Get the first admin user as default
+      const { data: defaultAdmin, error: defaultError } = await supabase
+        .from('admin_users')
+        .select('id, email')
+        .limit(1);
+      
+      if (!defaultError && defaultAdmin && defaultAdmin.length > 0) {
+        req.admin = defaultAdmin[0];
+        req.adminId = defaultAdmin[0].id;
+        console.log('✅ Set default admin for API key auth:', defaultAdmin[0].email);
+      } else {
+        // Fallback if no admin users found
+        req.admin = { id: 1, email: 'admin@weareone.co.ke' };
+        req.adminId = 1;
+        console.log('✅ Set fallback admin for API key auth');
+      }
+      
       return next();
     }
 
