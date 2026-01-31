@@ -390,14 +390,35 @@ router.get('/dashboard/stats', async (req, res) => {
     // Add free registrations to paid count (since free registrations are automatically "paid")
     const paidOrders = paidOrdersResult[0].count + totalFreeRegistrationsResult[0].count;
     
-    // Get pending complaints (placeholder - will be replaced when feedback API is implemented)
-    const pendingComplaints = 0;
+    // Get pending complaints from feedback system
+    const { data: feedbackData, error: feedbackError } = await supabase
+      .from('feedback_messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'new');
     
-    // Get active events (placeholder - will be replaced when events API is implemented)
-    const activeEvents = 0;
+    const pendingComplaints = feedbackError ? 0 : (feedbackData?.length || 0);
     
-    // Get upcoming meetings (placeholder)
-    const upcomingMeetings = 0;
+    // Get active events from scheduled events
+    const { data: eventsData, error: eventsError } = await supabase
+      .from('scheduled_events')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'scheduled');
+    
+    const activeEvents = eventsError ? 0 : (eventsData?.length || 0);
+    
+    // Get upcoming meetings (events in next 7 days)
+    const nextWeek = new Date();
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    
+    const { data: meetingsData, error: meetingsError } = await supabase
+      .from('scheduled_events')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'scheduled')
+      .eq('type', 'meeting')
+      .gte('start_datetime', new Date().toISOString())
+      .lte('start_datetime', nextWeek.toISOString());
+    
+    const upcomingMeetings = meetingsError ? 0 : (meetingsData?.length || 0);
     
     // Get total revenue
     const [revenueResult] = await pool.execute(

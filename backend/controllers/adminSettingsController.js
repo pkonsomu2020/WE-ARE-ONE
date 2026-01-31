@@ -673,70 +673,6 @@ const clearAllData = async (req, res) => {
   }
 };
 
-// Send test notification
-const sendTestNotification = async (req, res) => {
-  try {
-    const { type, recipient } = req.body;
-
-    if (!type || !recipient) {
-      return res.status(400).json({
-        success: false,
-        message: 'Notification type and recipient are required'
-      });
-    }
-
-    // Send test email
-    const testEmailContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <div style="background: linear-gradient(135deg, #ff6b35, #f7931e); padding: 20px; text-align: center;">
-          <h1 style="color: white; margin: 0;">We Are One (WAO)</h1>
-          <p style="color: white; margin: 5px 0;">Test Notification</p>
-        </div>
-        
-        <div style="padding: 30px; background: white;">
-          <h2 style="color: #333;">🧪 Test Notification</h2>
-          <p>This is a test notification from the WAO Admin Settings panel.</p>
-          <p><strong>Type:</strong> ${type}</p>
-          <p><strong>Sent to:</strong> ${recipient}</p>
-          <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
-          
-          <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <p style="margin: 0; color: #2d5a2d;">✅ Your notification system is working correctly!</p>
-          </div>
-        </div>
-        
-        <div style="background: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #eee;">
-          <p style="color: #666; margin: 0;">We Are One (WAO) - Mental Health Support Community</p>
-        </div>
-      </div>
-    `;
-
-    const { data, error } = await resend.emails.send({
-      from: 'We Are One Admin <weareone0624@gmail.com>',
-      to: [recipient],
-      subject: `🧪 Test Notification - ${type}`,
-      html: testEmailContent
-    });
-
-    if (error) {
-      throw new Error(`Resend API error: ${error.message}`);
-    }
-
-    res.json({
-      success: true,
-      message: `Test notification sent successfully to ${recipient}`
-    });
-
-  } catch (error) {
-    console.error('Send test notification error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to send test notification',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-};
-
 module.exports = {
   getAdminProfile,
   updateAdminProfile,
@@ -748,6 +684,5 @@ module.exports = {
   exportData,
   createBackup,
   getStorageInfo,
-  clearAllData,
-  sendTestNotification
+  clearAllData
 };

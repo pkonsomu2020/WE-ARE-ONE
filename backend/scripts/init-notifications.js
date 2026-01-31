@@ -25,23 +25,6 @@ async function initializeNotifications() {
     `);
 
     console.log('✅ Notifications table created successfully');
-
-    // Insert sample notifications for demo
-    const [existingNotifications] = await pool.execute('SELECT COUNT(*) as count FROM notifications');
-    
-    if (existingNotifications[0].count === 0) {
-      await pool.execute(`
-        INSERT INTO notifications (title, message, type, source, action_url, is_read, created_at) VALUES
-        ('Welcome to Admin Portal', 'System initialized successfully. All features are ready to use.', 'success', 'system', '/admin', FALSE, DATE_SUB(NOW(), INTERVAL 5 MINUTE)),
-        ('New Meeting Scheduled', 'Team meeting scheduled for tomorrow at 10:00 AM', 'info', 'event', '/admin/events', FALSE, DATE_SUB(NOW(), INTERVAL 30 MINUTE)),
-        ('Feedback Received', 'New customer feedback submitted for review', 'success', 'feedback', '/admin/feedback', FALSE, DATE_SUB(NOW(), INTERVAL 2 HOUR))
-      `);
-      
-      console.log('✅ Sample notifications inserted');
-    } else {
-      console.log('ℹ️ Notifications table already has data, skipping sample data insertion');
-    }
-
     console.log('🎉 Notifications system initialized successfully!');
     
   } catch (error) {
