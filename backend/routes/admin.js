@@ -388,16 +388,34 @@ router.get('/event-payments', async (req, res) => {
       return res.json({ success: true, payments: paymentsCache, cached: true });
     }
 
-    console.log('📊 Admin API: Fetching payments and registrations from database...');
+    console.log('📊 Admin API: Fetching payments and registrations from Supabase...');
     
     // Get paid orders from event_payments table
-    const [paidOrders] = await pool.execute('SELECT * FROM event_payments ORDER BY created_at DESC');
+    const { data: paidOrders, error: paidError } = await supabase
+      .from('event_payments')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (paidError) {
+      console.error('❌ Error fetching paid orders:', paidError);
+    }
     
     // Get free registrations from event_registrations table
-    const [freeRegistrations] = await pool.execute('SELECT * FROM event_registrations ORDER BY created_at DESC');
+    const { data: freeRegistrations, error: freeError } = await supabase
+      .from('event_registrations')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (freeError) {
+      console.error('❌ Error fetching free registrations:', freeError);
+    }
+    
+    // Use empty arrays if queries failed
+    const paidOrdersData = paidOrders || [];
+    const freeRegistrationsData = freeRegistrations || [];
     
     // Transform free registrations to match the payment format
-    const transformedFreeRegistrations = freeRegistrations.map(reg => ({
+    const transformedFreeRegistrations = freeRegistrationsData.map(reg => ({
       id: `free_${reg.id}`, // Prefix with 'free_' to distinguish from paid orders
       event_id: reg.event_id,
       full_name: reg.full_name,
@@ -417,11 +435,11 @@ router.get('/event-payments', async (req, res) => {
     }));
     
     // Combine both arrays and sort by created_at
-    const allOrders = [...paidOrders, ...transformedFreeRegistrations].sort((a, b) => 
+    const allOrders = [...paidOrdersData, ...transformedFreeRegistrations].sort((a, b) => 
       new Date(b.created_at) - new Date(a.created_at)
     );
     
-    console.log(`✅ Admin API: Found ${paidOrders.length} paid orders and ${freeRegistrations.length} free registrations`);
+    console.log(`✅ Admin API: Found ${paidOrdersData.length} paid orders and ${freeRegistrationsData.length} free registrations`);
     console.log(`✅ Admin API: Total orders: ${allOrders.length}`);
     
     // Cache the combined orders
@@ -438,9 +456,17 @@ router.get('/event-payments', async (req, res) => {
 // Get payment
 router.get('/event-payments/:id', async (req, res) => {
   try {
-    const [rows] = await pool.execute('SELECT * FROM event_payments WHERE id = ?', [req.params.id]);
-    if (rows.length === 0) return res.status(404).json({ success: false, message: 'Not found' });
-    res.json({ success: true, payment: rows[0] });
+    const { data, error } = await supabase
+      .from('event_payments')
+      .select('*')
+      .eq('id', req.params.id)
+      .single();
+    
+    if (error || !data) {
+      return res.status(404).json({ success: false, message: 'Not found' });
+    }
+    
+    res.json({ success: true, payment: data });
   } catch (e) {
     console.error('Get payment error:', e);
     res.status(500).json({ success: false, message: 'Failed to load payment' });
@@ -454,11 +480,31 @@ router.put('/event-payments/:id', async (req, res) => {
     return res.status(400).json({ success: false, message: 'Invalid status' });
   }
   try {
-    const [rows] = await pool.execute('SELECT * FROM event_payments WHERE id = ?', [req.params.id]);
-    if (rows.length === 0) return res.status(404).json({ success: false, message: 'Not found' });
-    const payment = rows[0];
+    // Get payment from Supabase
+    const { data: payment, error: getError } = await supabase
+      .from('event_payments')
+      .select('*')
+      .eq('id', req.params.id)
+      .single();
+    
+    if (getError || !payment) {
+      return res.status(404).json({ success: false, message: 'Not found' });
+    }
 
-    await pool.execute('UPDATE event_payments SET status = ?, confirmation_message = ? WHERE id = ?', [status, reason || null, req.params.id]);
+    // Update payment status
+    const { error: updateError } = await supabase
+      .from('event_payments')
+      .update({ 
+        status: status, 
+        confirmation_message: reason || null,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', req.params.id);
+    
+    if (updateError) {
+      console.error('Update payment error:', updateError);
+      return res.status(500).json({ success: false, message: 'Update failed' });
+    }
 
     // Clear caches when payment is updated
     paymentsCache = null;
@@ -477,20 +523,34 @@ router.put('/event-payments/:id', async (req, res) => {
       for (let i = 0; i < 5; i++) {
         const candidate = generateTicket();
         try {
-          await pool.execute(
-            `INSERT INTO event_tickets (event_id, user_email, full_name, ticket_type, amount_paid, mpesa_code, ticket_number)
-             VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            [payment.event_id, payment.email, payment.full_name, payment.ticket_type, payment.amount, payment.mpesa_code, candidate]
-          );
-          ticketNumber = candidate;
-          break;
+          const { data, error } = await supabase
+            .from('event_tickets')
+            .insert([{
+              event_id: payment.event_id,
+              user_email: payment.email,
+              full_name: payment.full_name,
+              ticket_type: payment.ticket_type,
+              amount_paid: payment.amount,
+              mpesa_code: payment.mpesa_code,
+              ticket_number: candidate
+            }])
+            .select();
+          
+          if (error) {
+            // On duplicate key, try again; otherwise throw
+            if (!error.message.includes('duplicate') && !error.message.includes('unique')) {
+              throw error;
+            }
+          } else {
+            ticketNumber = candidate;
+            break;
+          }
         } catch (err) {
-          // On duplicate key, try again; otherwise throw
-          if (!/duplicate/i.test(String(err?.message))) throw err;
+          console.error('Ticket creation error:', err);
+          if (i === 4) { // Last attempt
+            throw new Error('Could not allocate unique ticket number');
+          }
         }
-      }
-      if (!ticketNumber) {
-        throw new Error('Could not allocate unique ticket number');
       }
     }
 
@@ -553,48 +613,45 @@ router.get('/dashboard/stats', async (req, res) => {
 
     console.log('📊 Fetching fresh dashboard stats...');
     
-    // Get total paid orders
-    const [totalPaidOrdersResult] = await pool.execute(
-      'SELECT COUNT(*) as count FROM event_payments'
-    );
+    // Get total paid orders from Supabase
+    const { count: totalPaidOrders, error: paidError } = await supabase
+      .from('event_payments')
+      .select('*', { count: 'exact', head: true });
     
-    // Get total free registrations
-    const [totalFreeRegistrationsResult] = await pool.execute(
-      'SELECT COUNT(*) as count FROM event_registrations'
-    );
+    // Get total free registrations from Supabase
+    const { count: totalFreeRegistrations, error: freeError } = await supabase
+      .from('event_registrations')
+      .select('*', { count: 'exact', head: true });
     
     // Calculate total orders (paid + free)
-    const totalOrders = totalPaidOrdersResult[0].count + totalFreeRegistrationsResult[0].count;
+    const totalOrders = (totalPaidOrders || 0) + (totalFreeRegistrations || 0);
     
-    // Get paid orders
-    const [paidOrdersResult] = await pool.execute(
-      'SELECT COUNT(*) as count FROM event_payments WHERE status = "paid"'
-    );
+    // Get paid orders count
+    const { count: paidOrdersCount, error: paidCountError } = await supabase
+      .from('event_payments')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'paid');
     
     // Add free registrations to paid count (since free registrations are automatically "paid")
-    const paidOrders = paidOrdersResult[0].count + totalFreeRegistrationsResult[0].count;
+    const paidOrders = (paidOrdersCount || 0) + (totalFreeRegistrations || 0);
     
     // Get pending complaints from feedback system
-    const { data: feedbackData, error: feedbackError } = await supabase
+    const { count: pendingComplaints, error: feedbackError } = await supabase
       .from('feedback_messages')
       .select('*', { count: 'exact', head: true })
       .eq('status', 'new');
     
-    const pendingComplaints = feedbackError ? 0 : (feedbackData?.length || 0);
-    
     // Get active events from scheduled events
-    const { data: eventsData, error: eventsError } = await supabase
+    const { count: activeEvents, error: eventsError } = await supabase
       .from('scheduled_events')
       .select('*', { count: 'exact', head: true })
       .eq('status', 'scheduled');
-    
-    const activeEvents = eventsError ? 0 : (eventsData?.length || 0);
     
     // Get upcoming meetings (events in next 7 days)
     const nextWeek = new Date();
     nextWeek.setDate(nextWeek.getDate() + 7);
     
-    const { data: meetingsData, error: meetingsError } = await supabase
+    const { count: upcomingMeetings, error: meetingsError } = await supabase
       .from('scheduled_events')
       .select('*', { count: 'exact', head: true })
       .eq('status', 'scheduled')
@@ -602,27 +659,28 @@ router.get('/dashboard/stats', async (req, res) => {
       .gte('start_datetime', new Date().toISOString())
       .lte('start_datetime', nextWeek.toISOString());
     
-    const upcomingMeetings = meetingsError ? 0 : (meetingsData?.length || 0);
+    // Get total revenue from paid orders
+    const { data: revenueData, error: revenueError } = await supabase
+      .from('event_payments')
+      .select('amount')
+      .eq('status', 'paid');
     
-    // Get total revenue
-    const [revenueResult] = await pool.execute(
-      'SELECT SUM(amount) as total FROM event_payments WHERE status = "paid"'
-    );
+    const totalRevenue = revenueData?.reduce((sum, payment) => sum + (payment.amount || 0), 0) || 0;
     
     const stats = {
       totalOrders: totalOrders,
       paidOrders: paidOrders,
-      activeEvents: activeEvents,
-      pendingComplaints: pendingComplaints,
-      upcomingMeetings: upcomingMeetings,
-      totalRevenue: revenueResult[0].total || 0
+      activeEvents: activeEvents || 0,
+      pendingComplaints: pendingComplaints || 0,
+      upcomingMeetings: upcomingMeetings || 0,
+      totalRevenue: totalRevenue
     };
     
     // Cache the stats
     statsCache = stats;
     statsCacheTime = now;
     
-    console.log('✅ Dashboard stats fetched and cached');
+    console.log('✅ Dashboard stats fetched and cached:', stats);
     res.json({
       success: true,
       data: stats
@@ -684,46 +742,74 @@ router.get('/analytics/overview', async (req, res) => {
   try {
     console.log('📊 Fetching analytics overview...');
     
-    // Get basic stats
-    const [totalUsers] = await pool.execute('SELECT COUNT(*) as count FROM users');
-    const [totalPayments] = await pool.execute('SELECT COUNT(*) as count FROM event_payments');
-    const [paidPayments] = await pool.execute('SELECT COUNT(*) as count FROM event_payments WHERE status = "paid"');
-    const [totalRevenue] = await pool.execute('SELECT SUM(amount) as total FROM event_payments WHERE status = "paid"');
-    const [totalRegistrations] = await pool.execute('SELECT COUNT(*) as count FROM event_registrations');
+    // Get basic stats from Supabase
+    const { count: totalUsers, error: usersError } = await supabase
+      .from('users')
+      .select('*', { count: 'exact', head: true });
+    
+    const { count: totalPayments, error: paymentsError } = await supabase
+      .from('event_payments')
+      .select('*', { count: 'exact', head: true });
+    
+    const { count: paidPayments, error: paidError } = await supabase
+      .from('event_payments')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'paid');
+    
+    const { data: revenueData, error: revenueError } = await supabase
+      .from('event_payments')
+      .select('amount')
+      .eq('status', 'paid');
+    
+    const totalRevenue = revenueData?.reduce((sum, payment) => sum + (payment.amount || 0), 0) || 0;
+    
+    const { count: totalRegistrations, error: registrationsError } = await supabase
+      .from('event_registrations')
+      .select('*', { count: 'exact', head: true });
     
     // Get recent activity (last 30 days)
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const [recentUsers] = await pool.execute(
-      'SELECT COUNT(*) as count FROM users WHERE created_at >= ?', 
-      [thirtyDaysAgo.toISOString().split('T')[0]]
-    );
-    const [recentPayments] = await pool.execute(
-      'SELECT COUNT(*) as count FROM event_payments WHERE created_at >= ?', 
-      [thirtyDaysAgo.toISOString().split('T')[0]]
-    );
+    
+    const { count: recentUsers, error: recentUsersError } = await supabase
+      .from('users')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', thirtyDaysAgo.toISOString());
+    
+    const { count: recentPayments, error: recentPaymentsError } = await supabase
+      .from('event_payments')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', thirtyDaysAgo.toISOString());
     
     // Get top events by registrations
-    const [topEvents] = await pool.execute(`
-      SELECT event_id, COUNT(*) as registrations 
-      FROM event_registrations 
-      GROUP BY event_id 
-      ORDER BY registrations DESC 
-      LIMIT 5
-    `);
+    const { data: topEventsData, error: topEventsError } = await supabase
+      .from('event_registrations')
+      .select('event_id')
+      .limit(1000); // Get all registrations to count manually
+    
+    // Count registrations per event
+    const eventCounts = {};
+    topEventsData?.forEach(reg => {
+      eventCounts[reg.event_id] = (eventCounts[reg.event_id] || 0) + 1;
+    });
+    
+    const topEvents = Object.entries(eventCounts)
+      .map(([event_id, registrations]) => ({ event_id, registrations }))
+      .sort((a, b) => b.registrations - a.registrations)
+      .slice(0, 5);
     
     const overview = {
-      totalUsers: totalUsers[0].count,
-      totalPayments: totalPayments[0].count,
-      paidPayments: paidPayments[0].count,
-      totalRevenue: totalRevenue[0].total || 0,
-      totalRegistrations: totalRegistrations[0].count,
-      recentUsers: recentUsers[0].count,
-      recentPayments: recentPayments[0].count,
+      totalUsers: totalUsers || 0,
+      totalPayments: totalPayments || 0,
+      paidPayments: paidPayments || 0,
+      totalRevenue: totalRevenue,
+      totalRegistrations: totalRegistrations || 0,
+      recentUsers: recentUsers || 0,
+      recentPayments: recentPayments || 0,
       topEvents: topEvents || []
     };
     
-    console.log('✅ Analytics overview fetched');
+    console.log('✅ Analytics overview fetched:', overview);
     res.json({
       success: true,
       data: overview
@@ -746,32 +832,50 @@ router.get('/analytics/trends', async (req, res) => {
     const end = endDate ? new Date(endDate) : new Date();
     const start = startDate ? new Date(startDate) : new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
     
-    // Get daily user registrations
-    const [userTrends] = await pool.execute(`
-      SELECT DATE(created_at) as date, COUNT(*) as count 
-      FROM users 
-      WHERE created_at BETWEEN ? AND ? 
-      GROUP BY DATE(created_at) 
-      ORDER BY date
-    `, [start.toISOString().split('T')[0], end.toISOString().split('T')[0]]);
+    // Get daily user registrations from Supabase
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('created_at')
+      .gte('created_at', start.toISOString())
+      .lte('created_at', end.toISOString())
+      .order('created_at');
     
-    // Get daily payment trends
-    const [paymentTrends] = await pool.execute(`
-      SELECT DATE(created_at) as date, COUNT(*) as count, SUM(amount) as revenue 
-      FROM event_payments 
-      WHERE created_at BETWEEN ? AND ? AND status = "paid"
-      GROUP BY DATE(created_at) 
-      ORDER BY date
-    `, [start.toISOString().split('T')[0], end.toISOString().split('T')[0]]);
+    // Get daily payment trends from Supabase
+    const { data: paymentData, error: paymentError } = await supabase
+      .from('event_payments')
+      .select('created_at, amount')
+      .eq('status', 'paid')
+      .gte('created_at', start.toISOString())
+      .lte('created_at', end.toISOString())
+      .order('created_at');
     
-    // Get event registration trends
-    const [registrationTrends] = await pool.execute(`
-      SELECT DATE(created_at) as date, COUNT(*) as count 
-      FROM event_registrations 
-      WHERE created_at BETWEEN ? AND ? 
-      GROUP BY DATE(created_at) 
-      ORDER BY date
-    `, [start.toISOString().split('T')[0], end.toISOString().split('T')[0]]);
+    // Get event registration trends from Supabase
+    const { data: registrationData, error: registrationError } = await supabase
+      .from('event_registrations')
+      .select('created_at')
+      .gte('created_at', start.toISOString())
+      .lte('created_at', end.toISOString())
+      .order('created_at');
+    
+    // Process data to group by date
+    const processDataByDate = (data, dateField = 'created_at') => {
+      const grouped = {};
+      data?.forEach(item => {
+        const date = new Date(item[dateField]).toISOString().split('T')[0];
+        if (!grouped[date]) {
+          grouped[date] = { date, count: 0, revenue: 0 };
+        }
+        grouped[date].count++;
+        if (item.amount) {
+          grouped[date].revenue += item.amount;
+        }
+      });
+      return Object.values(grouped);
+    };
+    
+    const userTrends = processDataByDate(userData);
+    const paymentTrends = processDataByDate(paymentData);
+    const registrationTrends = processDataByDate(registrationData);
     
     const trends = {
       userRegistrations: userTrends || [],
