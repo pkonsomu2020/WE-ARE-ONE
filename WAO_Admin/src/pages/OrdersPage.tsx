@@ -132,22 +132,24 @@ const OrdersPage = () => {
     <ProtectedPage requiredPermission="orders" pageName="Orders & Payment Verification">
       <div className="space-y-6">
         {/* Page Header */}
-        <div>
-        <h1 className="text-2xl font-bold text-gray-900">Orders Management</h1>
-        <p className="text-gray-600">Manage and verify event orders and payments</p>
-      </div>
+        <div className="flex flex-col gap-4">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Orders Management</h1>
+            <p className="text-sm sm:text-base text-gray-600">Manage and verify event orders and payments</p>
+          </div>
+        </div>
 
       {/* Event Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Orders</p>
-                <p className="text-2xl font-bold">{orders.length}</p>
+                <p className="text-xl sm:text-2xl font-bold">{orders.length}</p>
               </div>
-              <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
-                <span className="text-blue-600 font-bold">📊</span>
+              <div className="h-6 w-6 sm:h-8 sm:w-8 bg-blue-100 rounded-full flex items-center justify-center">
+                <span className="text-blue-600 font-bold text-sm sm:text-base">📊</span>
               </div>
             </div>
           </CardContent>
@@ -157,12 +159,12 @@ const OrdersPage = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Paid Orders</p>
-                <p className="text-2xl font-bold text-green-600">
+                <p className="text-xl sm:text-2xl font-bold text-green-600">
                   {orders.filter(o => o.status === 'paid').length}
                 </p>
               </div>
-              <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
-                <span className="text-green-600 font-bold">✅</span>
+              <div className="h-6 w-6 sm:h-8 sm:w-8 bg-green-100 rounded-full flex items-center justify-center">
+                <span className="text-green-600 font-bold text-sm sm:text-base">✅</span>
               </div>
             </div>
           </CardContent>
@@ -172,10 +174,10 @@ const OrdersPage = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Active Events</p>
-                <p className="text-2xl font-bold text-orange-600">{uniqueEvents.length}</p>
+                <p className="text-xl sm:text-2xl font-bold text-orange-600">{uniqueEvents.length}</p>
               </div>
-              <div className="h-8 w-8 bg-orange-100 rounded-full flex items-center justify-center">
-                <span className="text-orange-600 font-bold">🎫</span>
+              <div className="h-6 w-6 sm:h-8 sm:w-8 bg-orange-100 rounded-full flex items-center justify-center">
+                <span className="text-orange-600 font-bold text-sm sm:text-base">🎫</span>
               </div>
             </div>
           </CardContent>
