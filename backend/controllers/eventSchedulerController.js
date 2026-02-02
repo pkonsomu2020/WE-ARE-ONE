@@ -221,7 +221,7 @@ const sendEventNotification = async (event, notificationType, recipients) => {
         console.error(`❌ Failed to send email to ${recipient.email}:`, error);
         failureCount++;
         
-        // Log the failed notification
+        // Log the failed notification (without email_id since column doesn't exist)
         const { error: logError } = await supabase
           .from('event_notifications')
           .insert({
@@ -233,6 +233,7 @@ const sendEventNotification = async (event, notificationType, recipients) => {
             email_subject: template.subject,
             email_status: 'failed',
             error_message: error.message || JSON.stringify(error)
+            // Removed email_id field as it doesn't exist in the table
           });
 
         if (logError) {
@@ -245,7 +246,7 @@ const sendEventNotification = async (event, notificationType, recipients) => {
       console.log(`✅ Email sent to ${recipient.email} - Email ID: ${data.id}`);
       successCount++;
 
-      // Log the successful notification
+      // Log the successful notification (without email_id since column doesn't exist)
       const { error: logError } = await supabase
         .from('event_notifications')
         .insert({
@@ -255,8 +256,8 @@ const sendEventNotification = async (event, notificationType, recipients) => {
           recipient_name: recipient.full_name || recipient.name,
           sent_at: new Date().toISOString(),
           email_subject: template.subject,
-          email_status: 'sent',
-          email_id: data.id
+          email_status: 'sent'
+          // Removed email_id field as it doesn't exist in the table
         });
 
       if (logError) {
@@ -267,7 +268,7 @@ const sendEventNotification = async (event, notificationType, recipients) => {
       console.error(`❌ Failed to send ${notificationType} notification to ${recipient.email}:`, error.message);
       failureCount++;
       
-      // Log the failed notification
+      // Log the failed notification (without email_id since column doesn't exist)
       const { error: logError } = await supabase
         .from('event_notifications')
         .insert({
@@ -279,6 +280,7 @@ const sendEventNotification = async (event, notificationType, recipients) => {
           email_subject: template.subject,
           email_status: 'failed',
           error_message: error.message
+          // Removed email_id field as it doesn't exist in the table
         });
 
       if (logError) {
