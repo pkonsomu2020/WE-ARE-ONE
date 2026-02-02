@@ -146,9 +146,9 @@ const sendPasswordResetEmail = async (userEmail, resetToken, resetUrl) => {
     
     // Send email using Resend - now to actual recipient with BCC to admin
     const { data, error } = await resend.emails.send({
-      from: 'We Are One Support <onboarding@resend.dev>',
+      from: 'We Are One Support <support@weareone.co.ke>',
       to: [userEmail],
-      bcc: ['weareone0624@gmail.com'], // Admin gets a copy
+      bcc: ['admin@weareone.co.ke'], // Admin gets a copy
       subject: `Password Reset - We Are One`,
       html: resetEmailContent,
     });

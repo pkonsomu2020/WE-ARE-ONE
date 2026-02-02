@@ -158,14 +158,14 @@ async function registerForEvent(req, res) {
     // Ticket number allocation will occur after admin marks payment as paid
 
     // Send admin notification (non-blocking)
-    const adminEmail = 'weareone0624@gmail.com'; // Fixed admin email
+    const adminEmail = 'admin@weareone.co.ke'; // Fixed admin email
     
     console.log('📧 Attempting to send admin notification email...');
     console.log('📧 Admin email:', adminEmail);
     console.log('📧 Resend API key configured:', !!process.env.RESEND_API_KEY);
     
     resend.emails.send({
-      from: 'We Are One Events <weareone0624@gmail.com>',
+      from: 'We Are One Events <events@weareone.co.ke>',
       to: [adminEmail],
       subject: `New Event Registration - ${eventId} (from ${email})`,
       html: `
@@ -194,7 +194,7 @@ async function registerForEvent(req, res) {
     console.log('✅ Using verified domain: weareone.co.ke');
     
     resend.emails.send({
-      from: 'We Are One Events <weareone0624@gmail.com>',
+      from: 'We Are One Events <events@weareone.co.ke>',
       to: [email], // Now can send to actual user email!
       subject: isFree ? `Event Registration Confirmation` : `Ticket Request – Pending Verification`,
       html: `

@@ -151,7 +151,7 @@ class ReminderService {
       for (const admin of adminProfiles) {
         try {
           const { data, error } = await resend.emails.send({
-            from: 'We Are One Events <weareone0624@gmail.com>',
+            from: 'We Are One Events <events@weareone.co.ke>',
             to: [admin.email],
             subject: subject,
             html: emailBody

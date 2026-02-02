@@ -335,7 +335,7 @@ router.put('/event-payments/:id', async (req, res) => {
 
     // Send email using Resend
     resend.emails.send({ 
-      from: 'We Are One Events <weareone0624@gmail.com>', 
+      from: 'We Are One Events <events@weareone.co.ke>', 
       to: [payment.email], 
       subject, 
       html: body 

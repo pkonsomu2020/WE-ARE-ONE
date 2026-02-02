@@ -211,7 +211,7 @@ const sendEventNotification = async (event, notificationType, recipients) => {
       }
 
       const { data, error } = await resend.emails.send({
-        from: 'We Are One Events <weareone0624@gmail.com>',
+        from: 'We Are One Events <events@weareone.co.ke>',
         to: [recipient.email],
         subject: template.subject,
         html: template.getBody(event, recipient)
