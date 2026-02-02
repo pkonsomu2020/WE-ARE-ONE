@@ -59,7 +59,11 @@ const formatDateString = (dateString: any): string => {
 
 const formatTimeString = (dateString: any): string => {
   const date = formatDate(dateString);
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return date.toLocaleTimeString([], { 
+    hour: '2-digit', 
+    minute: '2-digit',
+    hour12: true // Explicitly enable 12-hour format with AM/PM
+  });
 };
 
 import {
@@ -510,8 +514,11 @@ const EventSchedulerPage = () => {
   };
 
   const handleViewEvent = (event: CalendarEvent) => {
+    console.log('🔍 Viewing event:', event.title);
     setViewingEvent(event);
     setShowViewDialog(true);
+    // Ensure the create form is closed
+    setShowEventForm(false);
   };
 
   const navigateMonth = (direction: 'prev' | 'next') => {
@@ -983,7 +990,11 @@ const EventSchedulerPage = () => {
                           <Button 
                             size="sm" 
                             variant="outline"
-                            onClick={() => handleViewEvent(event)}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleViewEvent(event);
+                            }}
                           >
                             <Eye className="w-4 h-4 mr-1" />
                             View

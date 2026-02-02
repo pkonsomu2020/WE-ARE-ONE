@@ -7,7 +7,8 @@ const {
   deleteEvent,
   sendManualReminder,
   processAutomaticReminders,
-  checkDateAvailability
+  checkDateAvailability,
+  getStats
 } = require('../controllers/eventSchedulerController');
 const { authenticateAdmin } = require('../middleware/auth');
 const { supabase, supabaseAdmin } = require('../config/database');
@@ -63,72 +64,7 @@ router.post('/events/:id/send-reminder', sendManualReminder);
 router.post('/process-reminders', processAutomaticReminders);
 
 // Get event statistics
-router.get('/stats', async (req, res) => {
-  try {
-    // Get various statistics using Supabase
-    const { data: allEvents, error: allEventsError } = await supabase
-      .from('scheduled_events')
-      .select('*')
-      .eq('status', 'scheduled');
-
-    if (allEventsError) {
-      throw allEventsError;
-    }
-
-    const totalEvents = allEvents ? allEvents.length : 0;
-
-    // Calculate this week's events
-    const now = new Date();
-    const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
-    const endOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + 6));
-
-    const thisWeekEvents = allEvents ? allEvents.filter(event => {
-      const eventDate = new Date(event.start_datetime);
-      return eventDate >= startOfWeek && eventDate <= endOfWeek;
-    }).length : 0;
-
-    // Count meetings
-    const meetingsCount = allEvents ? allEvents.filter(event => event.type === 'meeting').length : 0;
-
-    // Count pending reminders
-    const pendingReminders = allEvents ? allEvents.filter(event => 
-      !event.reminder_sent && new Date(event.start_datetime) > new Date()
-    ).length : 0;
-
-    // Get upcoming events
-    const upcomingEvents = allEvents ? allEvents
-      .filter(event => new Date(event.start_datetime) > new Date())
-      .sort((a, b) => new Date(a.start_datetime) - new Date(b.start_datetime))
-      .slice(0, 5)
-      .map(event => ({
-        id: event.id,
-        title: event.title,
-        type: event.type,
-        start: event.start_datetime,
-        end: event.end_datetime,
-        location: event.location,
-        attendeeCount: 0 // We'll need to implement attendee counting separately
-      })) : [];
-
-    res.json({
-      success: true,
-      data: {
-        totalEvents,
-        thisWeekEvents,
-        meetingsCount,
-        pendingReminders,
-        upcomingEvents
-      }
-    });
-
-  } catch (error) {
-    console.error('Get stats error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch statistics'
-    });
-  }
-});
+router.get('/stats', getStats);
 
 // Get notification history
 router.get('/notifications', async (req, res) => {
