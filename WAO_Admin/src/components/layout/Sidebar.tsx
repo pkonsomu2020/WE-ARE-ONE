@@ -17,6 +17,7 @@ interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
   onLogout: () => void;
+  isMobile?: boolean;
 }
 
 const menuItems = [
@@ -64,7 +65,7 @@ const menuItems = [
   }
 ];
 
-const Sidebar = ({ isOpen, onClose, onLogout }: SidebarProps) => {
+const Sidebar = ({ isOpen, onClose, onLogout, isMobile = false }: SidebarProps) => {
   const location = useLocation();
 
   return (
@@ -78,6 +79,140 @@ const Sidebar = ({ isOpen, onClose, onLogout }: SidebarProps) => {
               <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
                 <img src="/wao_favicon.jpg" alt="WAO" className="w-6 h-6 object-cover rounded-md" />
               </div>
+              <div>
+                <h1 className="text-lg font-bold text-gray-900">WAO Admin</h1>
+                <p className="text-xs text-gray-500">Management Portal</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Navigation */}
+          <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
+            {menuItems.map((item) => {
+              const isActive = location.pathname === item.href;
+              return (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className={cn(
+                    'group flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors min-h-[48px]',
+                    isActive
+                      ? 'bg-orange-50 text-orange-700 border-r-2 border-orange-500'
+                      : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                  )}
+                >
+                  <item.icon
+                    className={cn(
+                      'mr-3 h-5 w-5 flex-shrink-0',
+                      isActive ? 'text-orange-500' : 'text-gray-400 group-hover:text-gray-500'
+                    )}
+                  />
+                  <div className="flex-1">
+                    <div className="font-medium">{item.name}</div>
+                    <div className="text-xs text-gray-500 group-hover:text-gray-600">
+                      {item.description}
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Logout Button */}
+          <div className="flex-shrink-0 p-4 border-t border-gray-200">
+            <Button
+              onClick={onLogout}
+              variant="ghost"
+              className="w-full justify-start text-gray-700 hover:bg-red-50 hover:text-red-700 min-h-[48px]"
+            >
+              <LogOut className="mr-3 h-5 w-5" />
+              <span>Sign Out</span>
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Sidebar */}
+      <div className={cn(
+        'fixed inset-y-0 left-0 z-50 w-80 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out lg:hidden',
+        isOpen ? 'translate-x-0' : '-translate-x-full'
+      )}>
+        <div className="flex min-h-0 flex-1 flex-col">
+          {/* Mobile Header */}
+          <div className="flex h-16 flex-shrink-0 items-center justify-between px-4 border-b border-gray-200">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
+                <img src="/wao_favicon.jpg" alt="WAO" className="w-6 h-6 object-cover rounded-md" />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold text-gray-900">WAO Admin</h1>
+                <p className="text-xs text-gray-500">Management Portal</p>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="min-h-[44px] min-w-[44px] p-2"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+
+          {/* Mobile Navigation */}
+          <nav className="flex-1 px-3 py-4 space-y-2 overflow-y-auto">
+            {menuItems.map((item) => {
+              const isActive = location.pathname === item.href;
+              return (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  onClick={onClose}
+                  className={cn(
+                    'group flex items-center px-4 py-4 text-base font-medium rounded-lg transition-colors min-h-[56px]',
+                    isActive
+                      ? 'bg-orange-50 text-orange-700 border-l-4 border-orange-500'
+                      : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                  )}
+                >
+                  <item.icon
+                    className={cn(
+                      'mr-4 h-6 w-6 flex-shrink-0',
+                      isActive ? 'text-orange-500' : 'text-gray-400 group-hover:text-gray-500'
+                    )}
+                  />
+                  <div className="flex-1">
+                    <div className="font-medium text-base">{item.name}</div>
+                    <div className="text-sm text-gray-500 group-hover:text-gray-600">
+                      {item.description}
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Mobile Logout Button */}
+          <div className="flex-shrink-0 p-4 border-t border-gray-200">
+            <Button
+              onClick={() => {
+                onClose();
+                onLogout();
+              }}
+              variant="ghost"
+              className="w-full justify-start text-gray-700 hover:bg-red-50 hover:text-red-700 min-h-[56px] text-base"
+            >
+              <LogOut className="mr-4 h-6 w-6" />
+              <span>Sign Out</span>
+            </Button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
+export default Sidebar;
               <div>
                 <h1 className="text-lg font-bold text-gray-900">WAO Admin</h1>
                 <p className="text-xs text-gray-500">Management Portal</p>

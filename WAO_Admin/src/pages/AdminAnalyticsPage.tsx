@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -35,7 +35,8 @@ import {
   Users,
   Clock,
   Shield,
-  BarChart3
+  BarChart3,
+  Smartphone
 } from 'lucide-react';
 
 // Helper function to safely format dates
@@ -53,6 +54,24 @@ const formatDate = (dateString: any): string => {
     console.error('Date formatting error:', error);
     return 'Invalid Date';
   }
+};
+
+// Mobile detection hook
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+  
+  return isMobile;
 };
 
 interface AdminMetrics {
@@ -90,6 +109,8 @@ const AdminAnalyticsPage = () => {
   const [selectedAdmin, setSelectedAdmin] = useState<'all' | string>('all');
   const [realTimeData, setRealTimeData] = useState<any>(null);
   const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
+  
+  const isMobile = useIsMobile();
 
   // Colors for charts
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
@@ -101,34 +122,27 @@ const AdminAnalyticsPage = () => {
     }))
   ), [metrics]);
 
-  useEffect(() => {
-    loadAnalytics().catch((error) => console.error('Failed to load analytics:', error));
-    
-    // Set up real-time updates for Super Admin only
-    if (isSuperAdmin) {
-      const interval = setInterval(() => {
-        loadRealTimeData();
-      }, 30000); // Update every 30 seconds
-      
-      setRefreshInterval(interval);
-      
-      return () => {
-        if (interval) clearInterval(interval);
-      };
-    }
-  }, [dateRange, selectedAdmin, isSuperAdmin]);
-
-  const loadRealTimeData = async () => {
+  // Memoized real-time data loading with mobile optimization
+  const loadRealTimeData = useCallback(async () => {
     if (!isSuperAdmin) return;
     
     try {
       const token = localStorage.getItem('wao_admin_token');
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : { 'x-admin-key': '3090375ecb2326add24b37c7fd9b5fce4959c766677cdd4fd32eb67fa383db44' };
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout for mobile
+
       const response = await fetch(
         `${API_BASE_URL}/api/real-analytics/realtime`,
-        { headers, credentials: 'include' }
+        { 
+          headers, 
+          credentials: 'include',
+          signal: controller.signal
+        }
       );
+      
+      clearTimeout(timeoutId);
       
       if (response.ok) {
         const data = await response.json();
@@ -137,13 +151,29 @@ const AdminAnalyticsPage = () => {
         }
       }
     } catch (error) {
-      console.error('Failed to load real-time data:', error);
+      if (error.name !== 'AbortError') {
+        console.error('Failed to load real-time data:', error);
+      }
     }
-  };
+  }, [isSuperAdmin]);
 
   useEffect(() => {
     loadAnalytics().catch((error) => console.error('Failed to load analytics:', error));
-  }, [dateRange, selectedAdmin]);
+    
+    // Reduce real-time update frequency on mobile to save battery
+    if (isSuperAdmin) {
+      const updateInterval = isMobile ? 60000 : 30000; // 60s on mobile, 30s on desktop
+      const interval = setInterval(() => {
+        loadRealTimeData();
+      }, updateInterval);
+      
+      setRefreshInterval(interval);
+      
+      return () => {
+        if (interval) clearInterval(interval);
+      };
+    }
+  }, [dateRange, selectedAdmin, isSuperAdmin, isMobile, loadRealTimeData]);
 
   const loadAnalytics = async () => {
     try {

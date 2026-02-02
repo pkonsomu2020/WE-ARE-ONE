@@ -665,15 +665,15 @@ const FileRepositoryPage = () => {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Documents</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalFiles}</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats.totalFiles}</p>
               </div>
-              <FolderOpen className="w-8 h-8 text-blue-500" />
+              <FolderOpen className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
             </div>
           </CardContent>
         </Card>
@@ -682,9 +682,9 @@ const FileRepositoryPage = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Categories</p>
-                <p className="text-2xl font-bold text-gray-900">{categories.length}</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">{categories.length}</p>
               </div>
-              <Filter className="w-8 h-8 text-green-500" />
+              <Filter className="w-6 h-6 sm:w-8 sm:h-8 text-green-500" />
             </div>
           </CardContent>
         </Card>
@@ -693,9 +693,9 @@ const FileRepositoryPage = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Downloads</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalDownloads}</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats.totalDownloads}</p>
               </div>
-              <Download className="w-8 h-8 text-purple-500" />
+              <Download className="w-6 h-6 sm:w-8 sm:h-8 text-purple-500" />
             </div>
           </CardContent>
         </Card>
@@ -704,9 +704,9 @@ const FileRepositoryPage = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Storage Used</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.storageUsed}</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats.storageUsed}</p>
               </div>
-              <FileText className="w-8 h-8 text-orange-500" />
+              <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-orange-500" />
             </div>
           </CardContent>
         </Card>

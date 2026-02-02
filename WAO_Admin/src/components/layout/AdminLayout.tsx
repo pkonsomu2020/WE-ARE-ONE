@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import TopBar from '@/components/layout/TopBar';
@@ -9,6 +9,18 @@ interface AdminLayoutProps {
 
 const AdminLayout = ({ onLogout }: AdminLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -17,6 +29,7 @@ const AdminLayout = ({ onLogout }: AdminLayoutProps) => {
         isOpen={sidebarOpen} 
         onClose={() => setSidebarOpen(false)}
         onLogout={onLogout}
+        isMobile={isMobile}
       />
       
       {/* Main Content Area */}
@@ -25,10 +38,11 @@ const AdminLayout = ({ onLogout }: AdminLayoutProps) => {
         <TopBar 
           onMenuClick={() => setSidebarOpen(true)}
           onLogout={onLogout}
+          isMobile={isMobile}
         />
         
         {/* Page Content */}
-        <main className="p-6">
+        <main className="p-3 sm:p-4 lg:p-6">
           <Outlet />
         </main>
       </div>

@@ -634,16 +634,16 @@ const EventSchedulerPage = () => {
               Schedule Event
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogContent className="max-w-full sm:max-w-2xl max-h-[90vh] mx-2 sm:mx-auto overflow-hidden flex flex-col">
             <DialogHeader className="flex-shrink-0">
-              <DialogTitle>{editingEvent ? 'Edit Event' : 'Schedule New Event'}</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-lg sm:text-xl">{editingEvent ? 'Edit Event' : 'Schedule New Event'}</DialogTitle>
+              <DialogDescription className="text-sm">
                 {editingEvent ? 'Update event details' : 'Create a new meeting, organization event, or reminder'}
               </DialogDescription>
             </DialogHeader>
             <div className="flex-1 overflow-y-auto pr-2">
               <form onSubmit={handleSubmitEvent} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="title">Event Title</Label>
                     <Input
@@ -652,12 +652,13 @@ const EventSchedulerPage = () => {
                       onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
                       placeholder="Enter event title"
                       required
+                      className="min-h-[44px] text-base"
                     />
                   </div>
                   <div>
                     <Label htmlFor="type">Event Type</Label>
                     <Select value={newEvent.type} onValueChange={(value: 'meeting' | 'organization_event' | 'reminder') => setNewEvent({ ...newEvent, type: value })}>
-                      <SelectTrigger>
+                      <SelectTrigger className="min-h-[44px]">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -669,7 +670,7 @@ const EventSchedulerPage = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <Label htmlFor="date">Date</Label>
                     <Input
@@ -679,6 +680,7 @@ const EventSchedulerPage = () => {
                       min={getMinDate()}
                       onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
                       required
+                      className="min-h-[44px] text-base"
                     />
                     {newEvent.date && (() => {
                       const selectedDate = new Date(newEvent.date);
@@ -703,6 +705,7 @@ const EventSchedulerPage = () => {
                       value={newEvent.startTime}
                       onChange={(e) => setNewEvent({ ...newEvent, startTime: e.target.value })}
                       required
+                      className="min-h-[44px] text-base"
                     />
                   </div>
                   <div>
@@ -713,6 +716,7 @@ const EventSchedulerPage = () => {
                       value={newEvent.endTime}
                       onChange={(e) => setNewEvent({ ...newEvent, endTime: e.target.value })}
                       required
+                      className="min-h-[44px] text-base"
                     />
                     {newEvent.startTime && newEvent.endTime && newEvent.startTime >= newEvent.endTime && (
                       <p className="text-sm text-red-500 mt-1">
@@ -730,10 +734,11 @@ const EventSchedulerPage = () => {
                     onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
                     placeholder="Event description and agenda"
                     rows={3}
+                    className="min-h-[80px] text-base"
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="location">Location</Label>
                     <Input
@@ -741,6 +746,7 @@ const EventSchedulerPage = () => {
                       value={newEvent.location}
                       onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
                       placeholder="Meeting room, address, or virtual link"
+                      className="min-h-[44px] text-base"
                     />
                   </div>
                   <div>
@@ -750,6 +756,7 @@ const EventSchedulerPage = () => {
                       value={newEvent.meetingLink}
                       onChange={(e) => setNewEvent({ ...newEvent, meetingLink: e.target.value })}
                       placeholder="Zoom, Teams, or other meeting link"
+                      className="min-h-[44px] text-base"
                     />
                   </div>
                 </div>
@@ -761,6 +768,7 @@ const EventSchedulerPage = () => {
                     value={newEvent.attendees}
                     onChange={(e) => setNewEvent({ ...newEvent, attendees: e.target.value })}
                     placeholder="External email addresses (comma-separated)"
+                    className="min-h-[44px] text-base"
                   />
                   <p className="text-sm text-gray-500 mt-1">
                     All admin team members will be automatically notified. Add external emails here if needed.
@@ -771,7 +779,7 @@ const EventSchedulerPage = () => {
                   <div>
                     <Label htmlFor="recurrencePattern">Recurrence Pattern</Label>
                     <Select value={newEvent.recurrencePattern} onValueChange={(value) => setNewEvent({ ...newEvent, recurrencePattern: value })}>
-                      <SelectTrigger>
+                      <SelectTrigger className="min-h-[44px]">
                         <SelectValue placeholder="Select recurrence pattern" />
                       </SelectTrigger>
                       <SelectContent>
@@ -789,19 +797,25 @@ const EventSchedulerPage = () => {
                     id="isRecurring"
                     checked={newEvent.isRecurring}
                     onChange={(e) => setNewEvent({ ...newEvent, isRecurring: e.target.checked })}
-                    className="rounded"
+                    className="rounded w-4 h-4"
                   />
-                  <Label htmlFor="isRecurring">Recurring Event</Label>
+                  <Label htmlFor="isRecurring" className="text-sm">Recurring Event</Label>
                 </div>
               </form>
             </div>
-            <div className="flex justify-end space-x-2 pt-4 border-t flex-shrink-0">
-              <Button type="button" variant="outline" onClick={() => setShowEventForm(false)} disabled={submitting}>
+            <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 pt-4 border-t flex-shrink-0">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setShowEventForm(false)} 
+                disabled={submitting}
+                className="min-h-[44px] w-full sm:w-auto"
+              >
                 Cancel
               </Button>
               <Button 
                 type="submit" 
-                className="bg-orange-600 hover:bg-orange-700" 
+                className="bg-orange-600 hover:bg-orange-700 min-h-[44px] w-full sm:w-auto" 
                 disabled={submitting || isFormInvalid()}
                 onClick={handleSubmitEvent}
               >
@@ -823,15 +837,15 @@ const EventSchedulerPage = () => {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Events</p>
-                <p className="text-2xl font-bold text-gray-900">{stats?.totalEvents || 0}</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats?.totalEvents || 0}</p>
               </div>
-              <CalendarIcon className="w-8 h-8 text-blue-500" />
+              <CalendarIcon className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
             </div>
           </CardContent>
         </Card>
@@ -840,9 +854,9 @@ const EventSchedulerPage = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">This Week</p>
-                <p className="text-2xl font-bold text-blue-600">{stats?.thisWeekEvents || 0}</p>
+                <p className="text-xl sm:text-2xl font-bold text-blue-600">{stats?.thisWeekEvents || 0}</p>
               </div>
-              <CalendarDays className="w-8 h-8 text-blue-500" />
+              <CalendarDays className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
             </div>
           </CardContent>
         </Card>
@@ -851,9 +865,9 @@ const EventSchedulerPage = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Meetings</p>
-                <p className="text-2xl font-bold text-green-600">{stats?.meetingsCount || 0}</p>
+                <p className="text-xl sm:text-2xl font-bold text-green-600">{stats?.meetingsCount || 0}</p>
               </div>
-              <Users className="w-8 h-8 text-green-500" />
+              <Users className="w-6 h-6 sm:w-8 sm:h-8 text-green-500" />
             </div>
           </CardContent>
         </Card>
@@ -862,9 +876,9 @@ const EventSchedulerPage = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Pending Reminders</p>
-                <p className="text-2xl font-bold text-yellow-600">{stats?.pendingReminders || 0}</p>
+                <p className="text-xl sm:text-2xl font-bold text-yellow-600">{stats?.pendingReminders || 0}</p>
               </div>
-              <Bell className="w-8 h-8 text-yellow-500" />
+              <Bell className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-500" />
             </div>
           </CardContent>
         </Card>
