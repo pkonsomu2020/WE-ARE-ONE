@@ -319,9 +319,35 @@ const EventSchedulerPage = () => {
   };
 
   const handleDateClick = (date: Date) => {
+    // Check if the date is in the past (before today)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time to start of day for accurate comparison
+    const selectedDate = new Date(date);
+    selectedDate.setHours(0, 0, 0, 0);
+    
+    if (selectedDate < today) {
+      toast.error('Cannot schedule events for past dates. Please select today or a future date.');
+      return;
+    }
+    
     const dateString = date.toISOString().split('T')[0];
     setNewEvent({ ...newEvent, date: dateString });
     setShowEventForm(true);
+  };
+
+  // Helper function to check if a date is in the past
+  const isPastDate = (date: Date) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const checkDate = new Date(date);
+    checkDate.setHours(0, 0, 0, 0);
+    return checkDate < today;
+  };
+
+  // Helper function to get minimum date for date input (today's date)
+  const getMinDate = () => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
   };
 
   // Form validation function
@@ -332,6 +358,18 @@ const EventSchedulerPage = () => {
     // Check if end time is after start time
     if (startTime && endTime && startTime >= endTime) {
       return true;
+    }
+
+    // Check if the selected date is in the past
+    if (newEvent.date) {
+      const selectedDate = new Date(newEvent.date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      selectedDate.setHours(0, 0, 0, 0);
+      
+      if (selectedDate < today) {
+        return true;
+      }
     }
 
     // Check required fields
@@ -371,6 +409,17 @@ const EventSchedulerPage = () => {
 
     if (!newEvent.title || !newEvent.date || !newEvent.startTime || !newEvent.endTime) {
       toast.error('Please fill in all required fields');
+      return;
+    }
+
+    // Check if the selected date is in the past
+    const selectedDate = new Date(newEvent.date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    selectedDate.setHours(0, 0, 0, 0);
+    
+    if (selectedDate < today) {
+      toast.error('Cannot schedule events for past dates. Please select today or a future date.');
       return;
     }
 
@@ -614,9 +663,24 @@ const EventSchedulerPage = () => {
                       id="date"
                       type="date"
                       value={newEvent.date}
+                      min={getMinDate()}
                       onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
                       required
                     />
+                    {newEvent.date && (() => {
+                      const selectedDate = new Date(newEvent.date);
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      selectedDate.setHours(0, 0, 0, 0);
+                      return selectedDate < today;
+                    })() && (
+                      <p className="text-sm text-red-500 mt-1">
+                        ⚠️ Cannot schedule events for past dates
+                      </p>
+                    )}
+                    <p className="text-xs text-gray-500 mt-1">
+                      Cannot schedule events for past dates
+                    </p>
                   </div>
                   <div>
                     <Label htmlFor="startTime">Start Time</Label>
@@ -799,7 +863,7 @@ const EventSchedulerPage = () => {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Calendar View</CardTitle>
-              <CardDescription>Click on any date to schedule a new event</CardDescription>
+              <CardDescription>Click on any available date to schedule a new event. Past dates are disabled.</CardDescription>
             </div>
             <div className="flex items-center space-x-2">
               <Select value={viewMode} onValueChange={(value: 'month' | 'week' | 'day') => setViewMode(value)}>
@@ -856,6 +920,22 @@ const EventSchedulerPage = () => {
             </Button>
           </div>
 
+          {/* Calendar Legend */}
+          <div className="flex items-center justify-center space-x-6 mb-4 p-3 bg-gray-50 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 bg-white border border-gray-200 rounded"></div>
+              <span className="text-sm text-gray-600">Available dates</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 bg-orange-50 border border-orange-200 rounded"></div>
+              <span className="text-sm text-gray-600">Today</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 bg-gray-100 border border-gray-200 rounded opacity-60"></div>
+              <span className="text-sm text-gray-600">Past dates (disabled)</span>
+            </div>
+          </div>
+
           {/* Calendar Grid */}
           <div className="grid grid-cols-7 gap-1 mb-2">
             {dayNames.map(day => (
@@ -872,31 +952,45 @@ const EventSchedulerPage = () => {
               }
 
               const dayEvents = getEventsForDate(date);
-              const isToday = date.toDateString() === new Date().toDateString(); // This is safe as 'date' is already a Date object
+              const isToday = date.toDateString() === new Date().toDateString();
+              const isPast = isPastDate(date);
 
               return (
                 <div
                   key={index}
-                  className={`h-24 p-1 border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors ${isToday ? 'bg-orange-50 border-orange-200' : 'bg-white'
-                    }`}
-                  onClick={() => handleDateClick(date)}
+                  className={`h-24 p-1 border border-gray-200 transition-colors ${
+                    isPast 
+                      ? 'bg-gray-100 cursor-not-allowed opacity-60' 
+                      : 'cursor-pointer hover:bg-gray-50 hover:border-orange-200'
+                  } ${
+                    isToday ? 'bg-orange-50 border-orange-200' : 'bg-white'
+                  }`}
+                  onClick={() => !isPast && handleDateClick(date)}
+                  title={isPast ? 'Cannot schedule events for past dates' : `Click to schedule an event on ${date.toLocaleDateString()}`}
                 >
-                  <div className={`text-sm font-medium mb-1 ${isToday ? 'text-orange-600' : 'text-gray-900'
-                    }`}>
+                  <div className={`text-sm font-medium mb-1 ${
+                    isToday 
+                      ? 'text-orange-600' 
+                      : isPast 
+                        ? 'text-gray-400' 
+                        : 'text-gray-900'
+                  }`}>
                     {date.getDate()}
                   </div>
                   <div className="space-y-1">
                     {dayEvents.slice(0, 2).map(event => (
                       <div
                         key={event.id}
-                        className={`text-xs p-1 rounded border ${getEventTypeColor(event.type)} truncate`}
+                        className={`text-xs p-1 rounded border ${getEventTypeColor(event.type)} truncate ${
+                          isPast ? 'opacity-50' : ''
+                        }`}
                         title={event.title}
                       >
                         {formatTimeString(event.start)} {event.title}
                       </div>
                     ))}
                     {dayEvents.length > 2 && (
-                      <div className="text-xs text-gray-500">
+                      <div className={`text-xs ${isPast ? 'text-gray-400' : 'text-gray-500'}`}>
                         +{dayEvents.length - 2} more
                       </div>
                     )}
