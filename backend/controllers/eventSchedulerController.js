@@ -802,7 +802,14 @@ const sendManualReminder = async (req, res) => {
     }
 
     // Send reminder notifications with rate limiting
-    const emailResults = await sendEventNotification(event, 'reminder', recipients);
+    let emailResults = { successCount: 0, failureCount: recipients.length, totalCount: recipients.length };
+    
+    try {
+      emailResults = await sendEventNotification(event, 'reminder', recipients);
+    } catch (emailError) {
+      console.error('Email sending error in reminder:', emailError);
+      // Continue with reminder processing even if emails fail
+    }
 
     // Update notification sent status for attendees
     if (attendees && attendees.length > 0) {
@@ -834,7 +841,7 @@ const sendManualReminder = async (req, res) => {
 
     res.json({
       success: true,
-      message: `Reminder sent: ${emailResults.successCount} delivered, ${emailResults.failureCount} failed out of ${recipients.length} recipients`
+      message: `Reminder processed: ${emailResults.successCount} delivered, ${emailResults.failureCount} failed out of ${recipients.length} recipients`
     });
 
   } catch (error) {
@@ -927,7 +934,14 @@ const processAutomaticReminders = async (req, res) => {
         }
 
         // Send reminder notifications with rate limiting
-        const emailResults = await sendEventNotification(event, 'reminder', recipients);
+        let emailResults = { successCount: 0, failureCount: recipients.length, totalCount: recipients.length };
+        
+        try {
+          emailResults = await sendEventNotification(event, 'reminder', recipients);
+        } catch (emailError) {
+          console.error('Email sending error in automatic reminder:', emailError);
+          // Continue with reminder processing even if emails fail
+        }
 
         // Mark reminder as sent
         const { error: updateReminderError } = await supabase
