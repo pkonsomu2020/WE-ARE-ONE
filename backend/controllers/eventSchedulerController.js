@@ -6,6 +6,33 @@ require('dotenv').config();
 // Initialize Resend with API key
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// Email validation and filtering function
+const validateAndFilterEmails = (recipients) => {
+  const validEmails = [];
+  const invalidEmails = [];
+  
+  recipients.forEach(recipient => {
+    const email = recipient.email;
+    
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      invalidEmails.push({ ...recipient, reason: 'Invalid email format' });
+      return;
+    }
+    
+    // For now, we'll try to send to all valid emails
+    // Resend will handle domain verification errors
+    validEmails.push(recipient);
+  });
+  
+  if (invalidEmails.length > 0) {
+    console.log(`⚠️ Skipping ${invalidEmails.length} invalid emails:`, invalidEmails.map(e => e.email));
+  }
+  
+  return { validEmails, invalidEmails };
+};
+
 // Get all admin profiles for notifications
 const getAllAdminProfiles = async () => {
   try {
@@ -71,7 +98,7 @@ const checkDateAvailability = async (startDateTime, endDateTime, excludeEventId 
   }
 };
 
-// Send event notification emails
+// Send event notification emails with rate limiting and domain handling
 const sendEventNotification = async (event, notificationType, recipients) => {
   const emailTemplates = {
     invitation: {
@@ -165,10 +192,24 @@ const sendEventNotification = async (event, notificationType, recipients) => {
   };
 
   const template = emailTemplates[notificationType];
-  if (!template) return;
+  if (!template) return { successCount: 0, failureCount: 0, totalCount: 0 };
 
-  for (const recipient of recipients) {
+  // Validate and filter emails
+  const { validEmails, invalidEmails } = validateAndFilterEmails(recipients);
+  
+  let successCount = 0;
+  let failureCount = invalidEmails.length; // Count invalid emails as failures
+
+  // Process emails with rate limiting (1 email per 600ms to stay under 2/second limit)
+  for (let i = 0; i < validEmails.length; i++) {
+    const recipient = validEmails[i];
+    
     try {
+      // Add delay between emails to respect rate limits (600ms = 1.67 emails/second)
+      if (i > 0) {
+        await new Promise(resolve => setTimeout(resolve, 600));
+      }
+
       const { data, error } = await resend.emails.send({
         from: 'We Are One Events <weareone0624@gmail.com>',
         to: [recipient.email],
@@ -178,13 +219,31 @@ const sendEventNotification = async (event, notificationType, recipients) => {
 
       if (error) {
         console.error(`❌ Failed to send email to ${recipient.email}:`, error);
+        failureCount++;
+        
+        // Log the failed notification
+        await supabase
+          .from('event_notifications')
+          .insert({
+            event_id: event.id,
+            notification_type: notificationType,
+            recipient_email: recipient.email,
+            recipient_name: recipient.full_name || recipient.name,
+            sent_at: new Date().toISOString(),
+            email_subject: template.subject,
+            email_status: 'failed',
+            error_message: error.message || JSON.stringify(error)
+          })
+          .catch(logError => console.error('Error logging failed notification:', logError));
+        
         continue;
       }
 
       console.log(`✅ Email sent to ${recipient.email} - Email ID: ${data.id}`);
+      successCount++;
 
-      // Log the notification
-      const { error: logError } = await supabase
+      // Log the successful notification
+      await supabase
         .from('event_notifications')
         .insert({
           event_id: event.id,
@@ -195,18 +254,15 @@ const sendEventNotification = async (event, notificationType, recipients) => {
           email_subject: template.subject,
           email_status: 'sent',
           email_id: data.id
-        });
+        })
+        .catch(logError => console.error('Error logging notification:', logError));
 
-      if (logError) {
-        console.error('Error logging notification:', logError);
-      }
-
-      console.log(`✅ ${notificationType} notification sent to:`, recipient.email);
     } catch (error) {
       console.error(`❌ Failed to send ${notificationType} notification to ${recipient.email}:`, error.message);
+      failureCount++;
       
       // Log the failed notification
-      const { error: logError } = await supabase
+      await supabase
         .from('event_notifications')
         .insert({
           event_id: event.id,
@@ -217,13 +273,13 @@ const sendEventNotification = async (event, notificationType, recipients) => {
           email_subject: template.subject,
           email_status: 'failed',
           error_message: error.message
-        });
-
-      if (logError) {
-        console.error('Error logging failed notification:', logError);
-      }
+        })
+        .catch(logError => console.error('Error logging failed notification:', logError));
     }
   }
+
+  console.log(`📧 Email summary: ${successCount} sent, ${failureCount} failed out of ${recipients.length} total`);
+  return { successCount, failureCount, totalCount: recipients.length };
 };
 
 // Create new event
@@ -382,7 +438,7 @@ const createEvent = async (req, res) => {
     // Create notification for event creation
     await notificationService.createEventNotification(title, date, startTime);
 
-    // Send invitation notifications (async, don't wait)
+    // Send invitation notifications with rate limiting
     const allRecipients = [
       ...adminProfiles,
       ...(attendees ? attendees.split(',').map(email => ({ email: email.trim(), name: email.trim() })) : [])
@@ -390,16 +446,20 @@ const createEvent = async (req, res) => {
 
     console.log(`📧 Sending invitations to ${allRecipients.length} recipients:`, allRecipients.map(r => r.email));
 
-    sendEventNotification(eventData, 'invitation', allRecipients).catch(err => 
-      console.error('Error sending invitation notifications:', err)
-    );
+    // Send emails with proper rate limiting and error handling
+    const emailResults = await sendEventNotification(eventData, 'invitation', allRecipients);
 
     res.status(201).json({
       success: true,
-      message: 'Event created successfully and invitations sent',
+      message: `Event created successfully. ${emailResults.successCount} invitations sent, ${emailResults.failureCount} failed.`,
       data: {
         event: eventData,
-        attendeesNotified: allRecipients.length
+        attendeesNotified: emailResults.successCount,
+        emailResults: {
+          sent: emailResults.successCount,
+          failed: emailResults.failureCount,
+          total: emailResults.totalCount
+        }
       }
     });
 
@@ -732,8 +792,8 @@ const sendManualReminder = async (req, res) => {
       });
     }
 
-    // Send reminder notifications
-    await sendEventNotification(event, 'reminder', recipients);
+    // Send reminder notifications with rate limiting
+    const emailResults = await sendEventNotification(event, 'reminder', recipients);
 
     // Update notification sent status for attendees
     if (attendees && attendees.length > 0) {
@@ -765,7 +825,7 @@ const sendManualReminder = async (req, res) => {
 
     res.json({
       success: true,
-      message: `Reminder sent to ${recipients.length} attendees`
+      message: `Reminder sent: ${emailResults.successCount} delivered, ${emailResults.failureCount} failed out of ${recipients.length} recipients`
     });
 
   } catch (error) {
@@ -857,8 +917,8 @@ const processAutomaticReminders = async (req, res) => {
           }
         }
 
-        // Send reminder notifications
-        await sendEventNotification(event, 'reminder', recipients);
+        // Send reminder notifications with rate limiting
+        const emailResults = await sendEventNotification(event, 'reminder', recipients);
 
         // Mark reminder as sent
         const { error: updateReminderError } = await supabase
@@ -889,7 +949,7 @@ const processAutomaticReminders = async (req, res) => {
         }
 
         processedCount++;
-        console.log(`✅ Processed reminder for event: ${event.title}`);
+        console.log(`✅ Processed reminder for event: ${event.title} (${emailResults.successCount} sent, ${emailResults.failureCount} failed)`);
 
       } catch (error) {
         console.error(`❌ Failed to process reminder for event ${reminder.event_id}:`, error.message);
