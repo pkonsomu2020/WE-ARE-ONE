@@ -238,6 +238,42 @@ const FileRepositoryPage = () => {
       setUploading(true);
       const formData = new FormData();
 
+      // Enhanced validation for mobile devices
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      const allowedExtensions = /\.(pdf|doc|docx|xls|xlsx|ppt|pptx|txt|jpg|jpeg|png|gif|zip|rar)$/i;
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+      // Show upload start notification
+      addNotification({
+        title: 'Upload Starting',
+        message: `Preparing ${fileList.length} file(s) for upload...`,
+        type: 'info',
+        source: 'file'
+      });
+
+      for (let i = 0; i < fileList.length; i++) {
+        const file = fileList[i];
+        
+        // Enhanced file validation
+        if (file.size > maxSize) {
+          throw new Error(`File "${file.name}" is too large. Maximum size is 10MB.`);
+        }
+        if (!allowedExtensions.test(file.name)) {
+          throw new Error(`File "${file.name}" is not a supported format.`);
+        }
+        
+        // Additional mobile-specific checks
+        if (isMobile && file.size > 5 * 1024 * 1024) {
+          // Warn about large files on mobile
+          const proceed = window.confirm(
+            `"${file.name}" is ${fileRepositoryAPI.formatFileSize(file.size)}. Large files may take longer to upload on mobile. Continue?`
+          );
+          if (!proceed) {
+            throw new Error('Upload cancelled by user');
+          }
+        }
+      }
+
       if (fileList.length === 1) {
         formData.append('file', fileList[0]);
         await fileRepositoryAPI.uploadFile(formData);
@@ -251,61 +287,298 @@ const FileRepositoryPage = () => {
       // Reload data after upload
       await loadData();
 
-      // Add notification
+      // Add success notification
       const fileCount = fileList.length;
       const fileName = fileCount === 1 ? fileList[0].name : `${fileCount} files`;
       addNotification({
-        title: 'File Upload Complete',
+        title: 'Upload Complete',
         message: `Successfully uploaded ${fileName} to repository`,
         type: 'success',
         source: 'file',
         actionUrl: '/admin/files'
       });
 
-      // Show success message (you can add a toast notification here)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Upload failed:', error);
-      // Show error message (you can add a toast notification here)
-      addNotification('Upload failed. Please try again.', 'error');
+      addNotification({
+        title: 'Upload Failed',
+        message: error.message || 'Failed to upload files. Please check your connection and try again.',
+        type: 'error',
+        source: 'file'
+      });
     } finally {
       setUploading(false);
+      // Reset file inputs to allow re-uploading the same file
+      const fileInput = document.getElementById('file-input') as HTMLInputElement;
+      const headerFileInput = document.getElementById('header-file-input') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
+      if (headerFileInput) headerFileInput.value = '';
     }
   };
 
   const handleDownload = async (fileId: number, fileName: string) => {
     try {
+      // Show loading notification for mobile users
+      addNotification({
+        title: 'Download Starting',
+        message: `Preparing ${fileName} for download...`,
+        type: 'info',
+        source: 'file'
+      });
+
       const blob = await fileRepositoryAPI.downloadFile(fileId);
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      
+      // Mobile-friendly download handling
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      if (isMobile) {
+        // For mobile devices, try different approaches
+        const url = window.URL.createObjectURL(blob);
+        
+        // Try to open in new tab first (works better on mobile)
+        const newWindow = window.open(url, '_blank');
+        
+        if (newWindow) {
+          // If new window opened successfully, clean up after delay
+          setTimeout(() => {
+            window.URL.revokeObjectURL(url);
+          }, 5000);
+        } else {
+          // Fallback to direct download
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = fileName;
+          a.style.display = 'none';
+          document.body.appendChild(a);
+          
+          // Use touch event for mobile
+          const event = new MouseEvent('click', {
+            view: window,
+            bubbles: true,
+            cancelable: true
+          });
+          a.dispatchEvent(event);
+          
+          // Clean up
+          setTimeout(() => {
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+          }, 1000);
+        }
+      } else {
+        // Desktop download
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }
+
+      // Success notification
+      addNotification({
+        title: 'Download Complete',
+        message: `${fileName} has been downloaded successfully`,
+        type: 'success',
+        source: 'file'
+      });
+
     } catch (error) {
       console.error('Download failed:', error);
+      addNotification({
+        title: 'Download Failed',
+        message: `Failed to download ${fileName}. Please try again.`,
+        type: 'error',
+        source: 'file'
+      });
     }
   };
 
-  const handleOpen = async (fileId: number) => {
+  const handleOpen = async (fileId: number, fileName?: string) => {
     try {
+      // Show loading notification
+      addNotification({
+        title: 'Opening File',
+        message: `Loading ${fileName || 'file'}...`,
+        type: 'info',
+        source: 'file'
+      });
+
       const blob = await fileRepositoryAPI.downloadFile(fileId);
       const url = window.URL.createObjectURL(blob);
-      window.open(url, '_blank');
+      
+      // Mobile-friendly file opening
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      if (isMobile) {
+        // For mobile, try to open in new tab with better handling
+        const newWindow = window.open('', '_blank');
+        
+        if (newWindow) {
+          // Create a simple HTML page to display the file
+          newWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+              <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>${fileName || 'File Viewer'}</title>
+                <style>
+                  body { 
+                    margin: 0; 
+                    padding: 20px; 
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    background: #f5f5f5;
+                  }
+                  .container { 
+                    max-width: 100%; 
+                    background: white; 
+                    border-radius: 8px; 
+                    padding: 20px; 
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                  }
+                  .header {
+                    margin-bottom: 20px;
+                    padding-bottom: 15px;
+                    border-bottom: 1px solid #eee;
+                  }
+                  .file-title {
+                    font-size: 18px;
+                    font-weight: 600;
+                    color: #333;
+                    margin: 0;
+                    word-break: break-word;
+                  }
+                  .file-actions {
+                    margin-top: 15px;
+                    display: flex;
+                    gap: 10px;
+                    flex-wrap: wrap;
+                  }
+                  .btn {
+                    padding: 12px 20px;
+                    border: none;
+                    border-radius: 6px;
+                    font-size: 14px;
+                    font-weight: 500;
+                    cursor: pointer;
+                    text-decoration: none;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 8px;
+                    min-height: 44px;
+                    touch-action: manipulation;
+                  }
+                  .btn-primary {
+                    background: #3B82F6;
+                    color: white;
+                  }
+                  .btn-secondary {
+                    background: #6B7280;
+                    color: white;
+                  }
+                  .file-content {
+                    width: 100%;
+                    height: 70vh;
+                    border: 1px solid #ddd;
+                    border-radius: 6px;
+                  }
+                  @media (max-width: 768px) {
+                    body { padding: 10px; }
+                    .container { padding: 15px; }
+                    .btn { padding: 14px 18px; font-size: 16px; }
+                  }
+                </style>
+              </head>
+              <body>
+                <div class="container">
+                  <div class="header">
+                    <h1 class="file-title">${fileName || 'File Viewer'}</h1>
+                    <div class="file-actions">
+                      <a href="${url}" download="${fileName || 'file'}" class="btn btn-primary">
+                        📥 Download
+                      </a>
+                      <button onclick="window.close()" class="btn btn-secondary">
+                        ✕ Close
+                      </button>
+                    </div>
+                  </div>
+                  <iframe src="${url}" class="file-content" frameborder="0"></iframe>
+                </div>
+              </body>
+            </html>
+          `);
+          newWindow.document.close();
+          
+          // Clean up URL after delay
+          setTimeout(() => {
+            window.URL.revokeObjectURL(url);
+          }, 10000);
+        } else {
+          // Fallback: direct URL opening
+          window.location.href = url;
+        }
+      } else {
+        // Desktop: simple new tab opening
+        const newWindow = window.open(url, '_blank');
+        if (!newWindow) {
+          // Fallback if popup blocked
+          window.location.href = url;
+        }
+      }
+
+      // Success notification
+      addNotification({
+        title: 'File Opened',
+        message: `${fileName || 'File'} opened successfully`,
+        type: 'success',
+        source: 'file'
+      });
+
     } catch (error) {
       console.error('Open failed:', error);
+      addNotification({
+        title: 'Failed to Open File',
+        message: `Could not open ${fileName || 'file'}. Please try downloading instead.`,
+        type: 'error',
+        source: 'file'
+      });
     }
   };
 
   const handleDelete = async (fileId: number, fileName: string) => {
-    if (!confirm(`Are you sure you want to delete "${fileName}"?`)) {
+    // Mobile-friendly confirmation dialog
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    let confirmDelete = false;
+    
+    if (isMobile) {
+      // Use a more mobile-friendly confirmation
+      confirmDelete = window.confirm(
+        `Delete "${fileName}"?\n\nThis action cannot be undone. The file will be permanently removed from the repository.`
+      );
+    } else {
+      confirmDelete = window.confirm(`Are you sure you want to delete "${fileName}"?`);
+    }
+
+    if (!confirmDelete) {
       return;
     }
 
     try {
+      // Show loading notification
+      addNotification({
+        title: 'Deleting File',
+        message: `Removing ${fileName} from repository...`,
+        type: 'info',
+        source: 'file'
+      });
+
       await fileRepositoryAPI.deleteFile(fileId);
       await loadData();
+      
       addNotification({
         title: 'File Deleted',
         message: `Successfully deleted ${fileName}`,
@@ -314,32 +587,78 @@ const FileRepositoryPage = () => {
         actionUrl: '/admin/files'
       });
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Failed to delete file';
-      addNotification(errorMessage, 'error');
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to delete file';
+      addNotification({
+        title: 'Delete Failed',
+        message: `Could not delete ${fileName}: ${errorMessage}`,
+        type: 'error',
+        source: 'file'
+      });
       console.error('Delete failed:', error);
     }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 mobile-file-repository">
+      <style jsx>{`
+        .mobile-file-repository {
+          /* Mobile-specific styles */
+        }
+        
+        @media (max-width: 768px) {
+          .mobile-file-repository .touch-manipulation {
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+          }
+          
+          .mobile-file-repository button {
+            min-height: 44px;
+            min-width: 44px;
+          }
+          
+          .mobile-file-repository input[type="file"] {
+            font-size: 16px; /* Prevents zoom on iOS */
+          }
+          
+          .mobile-file-repository .dropdown-content {
+            position: fixed !important;
+            z-index: 9999 !important;
+          }
+        }
+      `}</style>
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">File Repository</h1>
           <p className="text-gray-600">Manage organizational documents and files</p>
         </div>
-        <Button
-          className="bg-orange-600 hover:bg-orange-700"
-          onClick={() => document.getElementById('header-file-input')?.click()}
-          disabled={uploading}
-        >
-          <Upload className="w-4 h-4 mr-2" />
-          {uploading ? 'Uploading...' : 'Upload Document'}
-        </Button>
+        <div className="flex items-center space-x-2">
+          {/* Mobile Upload Button */}
+          <Button
+            className="bg-orange-600 hover:bg-orange-700 md:hidden touch-manipulation min-h-[44px]"
+            onClick={() => document.getElementById('header-file-input')?.click()}
+            disabled={uploading}
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            {uploading ? 'Uploading...' : 'Upload'}
+          </Button>
+          {/* Desktop Upload Button */}
+          <Button
+            className="bg-orange-600 hover:bg-orange-700 hidden md:flex"
+            onClick={() => document.getElementById('header-file-input')?.click()}
+            disabled={uploading}
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            {uploading ? 'Uploading...' : 'Upload Document'}
+          </Button>
+        </div>
         <input
           id="header-file-input"
           type="file"
           multiple
+          accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,.gif,.zip,.rar"
           className="hidden"
           onChange={(e) => e.target.files && handleFileUpload(e.target.files)}
         />
@@ -395,35 +714,58 @@ const FileRepositoryPage = () => {
 
       {/* Upload Area */}
       <Card>
-        <CardContent className="p-6">
+        <CardContent className="p-4 md:p-6">
           <div
-            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${dragActive
+            className={`border-2 border-dashed rounded-lg p-4 md:p-8 text-center transition-colors cursor-pointer touch-manipulation ${dragActive
               ? 'border-orange-500 bg-orange-50'
-              : 'border-gray-300 hover:border-gray-400'
+              : 'border-gray-300 hover:border-gray-400 active:border-orange-500'
               }`}
             onDragEnter={handleDrag}
             onDragLeave={handleDrag}
             onDragOver={handleDrag}
             onDrop={handleDrop}
+            onClick={() => document.getElementById('file-input')?.click()}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                document.getElementById('file-input')?.click();
+              }
+            }}
+            style={{ 
+              WebkitTapHighlightColor: 'transparent',
+              minHeight: '120px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center'
+            }}
           >
-            <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Drop files here or click to upload
+            <Upload className="w-8 h-8 md:w-12 md:h-12 text-gray-400 mx-auto mb-2 md:mb-4" />
+            <h3 className="text-sm md:text-lg font-semibold text-gray-900 mb-1 md:mb-2">
+              Tap to upload files or drag and drop
             </h3>
-            <p className="text-gray-600 mb-4">
-              Supported formats: PDF, DOCX, XLSX, PPTX (Max 10MB per file)
+            <p className="text-xs md:text-base text-gray-600 mb-3 md:mb-4 px-2">
+              Supported: PDF, DOCX, XLSX, PPTX, Images (Max 10MB)
             </p>
             <Button
               variant="outline"
-              onClick={() => document.getElementById('file-input')?.click()}
+              onClick={(e) => {
+                e.stopPropagation();
+                document.getElementById('file-input')?.click();
+              }}
+              className="touch-manipulation min-h-[44px] text-sm md:text-base"
+              disabled={uploading}
             >
               <Plus className="w-4 h-4 mr-2" />
-              Choose Files
+              {uploading ? 'Uploading...' : 'Choose Files'}
             </Button>
             <input
               id="file-input"
               type="file"
               multiple
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,.gif,.zip,.rar"
               className="hidden"
               onChange={(e) => e.target.files && handleFileUpload(e.target.files)}
             />
@@ -498,7 +840,7 @@ const FileRepositoryPage = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredDocuments.map((file) => (
-                <Card key={file.id} className="hover:shadow-md transition-shadow">
+                <Card key={file.id} className="hover:shadow-md transition-shadow touch-manipulation">
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-start space-x-3 flex-1 min-w-0">
@@ -507,31 +849,48 @@ const FileRepositoryPage = () => {
                         </div>
                         <div className="flex-1 min-w-0">
                           <h3 
-                            className="font-medium text-gray-900 break-words line-clamp-2 text-sm" 
+                            className="font-medium text-gray-900 break-words line-clamp-2 text-sm leading-5" 
                             title={file.original_name}
+                            style={{ 
+                              wordBreak: 'break-word',
+                              overflowWrap: 'break-word',
+                              hyphens: 'auto'
+                            }}
                           >
                             {file.original_name}
                           </h3>
                           <p className="text-xs text-gray-500 mt-1">{fileRepositoryAPI.formatFileSize(file.file_size)}</p>
                         </div>
                       </div>
+                      {/* Mobile-friendly dropdown menu */}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="flex-shrink-0">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="flex-shrink-0 touch-manipulation min-h-[44px] min-w-[44px] p-2 hover:bg-gray-100 active:bg-gray-200"
+                            style={{ WebkitTapHighlightColor: 'transparent' }}
+                          >
                             <MoreVertical className="w-4 h-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleOpen(file.id)}>
+                        <DropdownMenuContent align="end" className="w-48 z-50">
+                          <DropdownMenuItem 
+                            onClick={() => handleOpen(file.id, file.original_name)}
+                            className="touch-manipulation min-h-[44px] cursor-pointer focus:bg-gray-100 active:bg-gray-200"
+                          >
                             <FileText className="w-4 h-4 mr-2" />
-                            Open
+                            View/Open
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleDownload(file.id, file.original_name)}>
+                          <DropdownMenuItem 
+                            onClick={() => handleDownload(file.id, file.original_name)}
+                            className="touch-manipulation min-h-[44px] cursor-pointer focus:bg-gray-100 active:bg-gray-200"
+                          >
                             <Download className="w-4 h-4 mr-2" />
                             Download
                           </DropdownMenuItem>
                           <DropdownMenuItem 
-                            className="text-red-600"
+                            className="text-red-600 touch-manipulation min-h-[44px] cursor-pointer focus:bg-red-50 active:bg-red-100"
                             onClick={() => handleDelete(file.id, file.original_name)}
                           >
                             <Trash2 className="w-4 h-4 mr-2" />
@@ -569,8 +928,9 @@ const FileRepositoryPage = () => {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="flex-1"
-                        onClick={() => handleOpen(file.id)}
+                        className="flex-1 touch-manipulation min-h-[44px] text-xs md:text-sm hover:bg-gray-50 active:bg-gray-100"
+                        onClick={() => handleOpen(file.id, file.original_name)}
+                        style={{ WebkitTapHighlightColor: 'transparent' }}
                       >
                         <FileText className="w-3 h-3 mr-1" />
                         Open
@@ -578,8 +938,9 @@ const FileRepositoryPage = () => {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="flex-1"
+                        className="flex-1 touch-manipulation min-h-[44px] text-xs md:text-sm hover:bg-gray-50 active:bg-gray-100"
                         onClick={() => handleDownload(file.id, file.original_name)}
+                        style={{ WebkitTapHighlightColor: 'transparent' }}
                       >
                         <Download className="w-3 h-3 mr-1" />
                         Download

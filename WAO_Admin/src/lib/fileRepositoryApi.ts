@@ -258,13 +258,51 @@ class FileRepositoryAPI {
     }
 
     const url = `${API_BASE_URL}${this.baseUrl}/download/${id}`;
-    const response = await fetch(url, {
+    
+    // Enhanced mobile download handling
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    const fetchOptions: RequestInit = {
       headers,
       credentials: 'include'
-    });
-    
-    if (!response.ok) throw new Error('Download failed');
-    return response.blob();
+    };
+
+    // Add mobile-specific optimizations
+    if (isMobile) {
+      // Add cache control for mobile
+      headers['Cache-Control'] = 'no-cache';
+      // Set longer timeout for mobile connections
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      
+      fetchOptions.signal = controller.signal;
+      
+      try {
+        const response = await fetch(url, fetchOptions);
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          throw new Error(`Download failed: ${response.status} ${response.statusText}`);
+        }
+        
+        return response.blob();
+      } catch (error) {
+        clearTimeout(timeoutId);
+        if (error instanceof Error && error.name === 'AbortError') {
+          throw new Error('Download timed out. Please check your connection and try again.');
+        }
+        throw error;
+      }
+    } else {
+      // Standard desktop download
+      const response = await fetch(url, fetchOptions);
+      
+      if (!response.ok) {
+        throw new Error(`Download failed: ${response.status} ${response.statusText}`);
+      }
+      
+      return response.blob();
+    }
   }
 
   // Statistics
