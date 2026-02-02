@@ -222,7 +222,7 @@ const sendEventNotification = async (event, notificationType, recipients) => {
         failureCount++;
         
         // Log the failed notification
-        await supabase
+        const { error: logError } = await supabase
           .from('event_notifications')
           .insert({
             event_id: event.id,
@@ -233,8 +233,11 @@ const sendEventNotification = async (event, notificationType, recipients) => {
             email_subject: template.subject,
             email_status: 'failed',
             error_message: error.message || JSON.stringify(error)
-          })
-          .catch(logError => console.error('Error logging failed notification:', logError));
+          });
+
+        if (logError) {
+          console.error('Error logging failed notification:', logError);
+        }
         
         continue;
       }
@@ -243,7 +246,7 @@ const sendEventNotification = async (event, notificationType, recipients) => {
       successCount++;
 
       // Log the successful notification
-      await supabase
+      const { error: logError } = await supabase
         .from('event_notifications')
         .insert({
           event_id: event.id,
@@ -254,15 +257,18 @@ const sendEventNotification = async (event, notificationType, recipients) => {
           email_subject: template.subject,
           email_status: 'sent',
           email_id: data.id
-        })
-        .catch(logError => console.error('Error logging notification:', logError));
+        });
+
+      if (logError) {
+        console.error('Error logging notification:', logError);
+      }
 
     } catch (error) {
       console.error(`❌ Failed to send ${notificationType} notification to ${recipient.email}:`, error.message);
       failureCount++;
       
       // Log the failed notification
-      await supabase
+      const { error: logError } = await supabase
         .from('event_notifications')
         .insert({
           event_id: event.id,
@@ -273,8 +279,11 @@ const sendEventNotification = async (event, notificationType, recipients) => {
           email_subject: template.subject,
           email_status: 'failed',
           error_message: error.message
-        })
-        .catch(logError => console.error('Error logging failed notification:', logError));
+        });
+
+      if (logError) {
+        console.error('Error logging failed notification:', logError);
+      }
     }
   }
 
