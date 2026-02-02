@@ -506,7 +506,7 @@ const EventSchedulerPage = () => {
   };
 
   const handleDeleteEvent = async (eventId: number, eventTitle: string) => {
-    if (!confirm(`Are you sure you want to cancel "${eventTitle}"?`)) {
+    if (!confirm(`Are you sure you want to cancel "${eventTitle}"? All admins will be notified of the cancellation.`)) {
       return;
     }
 
@@ -514,7 +514,20 @@ const EventSchedulerPage = () => {
       const response = await api.eventScheduler.deleteEvent(eventId);
 
       if (response.success) {
-        toast.success('Event cancelled successfully');
+        // Show detailed success message with notification results
+        if (response.data?.notificationResults) {
+          const { sent, failed, total } = response.data.notificationResults;
+          if (sent > 0) {
+            toast.success(`Event cancelled successfully! Cancellation notifications sent to ${sent} admin${sent > 1 ? 's' : ''}.`);
+          } else if (failed > 0) {
+            toast.success(`Event cancelled successfully, but failed to send ${failed} cancellation notification${failed > 1 ? 's' : ''}.`);
+          } else {
+            toast.success('Event cancelled successfully');
+          }
+        } else {
+          toast.success('Event cancelled successfully');
+        }
+        
         await loadEvents();
         await loadStats();
       }

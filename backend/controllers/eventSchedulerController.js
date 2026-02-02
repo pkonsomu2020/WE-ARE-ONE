@@ -293,6 +293,112 @@ const sendEventNotification = async (event, notificationType, recipients) => {
   return { successCount, failureCount, totalCount: recipients.length };
 };
 
+// Send event cancellation notification emails
+const sendEventCancellationNotification = async (event, recipients) => {
+  const cancellationTemplate = {
+    subject: `🚫 Event Cancelled: ${event.title}`,
+    getBody: (event, recipient) => `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #dc3545, #c82333); padding: 20px; text-align: center;">
+          <h1 style="color: white; margin: 0;">🚫 Event Cancelled</h1>
+          <p style="color: white; margin: 5px 0;">We Are One (WAO)</p>
+        </div>
+        
+        <div style="padding: 30px; background: white;">
+          <h2 style="color: #333; margin-bottom: 20px;">📅 ${event.title}</h2>
+          
+          <div style="background: #f8d7da; border: 1px solid #f5c6cb; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <h3 style="color: #721c24; margin-top: 0;">⚠️ Event Cancellation Notice</h3>
+            <p style="color: #721c24; margin-bottom: 0;">This event has been cancelled and will no longer take place as scheduled.</p>
+          </div>
+          
+          <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <h3 style="color: #333; margin-top: 0;">📋 Original Event Details:</h3>
+            <p><strong>📅 Date & Time:</strong> ${new Date(event.start_datetime).toLocaleString()}</p>
+            <p><strong>⏰ Duration:</strong> ${new Date(event.start_datetime).toLocaleString()} - ${new Date(event.end_datetime).toLocaleString()}</p>
+            <p><strong>📍 Location:</strong> ${event.location || 'TBD'}</p>
+            ${event.meeting_link ? `<p><strong>🔗 Meeting Link:</strong> <span style="text-decoration: line-through;">${event.meeting_link}</span> (No longer active)</p>` : ''}
+            <p><strong>📝 Type:</strong> ${event.type.replace('_', ' ').toUpperCase()}</p>
+          </div>
+          
+          ${event.description ? `
+            <div style="margin-bottom: 20px;">
+              <h3 style="color: #333;">📋 Original Description:</h3>
+              <p style="color: #666; line-height: 1.6;">${event.description}</p>
+            </div>
+          ` : ''}
+          
+          <div style="background: #d1ecf1; border: 1px solid #bee5eb; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <p style="margin: 0; color: #0c5460;"><strong>📧 Notification sent to:</strong> ${recipient.email}</p>
+            <p style="margin: 5px 0 0 0; color: #0c5460;">Please update your calendar and notify any external participants if applicable.</p>
+          </div>
+          
+          <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <p style="margin: 0; color: #856404;"><strong>📝 Action Required:</strong></p>
+            <p style="margin: 5px 0 0 0; color: #856404;">
+              • Remove this event from your calendar<br>
+              • Inform any external participants you may have invited<br>
+              • Contact the admin team if you have questions about the cancellation
+            </p>
+          </div>
+          
+          <div style="text-align: center; margin-top: 30px;">
+            <p style="color: #666;">If you have any questions about this cancellation, please contact the admin team.</p>
+          </div>
+        </div>
+        
+        <div style="background: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #eee;">
+          <p style="color: #666; margin: 0;">We Are One (WAO) - Mental Health Support Community</p>
+          <p style="color: #999; margin: 5px 0 0 0; font-size: 12px;">This is an automated cancellation notification from the WAO Event Scheduler</p>
+        </div>
+      </div>
+    `
+  };
+
+  // Validate and filter emails
+  const { validEmails, invalidEmails } = validateAndFilterEmails(recipients);
+  
+  let successCount = 0;
+  let failureCount = invalidEmails.length; // Count invalid emails as failures
+
+  console.log(`📧 Sending cancellation notifications to ${validEmails.length} valid recipients`);
+
+  // Process emails with rate limiting (1 email per 600ms to stay under 2/second limit)
+  for (let i = 0; i < validEmails.length; i++) {
+    const recipient = validEmails[i];
+    
+    try {
+      // Add delay between emails to respect rate limits (600ms = 1.67 emails/second)
+      if (i > 0) {
+        await new Promise(resolve => setTimeout(resolve, 600));
+      }
+
+      const { data, error } = await resend.emails.send({
+        from: 'We Are One Events <events@weareone.co.ke>',
+        to: [recipient.email],
+        subject: cancellationTemplate.subject,
+        html: cancellationTemplate.getBody(event, recipient)
+      });
+
+      if (error) {
+        console.error(`❌ Failed to send cancellation email to ${recipient.email}:`, error);
+        failureCount++;
+        continue;
+      }
+
+      console.log(`✅ Cancellation email sent to ${recipient.email} - Email ID: ${data.id}`);
+      successCount++;
+
+    } catch (error) {
+      console.error(`❌ Failed to send cancellation notification to ${recipient.email}:`, error.message);
+      failureCount++;
+    }
+  }
+
+  console.log(`📧 Cancellation email summary: ${successCount} sent, ${failureCount} failed out of ${recipients.length} total`);
+  return { successCount, failureCount, totalCount: recipients.length };
+};
+
 // Create new event
 const createEvent = async (req, res) => {
   try {
@@ -699,7 +805,7 @@ const deleteEvent = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Check if event exists
+    // Check if event exists and get full event details
     const { data: existingEvent, error: fetchError } = await supabase
       .from('scheduled_events')
       .select('*')
@@ -713,20 +819,131 @@ const deleteEvent = async (req, res) => {
       });
     }
 
+    // Get all attendees before cancelling
+    const { data: attendees, error: attendeesError } = await supabase
+      .from('event_attendees')
+      .select('*')
+      .eq('event_id', id);
+
+    if (attendeesError) {
+      console.error('Error fetching attendees for cancellation:', attendeesError);
+    }
+
+    // Get admin profiles for admin attendees
+    const adminIds = (attendees || [])
+      .filter(a => a.admin_profile_id)
+      .map(a => a.admin_profile_id);
+
+    let adminProfiles = [];
+    if (adminIds.length > 0) {
+      const { data: profiles, error: profilesError } = await supabase
+        .from('admin_profiles')
+        .select('id, full_name, email')
+        .in('id', adminIds);
+
+      if (!profilesError && profiles) {
+        adminProfiles = profiles;
+      }
+    }
+
+    // Get all admin profiles for cancellation notification (not just attendees)
+    const { data: allAdminProfiles, error: allAdminsError } = await supabase
+      .from('admin_profiles')
+      .select('id, full_name, email, phone_number')
+      .eq('status', 'active')
+      .eq('email_notifications', true);
+
+    if (allAdminsError) {
+      console.error('Error fetching all admin profiles for cancellation:', allAdminsError);
+    }
+
     // Soft delete by updating status
     const { error: updateError } = await supabase
       .from('scheduled_events')
-      .update({ status: 'cancelled' })
+      .update({ 
+        status: 'cancelled'
+      })
       .eq('id', id);
 
     if (updateError) {
       throw updateError;
     }
 
-    res.json({
-      success: true,
-      message: 'Event cancelled successfully'
-    });
+    // Send cancellation notifications to all admins
+    if (allAdminProfiles && allAdminProfiles.length > 0) {
+      try {
+        console.log(`📧 Sending cancellation notifications to ${allAdminProfiles.length} admins`);
+        
+        const emailResults = await sendEventCancellationNotification(existingEvent, allAdminProfiles);
+        
+        console.log(`✅ Cancellation notifications: ${emailResults.successCount} sent, ${emailResults.failureCount} failed`);
+        
+        // Log the cancellation notification
+        const { error: logError } = await supabase
+          .from('event_notifications')
+          .insert({
+            event_id: id,
+            notification_type: 'cancellation',
+            recipient_email: 'all_admins',
+            recipient_name: 'All Admin Team',
+            sent_at: new Date().toISOString(),
+            email_subject: `🚫 Event Cancelled: ${existingEvent.title}`,
+            email_status: emailResults.successCount > 0 ? 'sent' : 'failed',
+            error_message: emailResults.failureCount > 0 ? `${emailResults.failureCount} emails failed` : null
+          });
+
+        if (logError) {
+          console.error('Error logging cancellation notification:', logError);
+        }
+
+        // Create system notification for the cancellation
+        await notificationService.createNotification({
+          title: 'Event Cancelled',
+          message: `"${existingEvent.title}" scheduled for ${new Date(existingEvent.start_datetime).toLocaleDateString()} has been cancelled. All admins have been notified.`,
+          type: 'warning',
+          source: 'event'
+        });
+
+        res.json({
+          success: true,
+          message: `Event cancelled successfully. Cancellation notifications sent to ${emailResults.successCount} admins.`,
+          data: {
+            event: existingEvent,
+            notificationResults: {
+              sent: emailResults.successCount,
+              failed: emailResults.failureCount,
+              total: emailResults.totalCount
+            }
+          }
+        });
+
+      } catch (emailError) {
+        console.error('Error sending cancellation notifications:', emailError);
+        
+        // Still return success for the cancellation, but mention email failure
+        res.json({
+          success: true,
+          message: 'Event cancelled successfully, but failed to send some cancellation notifications.',
+          data: {
+            event: existingEvent,
+            notificationResults: {
+              sent: 0,
+              failed: allAdminProfiles.length,
+              total: allAdminProfiles.length,
+              error: emailError.message
+            }
+          }
+        });
+      }
+    } else {
+      res.json({
+        success: true,
+        message: 'Event cancelled successfully',
+        data: {
+          event: existingEvent
+        }
+      });
+    }
 
   } catch (error) {
     console.error('Delete event error:', error);
