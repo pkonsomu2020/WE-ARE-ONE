@@ -381,6 +381,80 @@ const getActionTypeStats = async (options = {}) => {
   }
 };
 
+// Get real-time data for Super Admin dashboard
+const getRealTimeData = async () => {
+  try {
+    const now = new Date();
+    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+    // Get recent activities (last hour)
+    const { data: recentActivities, error: recentError } = await supabase
+      .from('admin_activity_log')
+      .select('*')
+      .gte('created_at', oneHourAgo.toISOString())
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    if (recentError) throw recentError;
+
+    // Get active admins (last 24 hours)
+    const { data: activeAdmins, error: activeError } = await supabase
+      .from('admin_activity_log')
+      .select('admin_profile_id')
+      .gte('created_at', oneDayAgo.toISOString());
+
+    if (activeError) throw activeError;
+
+    const uniqueActiveAdmins = new Set(activeAdmins?.map(a => a.admin_profile_id) || []);
+
+    // Get current online status (admins active in last 15 minutes)
+    const fifteenMinutesAgo = new Date(now.getTime() - 15 * 60 * 1000);
+    const { data: onlineAdmins, error: onlineError } = await supabase
+      .from('admin_activity_log')
+      .select('admin_profile_id')
+      .gte('created_at', fifteenMinutesAgo.toISOString());
+
+    if (onlineError) throw onlineError;
+
+    const uniqueOnlineAdmins = new Set(onlineAdmins?.map(a => a.admin_profile_id) || []);
+
+    // Get hourly activity for the last 24 hours
+    const { data: hourlyActivities, error: hourlyError } = await supabase
+      .from('admin_activity_log')
+      .select('created_at, action')
+      .gte('created_at', oneDayAgo.toISOString())
+      .order('created_at', { ascending: true });
+
+    if (hourlyError) throw hourlyError;
+
+    // Group activities by hour
+    const hourlyStats = {};
+    hourlyActivities?.forEach(activity => {
+      const hour = new Date(activity.created_at).getHours();
+      const hourKey = `${hour}:00`;
+      if (!hourlyStats[hourKey]) {
+        hourlyStats[hourKey] = { hour: hourKey, count: 0 };
+      }
+      hourlyStats[hourKey].count++;
+    });
+
+    const hourlyData = Object.values(hourlyStats);
+
+    return {
+      recentActivities: recentActivities || [],
+      activeAdminsCount: uniqueActiveAdmins.size,
+      onlineAdminsCount: uniqueOnlineAdmins.size,
+      hourlyActivity: hourlyData,
+      lastUpdated: now.toISOString()
+    };
+
+  } catch (error) {
+    console.error('Error getting real-time data:', error);
+    throw error;
+  }
+};
+
 // Get top performing admins
 const getTopPerformers = async (options = {}) => {
   try {
@@ -407,5 +481,6 @@ module.exports = {
   getAdminDetails,
   exportToCSV,
   getActionTypeStats,
-  getTopPerformers
+  getTopPerformers,
+  getRealTimeData
 };

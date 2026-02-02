@@ -206,4 +206,40 @@ router.get('/top-performers', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/real-analytics/realtime
+ * Get real-time data for Super Admin dashboard
+ * Only accessible by Super Admin
+ */
+router.get('/realtime', async (req, res) => {
+  try {
+    // Check if user is Super Admin
+    const adminProfile = req.admin;
+    if (!adminProfile || (adminProfile.role !== 'Super Admin' && adminProfile.email !== 'admin@weareone.co.ke')) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Super Admin privileges required.'
+      });
+    }
+    
+    console.log('📊 Fetching real-time data for Super Admin...');
+    
+    const data = await realAnalyticsService.getRealTimeData();
+    
+    console.log('✅ Real-time data fetched');
+    
+    res.json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    console.error('Error fetching real-time data:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch real-time data',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
 module.exports = router;
