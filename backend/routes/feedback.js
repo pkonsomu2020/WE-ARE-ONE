@@ -39,14 +39,19 @@ router.get('/admin-profile', authenticateAdmin, async (req, res) => {
         });
       }
 
-      // Return basic admin info with correct phone for Super Admin
+      // Return basic admin info with access control
       const profileData = {
         id: adminUsers.id,
         fullName: adminUsers.full_name,
         email: adminUsers.email,
         phone: adminUsers.email === 'admin@weareone.co.ke' ? '+254745343256' : '+254700000000',
         role: 'Super Admin',
-        status: 'active'
+        status: 'active',
+        // Orders access control - only allow Peter Onsomu and Eltone Cruzz
+        canAccessOrders: adminUsers.full_name === 'Peter Onsomu' || 
+                        adminUsers.full_name === 'Eltone Cruzz' ||
+                        adminUsers.email === 'admin@weareone.co.ke', // Super Admin always has access
+        canAccessSettings: true // All admins can access settings
       };
 
       return res.json({
@@ -55,14 +60,22 @@ router.get('/admin-profile', authenticateAdmin, async (req, res) => {
       });
     }
 
-    // Return full admin profile data with real phone number
+    // Check orders access for specific users from admin_profiles
+    const canAccessOrders = adminProfiles.full_name === 'Peter Onsomu' || 
+                           adminProfiles.full_name === 'Eltone Cruzz' ||
+                           adminProfiles.role === 'Super Admin' ||
+                           adminProfiles.email === 'admin@weareone.co.ke';
+
+    // Return full admin profile data with access control
     const profileData = {
       id: adminProfiles.id,
       fullName: adminProfiles.full_name,
       email: adminProfiles.email,
       phone: adminProfiles.phone_number,
-      role: adminProfiles.role,
-      status: adminProfiles.status
+      role: adminProfiles.role || 'Admin',
+      status: adminProfiles.status,
+      canAccessOrders: canAccessOrders,
+      canAccessSettings: true // All admins can access settings
     };
 
     res.json({

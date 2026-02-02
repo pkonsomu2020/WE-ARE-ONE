@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { api } from '@/lib/api';
+import { useState, useEffect } from 'react';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -25,48 +27,78 @@ const menuItems = [
     name: 'Dashboard',
     href: '/admin',
     icon: LayoutDashboard,
-    description: 'Overview & Statistics'
+    description: 'Overview & Statistics',
+    requiresPermission: null
   },
   {
     name: 'Orders',
     href: '/admin/orders',
     icon: ShoppingCart,
-    description: 'Payment Verification'
+    description: 'Payment Verification',
+    requiresPermission: 'orders'
   },
   {
     name: 'File Repository',
     href: '/admin/files',
     icon: FolderOpen,
-    description: 'Document Management'
+    description: 'Document Management',
+    requiresPermission: null
   },
   {
     name: 'Feedback Center',
     href: '/admin/feedback',
     icon: MessageSquare,
-    description: 'Complaints & Suggestions'
+    description: 'Complaints & Suggestions',
+    requiresPermission: null
   },
   {
     name: 'Event Scheduler',
     href: '/admin/events',
     icon: Calendar,
-    description: 'Calendar & Meetings'
+    description: 'Calendar & Meetings',
+    requiresPermission: null
   },
   {
     name: 'Analytics',
     href: '/admin/analytics',
     icon: TrendingUp,
-    description: 'Admin Performance'
+    description: 'Admin Performance',
+    requiresPermission: null
   },
   {
     name: 'Settings',
     href: '/admin/settings',
     icon: Settings,
-    description: 'System Configuration'
+    description: 'System Configuration',
+    requiresPermission: null
   }
-];
-
 const Sidebar = ({ isOpen, onClose, onLogout, isMobile = false }: SidebarProps) => {
   const location = useLocation();
+  const [adminProfile, setAdminProfile] = useState<any>(null);
+
+  useEffect(() => {
+    // Get admin profile to check permissions
+    const profile = api.getAdminProfile();
+    setAdminProfile(profile);
+  }, []);
+
+  // Filter menu items based on permissions
+  const getVisibleMenuItems = () => {
+    if (!adminProfile) return menuItems.filter(item => item.requiresPermission !== 'orders');
+    
+    return menuItems.filter(item => {
+      if (item.requiresPermission === 'orders') {
+        // Only show Orders to Peter Onsomu, Eltone Cruzz, and Super Admin
+        return adminProfile.fullName === 'Peter Onsomu' || 
+               adminProfile.fullName === 'Eltone Cruzz' ||
+               adminProfile.role === 'Super Admin' ||
+               adminProfile.email === 'admin@weareone.co.ke';
+      }
+      return true; // Show all other menu items
+    });
+  };
+
+  const visibleMenuItems = getVisibleMenuItems();
 
   return (
     <>
@@ -88,7 +120,7 @@ const Sidebar = ({ isOpen, onClose, onLogout, isMobile = false }: SidebarProps) 
 
           {/* Navigation */}
           <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
-            {menuItems.map((item) => {
+            {visibleMenuItems.map((item) => {
               const isActive = location.pathname === item.href;
               return (
                 <Link
@@ -161,7 +193,7 @@ const Sidebar = ({ isOpen, onClose, onLogout, isMobile = false }: SidebarProps) 
 
           {/* Mobile Navigation */}
           <nav className="flex-1 px-3 py-4 space-y-2 overflow-y-auto">
-            {menuItems.map((item) => {
+            {visibleMenuItems.map((item) => {
               const isActive = location.pathname === item.href;
               return (
                 <Link

@@ -97,6 +97,12 @@ export const ProtectedPage = ({ children, requiredPermission, pageName }: Protec
             <div className="text-sm text-gray-600">
               <p><strong>Current User:</strong> {adminName}</p>
               <p className="mt-2">
+                <strong>Access Restriction:</strong> The Orders page is restricted to specific administrators only.
+              </p>
+              <p className="mt-1">
+                <strong>Authorized Users:</strong> Peter Onsomu, Eltone Cruzz, and Super Administrators.
+              </p>
+              <p className="mt-2">
                 If you believe you should have access to this page, please contact the Super Administrator.
               </p>
             </div>
