@@ -169,12 +169,30 @@ app.use(helmet({
   },
 }));
 
-// ✅ Rate limiting middleware
-app.use(rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: 'Too many requests from this IP, please try again later.'
-}));
+// ✅ Rate limiting middleware - More generous limits for admin operations
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 500, // Increased from 100 to 500 requests per window
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const adminLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes  
+  max: 1000, // Very generous limit for admin operations
+  message: 'Too many admin requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Apply general rate limiting to all routes
+app.use(generalLimiter);
+
+// Apply more generous rate limiting to admin routes
+app.use('/api/admin', adminLimiter);
+app.use('/api/notifications', adminLimiter);
+app.use('/api/file-repository', adminLimiter);
 
 // ✅ Test database connection
 testConnection();

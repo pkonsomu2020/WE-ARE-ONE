@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { pool } = require('../config/database');
+const { supabase } = require('../config/database');
 const adminAuth = require('../middleware/adminAuth');
 const { Resend } = require('resend');
 const bcrypt = require('bcryptjs');
@@ -9,115 +9,294 @@ const jwt = require('jsonwebtoken');
 // Initialize Resend with API key
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Bootstrap a default admin from env if provided (runs once at startup)
-(async function ensureDefaultAdmin() {
+// Bootstrap all admin users from credentials file (runs once at startup)
+(async function ensureAllAdmins() {
   try {
-    // Ensure table exists
-    await pool.execute(`
-      CREATE TABLE IF NOT EXISTS admin_users (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        full_name VARCHAR(255) NOT NULL,
-        email VARCHAR(255) UNIQUE NOT NULL,
-        password_hash VARCHAR(255) NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        INDEX idx_admin_email (email)
-      )
-    `);
+    const adminUsers = [
+      {
+        full_name: 'WAO Super Admin',
+        email: 'admin@weareone.co.ke',
+        password_hash: '$2a$12$6B43fLlZ31KlXWGYfE2iMecx2rk37aK6xYP0SEr04vTVRYoWNVJm2' // Default password
+      },
+      {
+        full_name: 'Stacy Agwanda Jacinta',
+        email: 'stacyagwanda@gmail.com',
+        password_hash: '$2a$12$.qeTsGn1wS7jvS6Annb30ux3icj9lRslILXRtV.O1qOv3OsLwcoyW'
+      },
+      {
+        full_name: 'Stella Brenda Nyanchama',
+        email: 'stellakirioba@gmail.com',
+        password_hash: '$2a$12$cnUt6ox82BadEEBQVJ8TDuUEUXvDAW/jiHoRBuO302rG/FL9gu8ES'
+      },
+      {
+        full_name: 'Muriuki V Linnet',
+        email: 'muriukivapour@gmail.com',
+        password_hash: '$2a$12$Gy3QqHt7xLCTmUgV1m.K8O82Ywmx4al/TarQaIUZWvmuV5J5sjQVC'
+      },
+      {
+        full_name: 'Rachael Madawa Lucas',
+        email: 'rachaellucas94@gmail.com',
+        password_hash: '$2a$12$F3Y/7pIriOzOu39qpgGSj.kW0OXSFE0gaAFovvPktxOWmiVm5VNOy'
+      },
+      {
+        full_name: 'Cruzz Eltone',
+        email: 'cruzeltone@gmail.com',
+        password_hash: '$2a$12$YSiDdg/8555nRugzE5brWeE8J1mNEdBDarB.3WvLA1LHtAIjbnpia'
+      },
+      {
+        full_name: 'Mary Deckline',
+        email: 'daisymary1190@gmail.com',
+        password_hash: '$2a$12$KUZzNfqAdkHfWuP06.E9XeG3ehHOrnSES64w/Wz8cEyl3f7tsnN/q'
+      },
+      {
+        full_name: 'Apollo Apondi',
+        email: 'apollopondi99@gmail.com',
+        password_hash: '$2a$12$TeBmEYf51e4ehOeWYo2XGe45ohXeiNdy7MoRkvQk/tp.yOvnjUC02'
+      },
+      {
+        full_name: 'Glorian Katheu',
+        email: 'gloriankatheu@gmail.com',
+        password_hash: '$2a$12$gDLxrYdQsr3Tkj8kTIjhTu/HL40mSWo6uPp/harXq8rDFCyIYPZWi'
+      },
+      {
+        full_name: 'Brian Kevin Mwangi',
+        email: 'kevindoc254@gmail.com',
+        password_hash: '$2a$12$FsKRSGeM548lB554iRcMwOKzxO/bCJR/zn6xQV3LBDJUQpXosvP6W'
+      },
+      {
+        full_name: 'Kevin Koech',
+        email: 'kevinkoechx@gmail.com',
+        password_hash: '$2a$12$SXYmoI8TgYrlxqj/xm4J4udDmuqfw.wrfWtzvAL825SuPY62y10O6'
+      },
+      {
+        full_name: 'Daniel Mahmoud Alli Anicethy Prodl',
+        email: 'malikaprodl007@gmail.com',
+        password_hash: '$2a$12$OCefkTX8hPwf79rSXREczOEFu5dvrGfBg5JD2E4eV5ZlbS1nX4DM2'
+      },
+      {
+        full_name: 'Peter Onsomu',
+        email: 'pkonsomu2021@gmail.com',
+        password_hash: '$2a$12$6B43fLlZ31KlXWGYfE2iMecx2rk37aK6xYP0SEr04vTVRYoWNVJm2'
+      }
+    ];
 
-    const email = process.env.ADMIN_DEFAULT_EMAIL;
-    const password = process.env.ADMIN_DEFAULT_PASSWORD;
-    const fullName = process.env.ADMIN_DEFAULT_NAME || 'WAO Admin';
-    if (!email || !password) return; // nothing to seed
-    const [exists] = await pool.execute('SELECT id FROM admin_users WHERE email = ?', [email]);
-    if (exists.length > 0) return;
-    const hash = await bcrypt.hash(password, 10); // Reduced from 12 to 10 for better performance
-    await pool.execute('INSERT INTO admin_users (full_name, email, password_hash) VALUES (?, ?, ?)', [fullName, email, hash]);
-    console.log(`✅ Seeded default admin: ${email}`);
+    console.log('🔐 Seeding admin users...');
+    let seededCount = 0;
+    let existingCount = 0;
+
+    for (const admin of adminUsers) {
+      try {
+        // Check if admin already exists
+        const { data: existingAdmin, error: checkError } = await supabase
+          .from('admin_users')
+          .select('id')
+          .eq('email', admin.email)
+          .single();
+        
+        if (existingAdmin) {
+          existingCount++;
+          continue;
+        }
+        
+        // Insert new admin user
+        const { data, error } = await supabase
+          .from('admin_users')
+          .insert([admin])
+          .select();
+        
+        if (error) {
+          console.error(`⚠️ Failed to seed admin ${admin.email}:`, error.message);
+        } else {
+          console.log(`✅ Seeded admin: ${admin.email}`);
+          seededCount++;
+        }
+      } catch (e) {
+        console.error(`⚠️ Error seeding admin ${admin.email}:`, e.message);
+      }
+    }
+
+    console.log(`✅ Admin seeding complete: ${seededCount} new, ${existingCount} existing`);
   } catch (e) {
-    console.error('⚠️ Failed to seed default admin:', e.message);
+    console.error('⚠️ Failed to seed admin users:', e.message);
   }
 })();
 
 // Ensure necessary event tables exist (so admin endpoints don't 500 on first run)
 (async function ensureEventTables() {
   try {
-    await pool.execute(`
-      CREATE TABLE IF NOT EXISTS event_payments (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        event_id VARCHAR(100) NOT NULL,
-        full_name VARCHAR(255) NOT NULL,
-        email VARCHAR(255) NOT NULL,
-        phone VARCHAR(50) NOT NULL,
-        ticket_type ENUM('WAO Members','Public','Standard') NOT NULL,
-        amount INT NOT NULL,
-        mpesa_code VARCHAR(32) NOT NULL,
-        status ENUM('pending_verification','paid','failed') DEFAULT 'pending_verification',
-        confirmation_message TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        INDEX idx_event_status (event_id, status),
-        UNIQUE KEY uniq_mpesa_code (mpesa_code)
-      )
-    `);
-
-    await pool.execute(`
-      CREATE TABLE IF NOT EXISTS event_tickets (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        event_id VARCHAR(100) NOT NULL,
-        user_email VARCHAR(255) NOT NULL,
-        full_name VARCHAR(255) NOT NULL,
-        ticket_type ENUM('WAO Members','Public','Standard') NOT NULL,
-        amount_paid INT NOT NULL,
-        mpesa_code VARCHAR(32) NOT NULL,
-        ticket_number VARCHAR(32) NOT NULL UNIQUE,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        INDEX idx_event_email (event_id, user_email),
-        INDEX idx_mpesa_code (mpesa_code)
-      )
-    `);
-
-    await pool.execute(`
-      CREATE TABLE IF NOT EXISTS event_registrations (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        event_id VARCHAR(100) NOT NULL,
-        full_name VARCHAR(255) NOT NULL,
-        email VARCHAR(255) NOT NULL,
-        phone VARCHAR(50) NOT NULL,
-        experience_text TEXT,
-        accept_terms BOOLEAN DEFAULT FALSE,
-        accept_updates BOOLEAN DEFAULT FALSE,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        INDEX idx_event_email (event_id, email),
-        INDEX idx_event_date (event_id, created_at)
-      )
-    `);
-
-    console.log('✅ Event tables ready');
+    // Note: Event tables are managed in Supabase, not MySQL
+    // This function is kept for compatibility but tables should exist in Supabase
+    console.log('✅ Event tables managed in Supabase');
   } catch (e) {
-    console.error('⚠️ Failed ensuring event tables:', e.message);
+    console.error('⚠️ Event tables check:', e.message);
   }
 })();
 
 // --- Public admin auth endpoints ---
+
+// Temporary endpoint to seed admin users (remove in production)
+router.post('/auth/seed-admins', async (req, res) => {
+  try {
+    // Only allow in development or with special key
+    const seedKey = req.headers['x-seed-key'];
+    if (process.env.NODE_ENV === 'production' && seedKey !== process.env.ADMIN_SEED_KEY) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    const adminUsers = [
+      {
+        full_name: 'WAO Super Admin',
+        email: 'admin@weareone.co.ke',
+        password_hash: '$2a$12$6B43fLlZ31KlXWGYfE2iMecx2rk37aK6xYP0SEr04vTVRYoWNVJm2'
+      },
+      {
+        full_name: 'Stacy Agwanda Jacinta',
+        email: 'stacyagwanda@gmail.com',
+        password_hash: '$2a$12$.qeTsGn1wS7jvS6Annb30ux3icj9lRslILXRtV.O1qOv3OsLwcoyW'
+      },
+      {
+        full_name: 'Stella Brenda Nyanchama',
+        email: 'stellakirioba@gmail.com',
+        password_hash: '$2a$12$cnUt6ox82BadEEBQVJ8TDuUEUXvDAW/jiHoRBuO302rG/FL9gu8ES'
+      },
+      {
+        full_name: 'Muriuki V Linnet',
+        email: 'muriukivapour@gmail.com',
+        password_hash: '$2a$12$Gy3QqHt7xLCTmUgV1m.K8O82Ywmx4al/TarQaIUZWvmuV5J5sjQVC'
+      },
+      {
+        full_name: 'Rachael Madawa Lucas',
+        email: 'rachaellucas94@gmail.com',
+        password_hash: '$2a$12$F3Y/7pIriOzOu39qpgGSj.kW0OXSFE0gaAFovvPktxOWmiVm5VNOy'
+      },
+      {
+        full_name: 'Cruzz Eltone',
+        email: 'cruzeltone@gmail.com',
+        password_hash: '$2a$12$YSiDdg/8555nRugzE5brWeE8J1mNEdBDarB.3WvLA1LHtAIjbnpia'
+      },
+      {
+        full_name: 'Mary Deckline',
+        email: 'daisymary1190@gmail.com',
+        password_hash: '$2a$12$KUZzNfqAdkHfWuP06.E9XeG3ehHOrnSES64w/Wz8cEyl3f7tsnN/q'
+      },
+      {
+        full_name: 'Apollo Apondi',
+        email: 'apollopondi99@gmail.com',
+        password_hash: '$2a$12$TeBmEYf51e4ehOeWYo2XGe45ohXeiNdy7MoRkvQk/tp.yOvnjUC02'
+      },
+      {
+        full_name: 'Glorian Katheu',
+        email: 'gloriankatheu@gmail.com',
+        password_hash: '$2a$12$gDLxrYdQsr3Tkj8kTIjhTu/HL40mSWo6uPp/harXq8rDFCyIYPZWi'
+      },
+      {
+        full_name: 'Brian Kevin Mwangi',
+        email: 'kevindoc254@gmail.com',
+        password_hash: '$2a$12$FsKRSGeM548lB554iRcMwOKzxO/bCJR/zn6xQV3LBDJUQpXosvP6W'
+      },
+      {
+        full_name: 'Kevin Koech',
+        email: 'kevinkoechx@gmail.com',
+        password_hash: '$2a$12$SXYmoI8TgYrlxqj/xm4J4udDmuqfw.wrfWtzvAL825SuPY62y10O6'
+      },
+      {
+        full_name: 'Daniel Mahmoud Alli Anicethy Prodl',
+        email: 'malikaprodl007@gmail.com',
+        password_hash: '$2a$12$OCefkTX8hPwf79rSXREczOEFu5dvrGfBg5JD2E4eV5ZlbS1nX4DM2'
+      },
+      {
+        full_name: 'Peter Onsomu',
+        email: 'pkonsomu2021@gmail.com',
+        password_hash: '$2a$12$6B43fLlZ31KlXWGYfE2iMecx2rk37aK6xYP0SEr04vTVRYoWNVJm2'
+      }
+    ];
+
+    let seededCount = 0;
+    let existingCount = 0;
+    const results = [];
+
+    for (const admin of adminUsers) {
+      try {
+        // Check if admin already exists
+        const { data: existingAdmin, error: checkError } = await supabase
+          .from('admin_users')
+          .select('id')
+          .eq('email', admin.email)
+          .single();
+        
+        if (existingAdmin) {
+          existingCount++;
+          results.push({ email: admin.email, status: 'exists' });
+          continue;
+        }
+        
+        // Insert new admin user
+        const { data, error } = await supabase
+          .from('admin_users')
+          .insert([admin])
+          .select();
+        
+        if (error) {
+          results.push({ email: admin.email, status: 'error', error: error.message });
+        } else {
+          seededCount++;
+          results.push({ email: admin.email, status: 'created', id: data[0].id });
+        }
+      } catch (e) {
+        results.push({ email: admin.email, status: 'error', error: e.message });
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Admin seeding complete: ${seededCount} new, ${existingCount} existing`,
+      results
+    });
+  } catch (e) {
+    console.error('Seed admins error:', e);
+    res.status(500).json({ success: false, message: 'Failed to seed admins', error: e.message });
+  }
+});
+
 router.post('/auth/register', async (req, res) => {
   try {
     const { fullName, email, password } = req.body || {};
     if (!fullName || !email || !password) return res.status(400).json({ success: false, message: 'fullName, email, password are required' });
 
-    const [exists] = await pool.execute('SELECT id FROM admin_users WHERE email = ?', [email]);
-    if (exists.length > 0) return res.status(400).json({ success: false, message: 'Admin already exists' });
+    // Check if admin already exists
+    const { data: existingAdmin, error: checkError } = await supabase
+      .from('admin_users')
+      .select('id')
+      .eq('email', email)
+      .single();
+    
+    if (existingAdmin) {
+      return res.status(400).json({ success: false, message: 'Admin already exists' });
+    }
 
-    const passwordHash = await bcrypt.hash(password, 10); // Reduced from 12 to 10 for better performance
-    const [result] = await pool.execute(
-      'INSERT INTO admin_users (full_name, email, password_hash) VALUES (?, ?, ?)',
-      [fullName, email, passwordHash]
-    );
+    const passwordHash = await bcrypt.hash(password, 10);
+    
+    // Insert new admin user
+    const { data, error } = await supabase
+      .from('admin_users')
+      .insert([{
+        full_name: fullName,
+        email: email,
+        password_hash: passwordHash
+      }])
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Registration error:', error);
+      return res.status(500).json({ success: false, message: 'Registration failed' });
+    }
 
-    const token = jwt.sign({ adminId: result.insertId }, process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ adminId: data.id }, process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET, { expiresIn: '7d' });
 
-    res.json({ success: true, token, admin: { id: result.insertId, fullName, email } });
+    res.json({ success: true, token, admin: { id: data.id, fullName, email } });
   } catch (e) {
+    console.error('Registration error:', e);
     res.status(500).json({ success: false, message: 'Registration failed' });
   }
 });
@@ -139,15 +318,20 @@ router.post('/auth/login', async (req, res) => {
       return res.status(400).json({ success: false, message: 'email and password are required' });
     }
 
-    const [rows] = await pool.execute('SELECT id, full_name, email, password_hash FROM admin_users WHERE email = ?', [email]);
-    console.log('👤 Admin user lookup:', { found: rows.length > 0, email, tableExists: true });
+    // Get admin user from Supabase
+    const { data: adminUsers, error } = await supabase
+      .from('admin_users')
+      .select('id, full_name, email, password_hash')
+      .eq('email', email);
     
-    if (rows.length === 0) {
+    console.log('👤 Admin user lookup:', { found: adminUsers?.length > 0, email, error: error?.message });
+    
+    if (error || !adminUsers || adminUsers.length === 0) {
       console.log('❌ Admin user not found:', email);
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
     
-    const admin = rows[0];
+    const admin = adminUsers[0];
 
     const ok = await bcrypt.compare(password, admin.password_hash);
     console.log('🔑 Password verification:', { success: ok, adminId: admin.id });
