@@ -46,15 +46,41 @@ const authenticateAdmin = async (req, res, next) => {
   // Check for JWT token first (preferred method)
   if (token) {
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || process.env.ADMIN_JWT_SECRET);
       
       // Check if it's an admin token (has adminId)
       if (decoded.adminId) {
+        // Get full admin profile from Supabase
+        const { supabase } = require('../config/database');
+        const { data: adminUser, error } = await supabase
+          .from('admin_users')
+          .select('id, full_name, email')
+          .eq('id', decoded.adminId)
+          .single();
+        
+        if (error || !adminUser) {
+          console.error('Admin user not found:', error?.message);
+          return res.status(401).json({
+            success: false,
+            message: 'Admin user not found'
+          });
+        }
+        
+        // Get admin profile for role information
+        const { data: adminProfile, error: profileError } = await supabase
+          .from('admin_profiles')
+          .select('*')
+          .eq('email', adminUser.email)
+          .single();
+        
         req.admin = {
-          id: decoded.adminId,
-          role: 'admin',
+          id: adminUser.id,
+          email: adminUser.email,
+          full_name: adminUser.full_name,
+          role: adminProfile?.role || 'Admin',
           method: 'jwt'
         };
+        
         return next();
       }
       
@@ -71,7 +97,13 @@ const authenticateAdmin = async (req, res, next) => {
 
   // Fallback to admin key
   if (adminKey && adminKey === process.env.ADMIN_API_KEY) {
-    req.admin = { role: 'admin', method: 'api_key' };
+    // For API key auth, set a default super admin
+    req.admin = { 
+      id: 1,
+      email: 'admin@weareone.co.ke',
+      role: 'Super Admin', 
+      method: 'api_key' 
+    };
     return next();
   }
 
