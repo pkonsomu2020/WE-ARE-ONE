@@ -438,7 +438,7 @@ const createEvent = async (req, res) => {
     // Create notification for event creation
     await notificationService.createEventNotification(title, date, startTime);
 
-    // Send invitation notifications with rate limiting
+    // Send invitation notifications with rate limiting (simplified for testing)
     const allRecipients = [
       ...adminProfiles,
       ...(attendees ? attendees.split(',').map(email => ({ email: email.trim(), name: email.trim() })) : [])
@@ -446,8 +446,17 @@ const createEvent = async (req, res) => {
 
     console.log(`📧 Sending invitations to ${allRecipients.length} recipients:`, allRecipients.map(r => r.email));
 
-    // Send emails with proper rate limiting and error handling
-    const emailResults = await sendEventNotification(eventData, 'invitation', allRecipients);
+    // Simplified email sending for testing
+    let emailResults = { successCount: 0, failureCount: 0, totalCount: allRecipients.length };
+    
+    try {
+      // Send emails with proper rate limiting and error handling
+      emailResults = await sendEventNotification(eventData, 'invitation', allRecipients);
+    } catch (emailError) {
+      console.error('Email sending error:', emailError);
+      // Continue with event creation even if emails fail
+      emailResults = { successCount: 0, failureCount: allRecipients.length, totalCount: allRecipients.length };
+    }
 
     res.status(201).json({
       success: true,
