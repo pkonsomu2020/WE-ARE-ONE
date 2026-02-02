@@ -4,28 +4,78 @@ const { supabase, supabaseAdmin } = require('../config/database');
 const { authenticateAdmin } = require('../middleware/auth');
 const notificationService = require('../services/notificationService');
 
-// Get current admin profile info (simplified - no database queries)
+// Get current admin profile info with real phone numbers
 router.get('/admin-profile', authenticateAdmin, async (req, res) => {
   try {
-    // Return admin info from environment or JWT
+    const adminId = req.adminId || req.admin?.id;
+    
+    if (!adminId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Admin ID not found'
+      });
+    }
+
+    // Get admin profile from admin_profiles table using Supabase
+    const { data: adminProfiles, error: profileError } = await supabase
+      .from('admin_profiles')
+      .select('id, full_name, email, phone_number, role, status')
+      .eq('user_id', adminId)
+      .eq('status', 'active')
+      .single();
+
+    if (profileError || !adminProfiles) {
+      // Fallback to admin_users table if admin_profiles doesn't have the record
+      const { data: adminUsers, error: userError } = await supabase
+        .from('admin_users')
+        .select('id, full_name, email')
+        .eq('id', adminId)
+        .single();
+
+      if (userError || !adminUsers) {
+        return res.status(404).json({
+          success: false,
+          message: 'Admin profile not found'
+        });
+      }
+
+      // Return basic admin info with correct phone for Super Admin
+      const profileData = {
+        id: adminUsers.id,
+        fullName: adminUsers.full_name,
+        email: adminUsers.email,
+        phone: adminUsers.email === 'admin@weareone.co.ke' ? '+254745343256' : '+254700000000',
+        role: 'Super Admin',
+        status: 'active'
+      };
+
+      return res.json({
+        success: true,
+        data: profileData
+      });
+    }
+
+    // Return full admin profile data with real phone number
     const profileData = {
-      id: req.admin?.id || 1,
-      fullName: process.env.ADMIN_DEFAULT_NAME || 'WAO Admin',
-      email: process.env.ADMIN_DEFAULT_EMAIL || 'weareone0624@gmail.com',
-      phone: '+254712345678',
-      role: 'Super Admin',
-      status: 'active'
+      id: adminProfiles.id,
+      fullName: adminProfiles.full_name,
+      email: adminProfiles.email,
+      phone: adminProfiles.phone_number,
+      role: adminProfiles.role,
+      status: adminProfiles.status
     };
 
     res.json({
       success: true,
       data: profileData
     });
+
   } catch (error) {
     console.error('Admin profile error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch admin profile'
+      message: 'Failed to fetch admin profile',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
@@ -292,12 +342,49 @@ router.post('/messages/:id/replies', authenticateAdmin, async (req, res) => {
       });
     }
 
-    // Simple reply insertion without complex admin profile lookup
+    // Get admin profile information for the reply
+    const adminId = req.adminId || req.admin?.id;
+    let adminInfo = { name: 'Admin', email: '', role: 'Admin' };
+
+    if (adminId) {
+      // Try to get admin profile from admin_profiles table
+      const { data: adminProfile, error: profileError } = await supabase
+        .from('admin_profiles')
+        .select('full_name, email, role')
+        .eq('user_id', adminId)
+        .eq('status', 'active')
+        .single();
+
+      if (!profileError && adminProfile) {
+        adminInfo = {
+          name: adminProfile.full_name,
+          email: adminProfile.email,
+          role: adminProfile.role
+        };
+      } else {
+        // Fallback to admin_users table
+        const { data: adminUser, error: userError } = await supabase
+          .from('admin_users')
+          .select('full_name, email')
+          .eq('id', adminId)
+          .single();
+
+        if (!userError && adminUser) {
+          adminInfo = {
+            name: adminUser.full_name,
+            email: adminUser.email,
+            role: adminUser.email === 'admin@weareone.co.ke' ? 'Super Admin' : 'Admin'
+          };
+        }
+      }
+    }
+
+    // Insert reply with admin profile information
     const { data, error } = await supabase
       .from('feedback_replies')
       .insert({
         message_id: parseInt(messageId),
-        admin_profile_id: null, // Simplified for now
+        admin_profile_id: adminId,
         reply_text: replyContent.trim()
       })
       .select();
@@ -312,9 +399,9 @@ router.post('/messages/:id/replies', authenticateAdmin, async (req, res) => {
       message: 'Reply added successfully',
       data: { 
         id: data[0].id,
-        responder_name: 'Admin',
-        responder_email: '',
-        responder_role: 'Admin'
+        responder_name: adminInfo.name,
+        responder_email: adminInfo.email,
+        responder_role: adminInfo.role
       }
     });
   } catch (error) {
@@ -399,14 +486,53 @@ router.get('/messages/:id', authenticateAdmin, async (req, res) => {
       throw repliesError;
     }
 
-    // Format replies with basic admin info (no complex joins)
-    const formattedReplies = (replies || []).map(reply => ({
-      ...reply,
-      responder_name: 'Admin', // Simplified for now
-      responder_email: '',
-      responder_role: 'Admin',
-      admin_name: 'Admin'
-    }));
+    // Format replies with real admin info
+    const formattedReplies = [];
+    
+    for (const reply of replies || []) {
+      let adminInfo = { name: 'Admin', email: '', role: 'Admin' };
+      
+      if (reply.admin_profile_id) {
+        // Get admin profile information
+        const { data: adminProfile, error: profileError } = await supabase
+          .from('admin_profiles')
+          .select('full_name, email, role')
+          .eq('user_id', reply.admin_profile_id)
+          .eq('status', 'active')
+          .single();
+
+        if (!profileError && adminProfile) {
+          adminInfo = {
+            name: adminProfile.full_name,
+            email: adminProfile.email,
+            role: adminProfile.role
+          };
+        } else {
+          // Fallback to admin_users table
+          const { data: adminUser, error: userError } = await supabase
+            .from('admin_users')
+            .select('full_name, email')
+            .eq('id', reply.admin_profile_id)
+            .single();
+
+          if (!userError && adminUser) {
+            adminInfo = {
+              name: adminUser.full_name,
+              email: adminUser.email,
+              role: adminUser.email === 'admin@weareone.co.ke' ? 'Super Admin' : 'Admin'
+            };
+          }
+        }
+      }
+      
+      formattedReplies.push({
+        ...reply,
+        responder_name: adminInfo.name,
+        responder_email: adminInfo.email,
+        responder_role: adminInfo.role,
+        admin_name: adminInfo.name
+      });
+    }
 
     res.json({
       success: true,
