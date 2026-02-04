@@ -16,67 +16,67 @@ const resend = new Resend(process.env.RESEND_API_KEY);
       {
         full_name: 'WAO Super Admin',
         email: 'admin@weareone.co.ke',
-        password_hash: '$2a$12$6B43fLlZ31KlXWGYfE2iMecx2rk37aK6xYP0SEr04vTVRYoWNVJm2' // Default password
+        password_hash: '$2a$12$6B43fLlZ31KlXWGYfE2iMecx2rk37aK6xYP0SEr04vTVRYoWNVJm2' // Keep existing
       },
       {
         full_name: 'Stacy Agwanda Jacinta',
         email: 'stacyagwanda@gmail.com',
-        password_hash: '$2a$12$.qeTsGn1wS7jvS6Annb30ux3icj9lRslILXRtV.O1qOv3OsLwcoyW'
+        password_hash: '$2a$12$4i7IU9d1CRBAeTY2r13KYuCbc73AAZUkqhIs1N0cYOyowW1sSoDbm'
       },
       {
         full_name: 'Stella Brenda Nyanchama',
         email: 'stellakirioba@gmail.com',
-        password_hash: '$2a$12$cnUt6ox82BadEEBQVJ8TDuUEUXvDAW/jiHoRBuO302rG/FL9gu8ES'
+        password_hash: '$2a$12$0G5.ui7dfz9XwgYxUlLc6.oKf.5KxNmu2sMbyFFnumD2dxV63xeIy'
       },
       {
         full_name: 'Muriuki V Linnet',
         email: 'muriukivapour@gmail.com',
-        password_hash: '$2a$12$Gy3QqHt7xLCTmUgV1m.K8O82Ywmx4al/TarQaIUZWvmuV5J5sjQVC'
+        password_hash: '$2a$12$gtSumGYnX8wh2xN3.1Zy2OUbCJoCHBSBaSTC7x4u2KTciS2HQ27L.'
       },
       {
         full_name: 'Rachael Madawa Lucas',
         email: 'rachaellucas94@gmail.com',
-        password_hash: '$2a$12$F3Y/7pIriOzOu39qpgGSj.kW0OXSFE0gaAFovvPktxOWmiVm5VNOy'
+        password_hash: '$2a$12$EaMr3.DHaJjSbZApMrPaWuK7le5d1mF2NgXyWP4b45DeKej26cBaa'
       },
       {
         full_name: 'Cruzz Eltone',
         email: 'cruzeltone@gmail.com',
-        password_hash: '$2a$12$YSiDdg/8555nRugzE5brWeE8J1mNEdBDarB.3WvLA1LHtAIjbnpia'
+        password_hash: '$2a$12$RFh1eBubt3Z9nnNntsWBludrtER9Z94eTxC3M/Dh7tKjn.ow7xf3e'
       },
       {
         full_name: 'Mary Deckline',
         email: 'daisymary1190@gmail.com',
-        password_hash: '$2a$12$KUZzNfqAdkHfWuP06.E9XeG3ehHOrnSES64w/Wz8cEyl3f7tsnN/q'
+        password_hash: '$2a$12$cLppIXgT53vazgY4m5/bPOGp9pjTweqJGAoq7o9DFOJpTtfeIXwSK'
       },
       {
         full_name: 'Apollo Apondi',
         email: 'apollopondi99@gmail.com',
-        password_hash: '$2a$12$TeBmEYf51e4ehOeWYo2XGe45ohXeiNdy7MoRkvQk/tp.yOvnjUC02'
+        password_hash: '$2a$12$yK/JGn6V/En3bl.qc6kVW.Dmy3U2.xFNWH6PY/0fO2BQo/dAE0c.6'
       },
       {
         full_name: 'Glorian Katheu',
         email: 'gloriankatheu@gmail.com',
-        password_hash: '$2a$12$gDLxrYdQsr3Tkj8kTIjhTu/HL40mSWo6uPp/harXq8rDFCyIYPZWi'
+        password_hash: '$2a$12$As5l4K0OMThXQkvsVZrleOgk3iTlesseDk6HrRqFqXNGSufrQ.E.a'
       },
       {
         full_name: 'Brian Kevin Mwangi',
         email: 'kevindoc254@gmail.com',
-        password_hash: '$2a$12$FsKRSGeM548lB554iRcMwOKzxO/bCJR/zn6xQV3LBDJUQpXosvP6W'
+        password_hash: '$2a$12$QZE/VgUNGvBQxNf7vvN1OOovW6OeEMAM5LNS8IcQnL/AuNqVb5D0u'
       },
       {
         full_name: 'Kevin Koech',
         email: 'kevinkoechx@gmail.com',
-        password_hash: '$2a$12$SXYmoI8TgYrlxqj/xm4J4udDmuqfw.wrfWtzvAL825SuPY62y10O6'
+        password_hash: '$2a$12$2TC2aQV5zyQYBpDkRalEVunh.CjD3nWRHuu1zHFYEbERhENu895sy'
       },
       {
         full_name: 'Daniel Mahmoud Alli Anicethy Prodl',
         email: 'malikaprodl007@gmail.com',
-        password_hash: '$2a$12$OCefkTX8hPwf79rSXREczOEFu5dvrGfBg5JD2E4eV5ZlbS1nX4DM2'
+        password_hash: '$2a$12$Vnn/CboyizmexHWaempVAuppymVyZYMOvzSr75WKZPKFX.nHMm5nm'
       },
       {
         full_name: 'Peter Onsomu',
         email: 'pkonsomu2021@gmail.com',
-        password_hash: '$2a$12$6B43fLlZ31KlXWGYfE2iMecx2rk37aK6xYP0SEr04vTVRYoWNVJm2'
+        password_hash: '$2a$12$F7e8TyLuRbvVN5o7jJJt9.U5zYchbHNHYmsvf0FbV6iLSjHtQ6d5q' // Updated password: ponsomu756@
       }
     ];
 
@@ -152,62 +152,62 @@ router.post('/auth/seed-admins', async (req, res) => {
       {
         full_name: 'Stacy Agwanda Jacinta',
         email: 'stacyagwanda@gmail.com',
-        password_hash: '$2a$12$.qeTsGn1wS7jvS6Annb30ux3icj9lRslILXRtV.O1qOv3OsLwcoyW'
+        password_hash: '$2a$12$4i7IU9d1CRBAeTY2r13KYuCbc73AAZUkqhIs1N0cYOyowW1sSoDbm'
       },
       {
         full_name: 'Stella Brenda Nyanchama',
         email: 'stellakirioba@gmail.com',
-        password_hash: '$2a$12$cnUt6ox82BadEEBQVJ8TDuUEUXvDAW/jiHoRBuO302rG/FL9gu8ES'
+        password_hash: '$2a$12$0G5.ui7dfz9XwgYxUlLc6.oKf.5KxNmu2sMbyFFnumD2dxV63xeIy'
       },
       {
         full_name: 'Muriuki V Linnet',
         email: 'muriukivapour@gmail.com',
-        password_hash: '$2a$12$Gy3QqHt7xLCTmUgV1m.K8O82Ywmx4al/TarQaIUZWvmuV5J5sjQVC'
+        password_hash: '$2a$12$gtSumGYnX8wh2xN3.1Zy2OUbCJoCHBSBaSTC7x4u2KTciS2HQ27L.'
       },
       {
         full_name: 'Rachael Madawa Lucas',
         email: 'rachaellucas94@gmail.com',
-        password_hash: '$2a$12$F3Y/7pIriOzOu39qpgGSj.kW0OXSFE0gaAFovvPktxOWmiVm5VNOy'
+        password_hash: '$2a$12$EaMr3.DHaJjSbZApMrPaWuK7le5d1mF2NgXyWP4b45DeKej26cBaa'
       },
       {
         full_name: 'Cruzz Eltone',
         email: 'cruzeltone@gmail.com',
-        password_hash: '$2a$12$YSiDdg/8555nRugzE5brWeE8J1mNEdBDarB.3WvLA1LHtAIjbnpia'
+        password_hash: '$2a$12$RFh1eBubt3Z9nnNntsWBludrtER9Z94eTxC3M/Dh7tKjn.ow7xf3e'
       },
       {
         full_name: 'Mary Deckline',
         email: 'daisymary1190@gmail.com',
-        password_hash: '$2a$12$KUZzNfqAdkHfWuP06.E9XeG3ehHOrnSES64w/Wz8cEyl3f7tsnN/q'
+        password_hash: '$2a$12$cLppIXgT53vazgY4m5/bPOGp9pjTweqJGAoq7o9DFOJpTtfeIXwSK'
       },
       {
         full_name: 'Apollo Apondi',
         email: 'apollopondi99@gmail.com',
-        password_hash: '$2a$12$TeBmEYf51e4ehOeWYo2XGe45ohXeiNdy7MoRkvQk/tp.yOvnjUC02'
+        password_hash: '$2a$12$yK/JGn6V/En3bl.qc6kVW.Dmy3U2.xFNWH6PY/0fO2BQo/dAE0c.6'
       },
       {
         full_name: 'Glorian Katheu',
         email: 'gloriankatheu@gmail.com',
-        password_hash: '$2a$12$gDLxrYdQsr3Tkj8kTIjhTu/HL40mSWo6uPp/harXq8rDFCyIYPZWi'
+        password_hash: '$2a$12$As5l4K0OMThXQkvsVZrleOgk3iTlesseDk6HrRqFqXNGSufrQ.E.a'
       },
       {
         full_name: 'Brian Kevin Mwangi',
         email: 'kevindoc254@gmail.com',
-        password_hash: '$2a$12$FsKRSGeM548lB554iRcMwOKzxO/bCJR/zn6xQV3LBDJUQpXosvP6W'
+        password_hash: '$2a$12$QZE/VgUNGvBQxNf7vvN1OOovW6OeEMAM5LNS8IcQnL/AuNqVb5D0u'
       },
       {
         full_name: 'Kevin Koech',
         email: 'kevinkoechx@gmail.com',
-        password_hash: '$2a$12$SXYmoI8TgYrlxqj/xm4J4udDmuqfw.wrfWtzvAL825SuPY62y10O6'
+        password_hash: '$2a$12$2TC2aQV5zyQYBpDkRalEVunh.CjD3nWRHuu1zHFYEbERhENu895sy'
       },
       {
         full_name: 'Daniel Mahmoud Alli Anicethy Prodl',
         email: 'malikaprodl007@gmail.com',
-        password_hash: '$2a$12$OCefkTX8hPwf79rSXREczOEFu5dvrGfBg5JD2E4eV5ZlbS1nX4DM2'
+        password_hash: '$2a$12$Vnn/CboyizmexHWaempVAuppymVyZYMOvzSr75WKZPKFX.nHMm5nm'
       },
       {
         full_name: 'Peter Onsomu',
         email: 'pkonsomu2021@gmail.com',
-        password_hash: '$2a$12$6B43fLlZ31KlXWGYfE2iMecx2rk37aK6xYP0SEr04vTVRYoWNVJm2'
+        password_hash: '$2a$12$F7e8TyLuRbvVN5o7jJJt9.U5zYchbHNHYmsvf0FbV6iLSjHtQ6d5q' // Updated password: ponsomu756@
       }
     ];
 
