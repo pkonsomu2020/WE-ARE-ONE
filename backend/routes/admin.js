@@ -16,7 +16,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
       {
         full_name: 'WAO Super Admin',
         email: 'admin@weareone.co.ke',
-        password_hash: '$2a$12$6B43fLlZ31KlXWGYfE2iMecx2rk37aK6xYP0SEr04vTVRYoWNVJm2' // Keep existing
+        password_hash: '$2a$12$BT7fWvo0MJyikerKpgt6neKsdikwOlpChjQvw4QZ7.FuzdGCvUGtG' // Updated secure password
       },
       {
         full_name: 'Stacy Agwanda Jacinta',
@@ -147,7 +147,7 @@ router.post('/auth/seed-admins', async (req, res) => {
       {
         full_name: 'WAO Super Admin',
         email: 'admin@weareone.co.ke',
-        password_hash: '$2a$12$6B43fLlZ31KlXWGYfE2iMecx2rk37aK6xYP0SEr04vTVRYoWNVJm2'
+        password_hash: '$2a$12$BT7fWvo0MJyikerKpgt6neKsdikwOlpChjQvw4QZ7.FuzdGCvUGtG' // Updated secure password
       },
       {
         full_name: 'Stacy Agwanda Jacinta',
