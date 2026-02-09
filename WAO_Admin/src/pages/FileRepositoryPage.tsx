@@ -83,7 +83,7 @@ const FileRepositoryPage = () => {
         files
           .filter(file => file && typeof file === 'object')
           .map(file => {
-            return file.uploaded_by_email || file.uploaded_by_name || file.uploaded_by;
+            return file.uploaded_by_name || file.uploader_display_name || file.uploaded_by_email || file.uploaded_by;
           })
           .filter((value): value is string => !!value && typeof value === 'string')
       ));
@@ -203,7 +203,7 @@ const FileRepositoryPage = () => {
           (file.uploaded_by || '').toLowerCase().includes(searchTerm.toLowerCase());
         const categoryMatches = selectedCategory === 'all' || file.category_name === selectedCategory;
         const typeMatches = selectedType === 'all' || (file.mime_type || '').includes(selectedType);
-        const uploaderValue = file.uploaded_by_email || file.uploader_name || file.uploaded_by;
+        const uploaderValue = file.uploaded_by_name || file.uploader_display_name || file.uploaded_by_email || file.uploaded_by;
         const uploaderMatches = selectedUploader === 'all' || uploaderValue === selectedUploader;
         return nameMatches && categoryMatches && typeMatches && uploaderMatches;
       } catch (error) {
@@ -918,7 +918,7 @@ const FileRepositoryPage = () => {
                         title={file.uploaded_by_email || file.uploaded_by}
                       >
                         <UserIcon className="w-3 h-3 mr-1 flex-shrink-0" />
-                        <span className="truncate">{file.uploader_name || file.uploaded_by}</span>
+                        <span className="truncate">{file.uploaded_by_name || file.uploader_display_name || file.uploaded_by}</span>
                       </p>
                       <p>{formatDate(file.created_at)}</p>
                       <p>Downloads: {file.download_count}</p>
@@ -1000,7 +1000,7 @@ const FileRepositoryPage = () => {
                           className="cursor-help"
                           title={file.uploaded_by_email || file.uploaded_by}
                         >
-                          {file.uploader_name || file.uploaded_by}
+                          {file.uploaded_by_name || file.uploader_display_name || file.uploaded_by}
                         </span>
                       </td>
                       <td className="py-2 pr-4">{formatDate(file.created_at)}</td>

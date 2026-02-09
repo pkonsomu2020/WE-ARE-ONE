@@ -177,13 +177,55 @@ const upload = multer({
 // Import admin authentication middleware
 router.use(authenticateAdmin);
 
-// Middleware to get admin email
-const getAdminEmail = (req, res, next) => {
-  req.adminEmail = req.admin?.id ? `admin-${req.admin.id}@weareone.co.ke` : 'admin@weareone.co.ke';
-  next();
+// Middleware to get admin email and name
+const getAdminInfo = async (req, res, next) => {
+  try {
+    // Get admin profile from database
+    if (req.admin?.id) {
+      const { data: adminProfile, error } = await supabase
+        .from('admin_profiles')
+        .select('full_name, email, phone_number')
+        .eq('user_id', req.admin.id)
+        .single();
+      
+      if (!error && adminProfile) {
+        req.adminEmail = adminProfile.email;
+        req.adminName = adminProfile.full_name;
+        req.adminProfileId = req.admin.id;
+      } else {
+        // Fallback: try to get from admin_users table
+        const { data: adminUser, error: userError } = await supabase
+          .from('admin_users')
+          .select('full_name, email')
+          .eq('id', req.admin.id)
+          .single();
+        
+        if (!userError && adminUser) {
+          req.adminEmail = adminUser.email;
+          req.adminName = adminUser.full_name;
+          req.adminProfileId = req.admin.id;
+        } else {
+          req.adminEmail = `admin-${req.admin.id}@weareone.co.ke`;
+          req.adminName = `Admin ${req.admin.id}`;
+          req.adminProfileId = req.admin.id;
+        }
+      }
+    } else {
+      req.adminEmail = 'admin@weareone.co.ke';
+      req.adminName = 'System Admin';
+      req.adminProfileId = null;
+    }
+    next();
+  } catch (error) {
+    console.error('Error getting admin info:', error);
+    req.adminEmail = 'admin@weareone.co.ke';
+    req.adminName = 'System Admin';
+    req.adminProfileId = null;
+    next();
+  }
 };
 
-router.use(getAdminEmail);
+router.use(getAdminInfo);
 
 // Upload single file
 router.post('/upload', upload.single('file'), async (req, res) => {
@@ -238,8 +280,9 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         category_id: categoryId,
         uploaded_by: req.adminEmail || 'admin@weareone.co.ke',
         uploaded_by_email: req.adminEmail || 'admin@weareone.co.ke',
-        uploaded_by_name: 'Admin User',
-        uploaded_by_profile_id: req.admin?.id || null
+        uploaded_by_name: req.adminName || 'Admin User',
+        uploaded_by_profile_id: req.adminProfileId || null,
+        status: 'active'
       })
       .select();
 
@@ -281,8 +324,9 @@ router.post('/upload', upload.single('file'), async (req, res) => {
                   category_id: categoryId,
                   uploaded_by: req.adminEmail || 'admin@weareone.co.ke',
                   uploaded_by_email: req.adminEmail || 'admin@weareone.co.ke',
-                  uploaded_by_name: 'Admin User',
-                  uploaded_by_profile_id: req.admin?.id || null
+                  uploaded_by_name: req.adminName || 'Admin User',
+                  uploaded_by_profile_id: req.adminProfileId || null,
+                  status: 'active'
                 })
                 .select();
 
@@ -547,12 +591,14 @@ router.get('/files', async (req, res) => {
       });
     }
 
-    // Format the response with category info
+    // Format the response with category info and admin names
     const formattedFiles = (files || []).map(file => ({
       ...file,
       category_name: file.category_id && categoriesMap[file.category_id] ? categoriesMap[file.category_id].name : null,
       category_color: file.category_id && categoriesMap[file.category_id] ? categoriesMap[file.category_id].color : null,
-      category_icon: file.category_id && categoriesMap[file.category_id] ? categoriesMap[file.category_id].icon : null
+      category_icon: file.category_id && categoriesMap[file.category_id] ? categoriesMap[file.category_id].icon : null,
+      // Use uploaded_by_name if available, otherwise extract from uploaded_by email
+      uploader_display_name: file.uploaded_by_name || file.uploaded_by?.replace(/@.*$/, '') || 'Unknown Admin'
     }));
 
     // Get total count for pagination
