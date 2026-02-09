@@ -320,8 +320,20 @@ router.post('/auth/login', async (req, res) => {
       'user-agent': req.headers['user-agent']?.substring(0, 50) + '...'
     });
     
-    const { email, password } = req.body || {};
-    console.log('🔐 Admin login attempt:', { email, hasPassword: !!password, bodyKeys: Object.keys(req.body || {}) });
+    let { email, password } = req.body || {};
+    
+    // Trim email to remove any whitespace
+    if (email) {
+      email = email.trim().toLowerCase();
+    }
+    
+    console.log('🔐 Admin login attempt:', { 
+      email, 
+      emailLength: email?.length,
+      hasPassword: !!password, 
+      passwordLength: password?.length,
+      bodyKeys: Object.keys(req.body || {}) 
+    });
     
     if (!email || !password) {
       console.log('❌ Missing email or password');
@@ -342,12 +354,13 @@ router.post('/auth/login', async (req, res) => {
     }
     
     const admin = adminUsers[0];
+    console.log('🔍 Found admin:', { id: admin.id, name: admin.full_name, hashPrefix: admin.password_hash?.substring(0, 20) });
 
     const ok = await bcrypt.compare(password, admin.password_hash);
-    console.log('🔑 Password verification:', { success: ok, adminId: admin.id });
+    console.log('🔑 Password verification:', { success: ok, adminId: admin.id, hashLength: admin.password_hash?.length });
     
     if (!ok) {
-      console.log('❌ Password verification failed');
+      console.log('❌ Password verification failed for:', admin.email);
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 

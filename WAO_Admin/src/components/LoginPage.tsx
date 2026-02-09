@@ -21,7 +21,11 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!username || !password) {
+    // Trim whitespace from inputs
+    const trimmedUsername = username.trim();
+    const trimmedPassword = password.trim();
+    
+    if (!trimmedUsername || !trimmedPassword) {
       toast({
         title: "Error",
         description: "Please fill in all fields",
@@ -32,7 +36,7 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
 
     setIsLoading(true);
     try {
-      await onLogin({ username, password });
+      await onLogin({ username: trimmedUsername, password: trimmedPassword });
     } catch (e: any) {
       toast({ title: 'Login failed', description: e?.message || 'Unable to login', variant: 'destructive' });
     } finally {
