@@ -49,9 +49,9 @@ const resend = new Resend(process.env.RESEND_API_KEY);
         password_hash: '$2a$12$cLppIXgT53vazgY4m5/bPOGp9pjTweqJGAoq7o9DFOJpTtfeIXwSK'
       },
       {
-        full_name: 'Apollo Apondi',
+        full_name: 'Apollo Omondi',
         email: 'apollopondi99@gmail.com',
-        password_hash: '$2a$12$yK/JGn6V/En3bl.qc6kVW.Dmy3U2.xFNWH6PY/0fO2BQo/dAE0c.6'
+        password_hash: '$2a$12$3sWNbaCAKsZfMbuN0/XewuOraz1ti5iaW.JDhOxpxdKukdqoWfcIi'
       },
       {
         full_name: 'Glorian Katheu',
@@ -61,7 +61,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
       {
         full_name: 'Brian Kevin Mwangi',
         email: 'kevindoc254@gmail.com',
-        password_hash: '$2a$12$QZE/VgUNGvBQxNf7vvN1OOovW6OeEMAM5LNS8IcQnL/AuNqVb5D0u'
+        password_hash: '$2a$12$/Cot19zMBwfEBSA.BUaRIO7Sx7Evmr7uUCuNfn.oZd1Q78nzWobzG'
       },
       {
         full_name: 'Kevin Koech',
@@ -72,6 +72,11 @@ const resend = new Resend(process.env.RESEND_API_KEY);
         full_name: 'Daniel Mahmoud Alli Anicethy Prodl',
         email: 'malikaprodl007@gmail.com',
         password_hash: '$2a$12$Vnn/CboyizmexHWaempVAuppymVyZYMOvzSr75WKZPKFX.nHMm5nm'
+      },
+      {
+        full_name: 'Natasha Mwende Mwagire',
+        email: 'mwendenatasha04@gmail.com',
+        password_hash: '$2a$12$peD84ybPg8QRXiuNMCKxkuskA.8q6sMEv4HFN9XRs9qFNHGPZ/mHi'
       },
       {
         full_name: 'Peter Onsomu',
@@ -180,9 +185,9 @@ router.post('/auth/seed-admins', async (req, res) => {
         password_hash: '$2a$12$cLppIXgT53vazgY4m5/bPOGp9pjTweqJGAoq7o9DFOJpTtfeIXwSK'
       },
       {
-        full_name: 'Apollo Apondi',
+        full_name: 'Apollo Omondi',
         email: 'apollopondi99@gmail.com',
-        password_hash: '$2a$12$yK/JGn6V/En3bl.qc6kVW.Dmy3U2.xFNWH6PY/0fO2BQo/dAE0c.6'
+        password_hash: '$2a$12$3sWNbaCAKsZfMbuN0/XewuOraz1ti5iaW.JDhOxpxdKukdqoWfcIi'
       },
       {
         full_name: 'Glorian Katheu',
@@ -192,7 +197,7 @@ router.post('/auth/seed-admins', async (req, res) => {
       {
         full_name: 'Brian Kevin Mwangi',
         email: 'kevindoc254@gmail.com',
-        password_hash: '$2a$12$QZE/VgUNGvBQxNf7vvN1OOovW6OeEMAM5LNS8IcQnL/AuNqVb5D0u'
+        password_hash: '$2a$12$/Cot19zMBwfEBSA.BUaRIO7Sx7Evmr7uUCuNfn.oZd1Q78nzWobzG'
       },
       {
         full_name: 'Kevin Koech',
@@ -203,6 +208,11 @@ router.post('/auth/seed-admins', async (req, res) => {
         full_name: 'Daniel Mahmoud Alli Anicethy Prodl',
         email: 'malikaprodl007@gmail.com',
         password_hash: '$2a$12$Vnn/CboyizmexHWaempVAuppymVyZYMOvzSr75WKZPKFX.nHMm5nm'
+      },
+      {
+        full_name: 'Natasha Mwende Mwagire',
+        email: 'mwendenatasha04@gmail.com',
+        password_hash: '$2a$12$peD84ybPg8QRXiuNMCKxkuskA.8q6sMEv4HFN9XRs9qFNHGPZ/mHi'
       },
       {
         full_name: 'Peter Onsomu',
