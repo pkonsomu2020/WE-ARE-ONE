@@ -190,7 +190,7 @@ const getAdminInfo = async (req, res, next) => {
       
       if (!error && adminProfile) {
         req.adminEmail = adminProfile.email;
-        req.adminName = adminProfile.full_name;
+        req.adminName = adminProfile.full_name; // Use actual admin name
         req.adminProfileId = req.admin.id;
       } else {
         // Fallback: try to get from admin_users table
@@ -202,7 +202,7 @@ const getAdminInfo = async (req, res, next) => {
         
         if (!userError && adminUser) {
           req.adminEmail = adminUser.email;
-          req.adminName = adminUser.full_name;
+          req.adminName = adminUser.full_name; // Use actual admin name
           req.adminProfileId = req.admin.id;
         } else {
           req.adminEmail = `admin-${req.admin.id}@weareone.co.ke`;
