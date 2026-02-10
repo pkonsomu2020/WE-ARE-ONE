@@ -494,6 +494,14 @@ async function handleInsertQuery(query, params) {
     // Handle event_payments INSERT
     if (tableName === 'event_payments' && params && params.length >= 8) {
       const [eventId, fullName, email, phone, ticketType, amount, mpesaCode, status] = params;
+      
+      console.log('🔧 DATABASE CONFIG: Inserting into event_payments table');
+      console.log('   Params received:', params.length);
+      console.log('   Event ID:', eventId);
+      console.log('   M-pesa Code:', mpesaCode);
+      console.log('   Amount:', amount);
+      console.log('   Status:', status);
+      
       const { data, error } = await supabase
         .from('event_payments')
         .insert({
@@ -508,7 +516,15 @@ async function handleInsertQuery(query, params) {
         })
         .select();
       
-      if (error) throw error;
+      if (error) {
+        console.error('❌ DATABASE CONFIG: Supabase insert failed:', error);
+        throw error;
+      }
+      
+      console.log('✅ DATABASE CONFIG: Supabase insert successful');
+      console.log('   Inserted data:', JSON.stringify(data, null, 2));
+      console.log('   Insert ID:', data[0]?.id);
+      
       return [[], { affectedRows: 1, insertId: data[0]?.id }];
     }
     

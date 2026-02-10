@@ -141,8 +141,8 @@ async function registerForEvent(req, res) {
       
       const insertResult = await pool.execute(
         `INSERT INTO event_payments (event_id, full_name, email, phone, ticket_type, amount, mpesa_code, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 'pending_verification')`,
-        [eventId, fullName, email, phone, ticketType, expectedAmount, mpesaCode]
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [eventId, fullName, email, phone, ticketType, expectedAmount, mpesaCode, 'pending_verification']
       );
       
       console.log('✅ PAYMENT INSERTED SUCCESSFULLY');
