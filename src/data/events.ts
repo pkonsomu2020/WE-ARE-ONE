@@ -24,7 +24,7 @@ export const events: EventItem[] = [
       'Join us for an exciting picnic day at Kenmosa Resort in Eldoret! Connect with the WAO community, enjoy outdoor activities, delicious food, and build meaningful relationships in a beautiful resort setting.',
     host: 'WE ARE ONE',
     tickets: [
-      { name: 'General Admission', price: 'KES 150', status: 'Available' }
+      { name: 'Standard', price: 'KES 150', status: 'Available' }
     ],
     photos: ['/EVENTS/WAO_Eldoret_KENMOSA.jpeg'],
     mapEmbed: 'https://www.google.com/maps?q=Kenmosa+Resort+Eldoret&output=embed',
