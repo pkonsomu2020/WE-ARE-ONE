@@ -14,6 +14,22 @@ export interface EventItem {
 
 export const events: EventItem[] = [
   {
+    id: 'eldoret-picnic-kenmosa',
+    title: 'We Are One Eldoret Picnic',
+    image: '/EVENTS/WAO_Eldoret_KENMOSA.jpeg',
+    date: 'SAT 28TH FEB, 2026 10:00AM',
+    location: 'Kenmosa Resort, Eldoret',
+    price: 'KES 150',
+    description:
+      'Join us for an exciting picnic day at Kenmosa Resort in Eldoret! Connect with the WAO community, enjoy outdoor activities, delicious food, and build meaningful relationships in a beautiful resort setting.',
+    host: 'WE ARE ONE',
+    tickets: [
+      { name: 'General Admission', price: 'KES 150', status: 'Available' }
+    ],
+    photos: ['/EVENTS/WAO_Eldoret_KENMOSA.jpeg'],
+    mapEmbed: 'https://www.google.com/maps?q=Kenmosa+Resort+Eldoret&output=embed',
+  },
+  {
     id: 'kisumu-hangout-resort',
     title: 'Kisumu Hangout',
     image: '/EVENTS/WAO_Kisumu-Meetup.jpg',
