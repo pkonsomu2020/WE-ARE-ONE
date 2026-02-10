@@ -555,13 +555,53 @@ const createEvent = async (req, res) => {
     // Create notification for event creation
     await notificationService.createEventNotification(title, date, startTime);
 
-    // Send invitation notifications with rate limiting (simplified for testing)
-    const allRecipients = [
-      ...adminProfiles,
-      ...(attendees ? attendees.split(',').map(email => ({ email: email.trim(), name: email.trim() })) : [])
-    ];
+    // Determine recipients based on event type
+    let allRecipients = [];
+    
+    if (type === 'organization_event') {
+      // For organization events, send to BOTH admins AND regular users
+      console.log('📧 Organization Event: Sending to admins AND users');
+      
+      // Get all regular users from the users table
+      const { data: regularUsers, error: usersError } = await supabase
+        .from('users')
+        .select('id, email, full_name')
+        .eq('email_verified', true); // Only send to verified users
+      
+      if (usersError) {
+        console.error('Error fetching regular users:', usersError);
+      } else {
+        console.log(`✅ Found ${regularUsers?.length || 0} regular users for organization event`);
+      }
+      
+      // Combine admins and users
+      allRecipients = [
+        ...adminProfiles,
+        ...(regularUsers || []).map(user => ({
+          email: user.email,
+          full_name: user.full_name || user.email,
+          name: user.full_name || user.email
+        }))
+      ];
+      
+    } else {
+      // For internal meetings and reminders, send ONLY to admins
+      console.log(`📧 ${type === 'meeting' ? 'Internal Meeting' : 'Reminder'}: Sending to admins ONLY`);
+      allRecipients = adminProfiles;
+    }
+    
+    // Add external attendees if provided (for all event types)
+    if (attendees && attendees.trim()) {
+      const externalAttendees = attendees.split(',').map(email => email.trim()).filter(email => email);
+      if (externalAttendees.length > 0) {
+        allRecipients = [
+          ...allRecipients,
+          ...externalAttendees.map(email => ({ email: email, name: email }))
+        ];
+      }
+    }
 
-    console.log(`📧 Sending invitations to ${allRecipients.length} recipients:`, allRecipients.map(r => r.email));
+    console.log(`📧 Total recipients: ${allRecipients.length} (Event type: ${type})`);
 
     // Simplified email sending for testing
     let emailResults = { successCount: 0, failureCount: 0, totalCount: allRecipients.length };
