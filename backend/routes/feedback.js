@@ -407,6 +407,38 @@ router.post('/messages/:id/replies', authenticateAdmin, async (req, res) => {
       throw error;
     }
 
+    // Log activity to admin_activity_log
+    try {
+      const activityLogService = require('../services/activityLogService');
+      
+      // Get admin profile ID from admin_profiles table
+      let adminProfileId = null;
+      if (adminId) {
+        const { data: adminProfile, error: profileError } = await supabase
+          .from('admin_profiles')
+          .select('id')
+          .eq('user_id', adminId)
+          .single();
+        
+        if (!profileError && adminProfile) {
+          adminProfileId = adminProfile.id;
+        }
+      }
+      
+      if (adminProfileId) {
+        await activityLogService.logActivity({
+          adminProfileId: adminProfileId,
+          action: 'feedback_response',
+          description: `${adminInfo.name} responded to feedback #${messageId}`,
+          ipAddress: req.ip || req.headers['x-forwarded-for']?.split(',')[0] || 'unknown',
+          userAgent: req.headers['user-agent'] || 'unknown'
+        });
+        console.log('✅ Activity logged for feedback response');
+      }
+    } catch (activityError) {
+      console.error('⚠️ Failed to log activity (non-blocking):', activityError.message);
+    }
+
     res.json({
       success: true,
       message: 'Reply added successfully',

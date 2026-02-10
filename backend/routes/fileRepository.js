@@ -370,6 +370,24 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       uploadedBy: req.adminEmail || 'admin@weareone.co.ke'
     };
 
+    // Log activity to admin_activity_log
+    try {
+      const activityLogService = require('../services/activityLogService');
+      
+      if (req.adminProfileId) {
+        await activityLogService.logActivity({
+          adminProfileId: req.adminProfileId,
+          action: 'document_upload',
+          description: `${req.adminName || 'Admin'} uploaded document: ${req.file.originalname}`,
+          ipAddress: req.ip || req.headers['x-forwarded-for']?.split(',')[0] || 'unknown',
+          userAgent: req.headers['user-agent'] || 'unknown'
+        });
+        console.log('✅ Activity logged for document upload');
+      }
+    } catch (activityError) {
+      console.error('⚠️ Failed to log activity (non-blocking):', activityError.message);
+    }
+
     res.json({
       success: true,
       message: 'File uploaded successfully',
@@ -887,6 +905,24 @@ router.delete('/files/:id', async (req, res) => {
     } catch (fsError) {
       console.warn('Failed to delete physical file:', fsError.message);
       // Continue - database record is marked as deleted
+    }
+
+    // Log activity to admin_activity_log
+    try {
+      const activityLogService = require('../services/activityLogService');
+      
+      if (req.adminProfileId) {
+        await activityLogService.logActivity({
+          adminProfileId: req.adminProfileId,
+          action: 'document_delete',
+          description: `${req.adminName || 'Admin'} deleted document #${fileId}`,
+          ipAddress: req.ip || req.headers['x-forwarded-for']?.split(',')[0] || 'unknown',
+          userAgent: req.headers['user-agent'] || 'unknown'
+        });
+        console.log('✅ Activity logged for document deletion');
+      }
+    } catch (activityError) {
+      console.error('⚠️ Failed to log activity (non-blocking):', activityError.message);
     }
 
     res.json({

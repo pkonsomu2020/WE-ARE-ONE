@@ -634,6 +634,38 @@ const createEvent = async (req, res) => {
       emailResults = { successCount: 0, failureCount: allRecipients.length, totalCount: allRecipients.length };
     }
 
+    // Log activity to admin_activity_log
+    try {
+      const activityLogService = require('../services/activityLogService');
+      
+      // Get admin profile ID from admin_profiles table
+      let adminProfileId = null;
+      if (req.adminId) {
+        const { data: adminProfile, error: profileError } = await supabase
+          .from('admin_profiles')
+          .select('id')
+          .eq('user_id', req.adminId)
+          .single();
+        
+        if (!profileError && adminProfile) {
+          adminProfileId = adminProfile.id;
+        }
+      }
+      
+      if (adminProfileId) {
+        await activityLogService.logActivity({
+          adminProfileId: adminProfileId,
+          action: 'event_created',
+          description: `${adminName} created event: ${title} - ${date}`,
+          ipAddress: req.ip || req.headers['x-forwarded-for']?.split(',')[0] || 'unknown',
+          userAgent: req.headers['user-agent'] || 'unknown'
+        });
+        console.log('✅ Activity logged for event creation');
+      }
+    } catch (activityError) {
+      console.error('⚠️ Failed to log activity (non-blocking):', activityError.message);
+    }
+
     res.status(201).json({
       success: true,
       message: `Event created successfully. ${emailResults.successCount} invitations sent, ${emailResults.failureCount} failed.`,
@@ -962,6 +994,40 @@ const deleteEvent = async (req, res) => {
           type: 'warning',
           source: 'event'
         });
+
+        // Log activity to admin_activity_log
+        try {
+          const activityLogService = require('../services/activityLogService');
+          
+          // Get admin profile ID from admin_profiles table
+          let adminProfileId = null;
+          let adminName = 'Admin';
+          if (req.adminId) {
+            const { data: adminProfile, error: profileError } = await supabase
+              .from('admin_profiles')
+              .select('id, full_name')
+              .eq('user_id', req.adminId)
+              .single();
+            
+            if (!profileError && adminProfile) {
+              adminProfileId = adminProfile.id;
+              adminName = adminProfile.full_name ? adminProfile.full_name.split(' ')[0] : 'Admin';
+            }
+          }
+          
+          if (adminProfileId) {
+            await activityLogService.logActivity({
+              adminProfileId: adminProfileId,
+              action: 'event_deleted',
+              description: `${adminName} deleted event #${id}`,
+              ipAddress: req.ip || req.headers['x-forwarded-for']?.split(',')[0] || 'unknown',
+              userAgent: req.headers['user-agent'] || 'unknown'
+            });
+            console.log('✅ Activity logged for event deletion');
+          }
+        } catch (activityError) {
+          console.error('⚠️ Failed to log activity (non-blocking):', activityError.message);
+        }
 
         res.json({
           success: true,

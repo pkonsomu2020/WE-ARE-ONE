@@ -1,7 +1,7 @@
-const { pool } = require('../config/database');
+const { supabase } = require('../config/database');
 
 /**
- * Activity Log Service
+ * Activity Log Service (Supabase Version)
  * Handles logging and retrieval of admin activity
  */
 class ActivityLogService {
@@ -25,14 +25,28 @@ class ActivityLogService {
         userAgent
       } = activityData;
 
-      const [result] = await pool.execute(
-        `INSERT INTO admin_activity_log 
-         (admin_profile_id, action, description, ip_address, user_agent, created_at)
-         VALUES (?, ?, ?, ?, ?, NOW())`,
-        [adminProfileId, action, description, ipAddress, userAgent]
-      );
+      console.log('📝 Logging activity:', { adminProfileId, action, description });
 
-      return result.insertId;
+      const { data, error } = await supabase
+        .from('admin_activity_log')
+        .insert([{
+          admin_profile_id: adminProfileId,
+          action: action,
+          description: description,
+          ip_address: ipAddress,
+          user_agent: userAgent,
+          created_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Activity log insert failed:', error);
+        throw error;
+      }
+
+      console.log('✅ Activity logged successfully:', data.id);
+      return data.id;
     } catch (error) {
       console.error('❌ Activity log insert failed:', error.message);
       throw error;
@@ -61,44 +75,43 @@ class ActivityLogService {
         offset = 0
       } = filters;
 
-      let query = `
-        SELECT 
-          aal.*,
-          ap.full_name,
-          ap.email,
-          ap.role
-        FROM admin_activity_log aal
-        LEFT JOIN admin_profiles ap ON aal.admin_profile_id = ap.id
-        WHERE 1=1
-      `;
-
-      const params = [];
+      let query = supabase
+        .from('admin_activity_log')
+        .select(`
+          *,
+          admin_profiles (
+            full_name,
+            email,
+            role
+          )
+        `)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
 
       if (adminProfileId) {
-        query += ' AND aal.admin_profile_id = ?';
-        params.push(adminProfileId);
+        query = query.eq('admin_profile_id', adminProfileId);
       }
 
       if (action) {
-        query += ' AND aal.action = ?';
-        params.push(action);
+        query = query.eq('action', action);
       }
 
       if (startDate) {
-        query += ' AND aal.created_at >= ?';
-        params.push(startDate);
+        query = query.gte('created_at', startDate);
       }
 
       if (endDate) {
-        query += ' AND aal.created_at <= ?';
-        params.push(endDate);
+        query = query.lte('created_at', endDate);
       }
 
-      query += ' ORDER BY aal.created_at DESC LIMIT ? OFFSET ?';
-      params.push(limit, offset);
+      const { data: logs, error } = await query;
 
-      const [logs] = await pool.execute(query, params);
-      return logs;
+      if (error) {
+        console.error('❌ Activity log query failed:', error);
+        throw error;
+      }
+
+      return logs || [];
     } catch (error) {
       console.error('❌ Activity log query failed:', error.message);
       throw error;
@@ -112,20 +125,25 @@ class ActivityLogService {
    */
   async getRecentActivity(limit = 20) {
     try {
-      const [activities] = await pool.execute(
-        `SELECT 
-          aal.*,
-          ap.full_name,
-          ap.email,
-          ap.role
-         FROM admin_activity_log aal
-         LEFT JOIN admin_profiles ap ON aal.admin_profile_id = ap.id
-         ORDER BY aal.created_at DESC
-         LIMIT ?`,
-        [limit]
-      );
+      const { data: activities, error } = await supabase
+        .from('admin_activity_log')
+        .select(`
+          *,
+          admin_profiles (
+            full_name,
+            email,
+            role
+          )
+        `)
+        .order('created_at', { ascending: false })
+        .limit(limit);
 
-      return activities;
+      if (error) {
+        console.error('❌ Recent activity query failed:', error);
+        throw error;
+      }
+
+      return activities || [];
     } catch (error) {
       console.error('❌ Recent activity query failed:', error.message);
       throw error;
@@ -141,35 +159,42 @@ class ActivityLogService {
    */
   async getActivityCountByAction(adminProfileId = null, startDate = null, endDate = null) {
     try {
-      let query = `
-        SELECT 
-          action,
-          COUNT(*) as count
-        FROM admin_activity_log
-        WHERE 1=1
-      `;
-
-      const params = [];
+      let query = supabase
+        .from('admin_activity_log')
+        .select('action');
 
       if (adminProfileId) {
-        query += ' AND admin_profile_id = ?';
-        params.push(adminProfileId);
+        query = query.eq('admin_profile_id', adminProfileId);
       }
 
       if (startDate) {
-        query += ' AND created_at >= ?';
-        params.push(startDate);
+        query = query.gte('created_at', startDate);
       }
 
       if (endDate) {
-        query += ' AND created_at <= ?';
-        params.push(endDate);
+        query = query.lte('created_at', endDate);
       }
 
-      query += ' GROUP BY action ORDER BY count DESC';
+      const { data: activities, error } = await query;
 
-      const [counts] = await pool.execute(query, params);
-      return counts;
+      if (error) {
+        console.error('❌ Activity count query failed:', error);
+        throw error;
+      }
+
+      // Count activities by action type
+      const counts = {};
+      activities?.forEach(activity => {
+        counts[activity.action] = (counts[activity.action] || 0) + 1;
+      });
+
+      // Convert to array format
+      const result = Object.entries(counts).map(([action, count]) => ({
+        action,
+        count
+      })).sort((a, b) => b.count - a.count);
+
+      return result;
     } catch (error) {
       console.error('❌ Activity count query failed:', error.message);
       throw error;
