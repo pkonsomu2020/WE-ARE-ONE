@@ -54,12 +54,18 @@ const formatDate = (dateString: any): Date => {
 
 const formatDateString = (dateString: any): string => {
   const date = formatDate(dateString);
-  return date.toLocaleDateString();
+  return date.toLocaleDateString('en-KE', { 
+    timeZone: 'Africa/Nairobi',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
 };
 
 const formatTimeString = (dateString: any): string => {
   const date = formatDate(dateString);
-  return date.toLocaleTimeString([], { 
+  return date.toLocaleTimeString('en-KE', { 
+    timeZone: 'Africa/Nairobi',
     hour: '2-digit', 
     minute: '2-digit',
     hour12: true // Explicitly enable 12-hour format with AM/PM

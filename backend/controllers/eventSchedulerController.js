@@ -446,6 +446,25 @@ const createEvent = async (req, res) => {
       });
     }
 
+    // Get the admin's full name from admin_users table
+    let adminName = 'Admin';
+    let adminEmail = null;
+    
+    if (req.adminId) {
+      const { data: adminUser, error: adminError } = await supabase
+        .from('admin_users')
+        .select('full_name, email')
+        .eq('id', req.adminId)
+        .single();
+      
+      if (!adminError && adminUser) {
+        // Extract first name from full name (e.g., "Mary Deckline" -> "Mary")
+        adminName = adminUser.full_name ? adminUser.full_name.split(' ')[0] : 'Admin';
+        adminEmail = adminUser.email;
+        console.log(`✅ Event created by: ${adminName} (${adminEmail})`);
+      }
+    }
+
     // Insert the event
     const { data: eventData, error: eventError } = await supabase
       .from('scheduled_events')
@@ -457,10 +476,10 @@ const createEvent = async (req, res) => {
         end_datetime: endDateTime.toISOString(),
         location,
         meeting_link: meetingLink,
-        created_by: 'Admin',
-        created_by_profile_id: null,
-        created_by_name: null,
-        created_by_email: null,
+        created_by: adminName,
+        created_by_profile_id: req.adminId || null,
+        created_by_name: adminName,
+        created_by_email: adminEmail,
         updated_by_profile_id: null,
         is_recurring: isRecurring || false,
         recurrence_pattern: recurrencePattern || null,

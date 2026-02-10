@@ -15,6 +15,9 @@ yarn-error.log*
 # Database migrations (temporary migration files)
 migrations/
 
+# Test and utility scripts
+scripts/
+
 # Logs
 logs
 *.log
