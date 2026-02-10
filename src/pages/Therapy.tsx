@@ -295,11 +295,11 @@ const Therapy: React.FC = () => {
 
                 {/* Miriam Rama */}
                 <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                  <div className="aspect-square overflow-hidden">
+                  <div className="aspect-[3/4] overflow-hidden bg-gray-100">
                     <img 
                       src="/Miriam Rama- counseling .jpeg" 
                       alt="Miriam Rama - Counseling Psychologist" 
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                      className="w-full h-full object-contain hover:scale-105 transition-transform duration-300"
                     />
                   </div>
                   <div className="p-6">
@@ -336,11 +336,11 @@ const Therapy: React.FC = () => {
 
                 {/* Ivan Kennedy Kigen */}
                 <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                  <div className="aspect-square overflow-hidden">
+                  <div className="aspect-[3/4] overflow-hidden bg-gray-100">
                     <img 
                       src="/Ivan Kennedy Kigen.jpeg" 
                       alt="Ivan Kennedy Kigen - Therapist" 
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                      className="w-full h-full object-contain hover:scale-105 transition-transform duration-300"
                     />
                   </div>
                   <div className="p-6">
