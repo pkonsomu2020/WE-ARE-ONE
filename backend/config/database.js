@@ -502,7 +502,8 @@ async function handleInsertQuery(query, params) {
       console.log('   Amount:', amount);
       console.log('   Status:', status);
       
-      const { data, error } = await supabase
+      // First attempt - normal insert
+      let { data, error } = await supabase
         .from('event_payments')
         .insert({
           event_id: eventId,
@@ -515,6 +516,56 @@ async function handleInsertQuery(query, params) {
           status: status
         })
         .select();
+      
+      // If primary key constraint violation, fix the sequence
+      if (error && error.code === '23505' && error.message.includes('event_payments_pkey')) {
+        console.log('🔧 Primary key conflict detected for event_payments, fixing sequence...');
+        
+        try {
+          // Get the current maximum ID
+          const { data: maxData, error: maxError } = await supabase
+            .from('event_payments')
+            .select('id')
+            .order('id', { ascending: false })
+            .limit(1);
+          
+          if (maxError) {
+            console.error('❌ Failed to get max ID:', maxError);
+            throw error; // Throw original error
+          }
+          
+          const maxId = maxData && maxData.length > 0 ? maxData[0].id : 0;
+          console.log(`🔧 Current max ID: ${maxId}`);
+          
+          // Use a safe ID far ahead to bypass conflicts
+          const safeId = maxId + 100;
+          const { data: altData, error: altError } = await supabase
+            .from('event_payments')
+            .insert({
+              id: safeId,
+              event_id: eventId,
+              full_name: fullName,
+              email: email,
+              phone: phone,
+              ticket_type: ticketType,
+              amount: amount,
+              mpesa_code: mpesaCode,
+              status: status
+            })
+            .select();
+          
+          if (altError) {
+            console.error('❌ Alternative insert failed:', altError);
+            throw error; // Throw original error
+          }
+          
+          console.log('✅ Alternative insert successful with ID:', safeId);
+          return [[], { affectedRows: 1, insertId: altData[0]?.id }];
+        } catch (fixError) {
+          console.error('❌ Failed to fix sequence:', fixError);
+          throw error; // Throw original error
+        }
+      }
       
       if (error) {
         console.error('❌ DATABASE CONFIG: Supabase insert failed:', error);
