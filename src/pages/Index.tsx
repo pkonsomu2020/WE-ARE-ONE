@@ -13,12 +13,12 @@ import { Link, useLocation } from 'react-router-dom';
 import { MessageCircle } from 'lucide-react';
 
 const nextEvent = {
-  title: 'Kisumu Hangout',
-  date: 'Sunday October 19th | 9:00am - 6:00pm',
-  venue: 'Valley View Resort, Kisumu',
-  image: '/EVENTS/WAO_Kisumu-Meetup.jpg',
+  title: 'We Are One Eldoret Picnic',
+  date: 'Saturday February 28th | 10:00am',
+  venue: 'Kenmosa Resort, Eldoret',
+  image: '/EVENTS/WAO_Eldoret_KENMOSA.jpeg',
   // Set the event start date/time for countdown (ISO format)
-  startDate: new Date('2025-10-19T09:00:00'),
+  startDate: new Date('2026-02-28T10:00:00'),
 };
 
 const UpcomingEventSection: React.FC = () => {
@@ -50,11 +50,11 @@ const UpcomingEventSection: React.FC = () => {
         <div className="md:w-1/2 flex flex-col justify-center items-center p-8 bg-ngo-orange text-white">
           <div className="mb-6 text-center">
             <div className="uppercase tracking-widest text-sm mb-2">Upcoming Event</div>
-                <div className="text-4xl md:text-5xl font-extrabold mb-2 text-white">Kisumu Hangout</div>
-                <div className="text-xl mb-1 text-white font-semibold">Sunday October 19th | 9:00am - 6:00pm</div>
-                <div className="text-lg mb-4 text-white">Valley View Resort, Kisumu</div>
+                <div className="text-4xl md:text-5xl font-extrabold mb-2 text-white">We Are One Eldoret Picnic</div>
+                <div className="text-xl mb-1 text-white font-semibold">Saturday February 28th | 10:00am</div>
+                <div className="text-lg mb-4 text-white">Kenmosa Resort, Eldoret</div>
                 <Link
-                  to="/events/kisumu-hangout-resort"
+                  to="/events/eldoret-picnic-kenmosa"
                   className="inline-block mt-4 px-8 py-3 bg-white text-ngo-orange font-bold text-lg rounded shadow hover:bg-orange-100 transition"
                 >
                   Join Now
