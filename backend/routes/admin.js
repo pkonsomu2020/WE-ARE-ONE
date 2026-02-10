@@ -46,7 +46,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
       {
         full_name: 'Mary Deckline',
         email: 'daisymary1190@gmail.com',
-        password_hash: '$2a$12$cLppIXgT53vazgY4m5/bPOGp9pjTweqJGAoq7o9DFOJpTtfeIXwSK'
+        password_hash: '$2a$12$zyw3YMTSt9JG0GHENXhhnuIbV4Z8TffXPyy9a7ldyHvs7MJTLa6ZC'
       },
       {
         full_name: 'Apollo Omondi',
@@ -182,7 +182,7 @@ router.post('/auth/seed-admins', async (req, res) => {
       {
         full_name: 'Mary Deckline',
         email: 'daisymary1190@gmail.com',
-        password_hash: '$2a$12$cLppIXgT53vazgY4m5/bPOGp9pjTweqJGAoq7o9DFOJpTtfeIXwSK'
+        password_hash: '$2a$12$zyw3YMTSt9JG0GHENXhhnuIbV4Z8TffXPyy9a7ldyHvs7MJTLa6ZC'
       },
       {
         full_name: 'Apollo Omondi',
