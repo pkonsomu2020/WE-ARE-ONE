@@ -210,7 +210,7 @@ const Therapy: React.FC = () => {
               </p>
               
               {/* Therapists Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-6">
                 {/* Anita Karembo */}
                 <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
                   <div className="aspect-square overflow-hidden">
@@ -285,6 +285,129 @@ const Therapy: React.FC = () => {
                       </a>
                       <a 
                         href="tel:0794906248"
+                        className="flex-1 px-4 py-2 border border-ngo-orange text-ngo-orange text-center rounded hover:bg-orange-50 transition-colors text-sm"
+                      >
+                        Call
+                      </a>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Miriam Rama */}
+                <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                  <div className="aspect-square overflow-hidden">
+                    <img 
+                      src="/Miriam Rama- counseling .jpeg" 
+                      alt="Miriam Rama - Counseling Psychologist" 
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                  <div className="p-6">
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">Miriam Rama</h3>
+                    <p className="text-gray-600 mb-4">Counseling Psychologist</p>
+                    <div className="space-y-2">
+                      <div className="flex items-center text-gray-700">
+                        <span className="text-ngo-orange mr-2">📞</span>
+                        <a href="tel:0798694627" className="hover:text-ngo-orange transition-colors">0798694627</a>
+                      </div>
+                      <div className="flex items-center text-gray-700">
+                        <span className="text-ngo-orange mr-2">📧</span>
+                        <a href="mailto:kulolamiriam10@gmail.com" className="hover:text-ngo-orange transition-colors break-all">kulolamiriam10@gmail.com</a>
+                      </div>
+                    </div>
+                    <div className="mt-4 flex gap-2">
+                      <a 
+                        href="https://wa.me/254798694627" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex-1 px-4 py-2 bg-ngo-orange text-white text-center rounded hover:bg-orange-600 transition-colors text-sm"
+                      >
+                        WhatsApp
+                      </a>
+                      <a 
+                        href="tel:0798694627"
+                        className="flex-1 px-4 py-2 border border-ngo-orange text-ngo-orange text-center rounded hover:bg-orange-50 transition-colors text-sm"
+                      >
+                        Call
+                      </a>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Ivan Kennedy Kigen */}
+                <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                  <div className="aspect-square overflow-hidden">
+                    <img 
+                      src="/Ivan Kennedy Kigen.jpeg" 
+                      alt="Ivan Kennedy Kigen - Therapist" 
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                  <div className="p-6">
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">Ivan Kennedy Kigen</h3>
+                    <p className="text-gray-600 mb-4">Licensed Professional Therapist</p>
+                    <div className="space-y-2">
+                      <div className="flex items-center text-gray-700">
+                        <span className="text-ngo-orange mr-2">📞</span>
+                        <a href="tel:0724906893" className="hover:text-ngo-orange transition-colors">0724906893</a>
+                      </div>
+                      <div className="flex items-center text-gray-700">
+                        <span className="text-ngo-orange mr-2">📧</span>
+                        <a href="mailto:Ivankigen5794@gmail.com" className="hover:text-ngo-orange transition-colors break-all">Ivankigen5794@gmail.com</a>
+                      </div>
+                    </div>
+                    <div className="mt-4 flex gap-2">
+                      <a 
+                        href="https://wa.me/254724906893" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex-1 px-4 py-2 bg-ngo-orange text-white text-center rounded hover:bg-orange-600 transition-colors text-sm"
+                      >
+                        WhatsApp
+                      </a>
+                      <a 
+                        href="tel:0724906893"
+                        className="flex-1 px-4 py-2 border border-ngo-orange text-ngo-orange text-center rounded hover:bg-orange-50 transition-colors text-sm"
+                      >
+                        Call
+                      </a>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Joy Ngei */}
+                <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                  <div className="aspect-square overflow-hidden">
+                    <img 
+                      src="/Joy Ngei.jpeg" 
+                      alt="Joy Ngei - Therapist" 
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                  <div className="p-6">
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">Joy Ngei</h3>
+                    <p className="text-gray-600 mb-4">Licensed Professional Therapist</p>
+                    <div className="space-y-2">
+                      <div className="flex items-center text-gray-700">
+                        <span className="text-ngo-orange mr-2">📞</span>
+                        <a href="tel:0746570075" className="hover:text-ngo-orange transition-colors">0746570075</a>
+                      </div>
+                      <div className="flex items-center text-gray-700">
+                        <span className="text-ngo-orange mr-2">📧</span>
+                        <a href="mailto:joyngeimwende@gmail.com" className="hover:text-ngo-orange transition-colors break-all">joyngeimwende@gmail.com</a>
+                      </div>
+                    </div>
+                    <div className="mt-4 flex gap-2">
+                      <a 
+                        href="https://wa.me/254746570075" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex-1 px-4 py-2 bg-ngo-orange text-white text-center rounded hover:bg-orange-600 transition-colors text-sm"
+                      >
+                        WhatsApp
+                      </a>
+                      <a 
+                        href="tel:0746570075"
                         className="flex-1 px-4 py-2 border border-ngo-orange text-ngo-orange text-center rounded hover:bg-orange-50 transition-colors text-sm"
                       >
                         Call
