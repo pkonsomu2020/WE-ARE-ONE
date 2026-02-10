@@ -441,8 +441,19 @@ router.get('/event-payments', async (req, res) => {
     const paidOrdersData = paidOrders || [];
     const freeRegistrationsData = freeRegistrations || [];
     
+    // Filter out registrations that have corresponding payments
+    // Only show registrations as "free" if they don't have a payment record
+    const actualFreeRegistrations = freeRegistrationsData.filter(reg => {
+      // Check if this registration has a payment
+      const hasPayment = paidOrdersData.some(payment => 
+        payment.email === reg.email && 
+        payment.event_id === reg.event_id
+      );
+      return !hasPayment; // Only include if NO payment exists
+    });
+    
     // Transform free registrations to match the payment format
-    const transformedFreeRegistrations = freeRegistrationsData.map(reg => ({
+    const transformedFreeRegistrations = actualFreeRegistrations.map(reg => ({
       id: `free_${reg.id}`, // Prefix with 'free_' to distinguish from paid orders
       event_id: reg.event_id,
       full_name: reg.full_name,
@@ -466,7 +477,7 @@ router.get('/event-payments', async (req, res) => {
       new Date(b.created_at) - new Date(a.created_at)
     );
     
-    console.log(`✅ Admin API: Found ${paidOrdersData.length} paid orders and ${freeRegistrationsData.length} free registrations`);
+    console.log(`✅ Admin API: Found ${paidOrdersData.length} paid orders and ${actualFreeRegistrations.length} free registrations`);
     console.log(`✅ Admin API: Total orders: ${allOrders.length}`);
     
     // Cache the combined orders
