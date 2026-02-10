@@ -322,9 +322,13 @@ router.post('/auth/login', async (req, res) => {
     
     let { email, password } = req.body || {};
     
-    // Trim email to remove any whitespace
+    // Trim email to remove any whitespace and remove leading @ symbol if present
     if (email) {
       email = email.trim().toLowerCase();
+      // Remove leading @ symbol if present (common user error)
+      if (email.startsWith('@')) {
+        email = email.substring(1);
+      }
     }
     
     console.log('🔐 Admin login attempt:', { 
