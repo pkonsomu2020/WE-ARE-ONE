@@ -35,10 +35,15 @@ async function registerForEvent(req, res) {
       return res.status(400).json({ success: false, message: 'Please create an account and sign in with this email before booking a ticket.' });
     }
 
-    if (!isFree) {
+    // Determine if event is free based on presence of payment info
+    // If mpesaCode and amount are provided, it's a paid event
+    const isPaidEvent = mpesaCode && amount != null && amount > 0;
+    const isFreeEvent = isFree === true || !isPaidEvent;
+
+    if (isPaidEvent) {
       // Validate expected amount
-      if (!ticketType || amount == null || !mpesaCode) {
-        return res.status(400).json({ success: false, message: 'ticketType, mpesaCode and amount are required for paid events' });
+      if (!ticketType) {
+        return res.status(400).json({ success: false, message: 'ticketType is required for paid events' });
       }
       // Handle different ticket types and their expected amounts
       let expectedAmount;
@@ -165,7 +170,7 @@ async function registerForEvent(req, res) {
     // Ticket number allocation will occur after admin marks payment as paid
 
     // Send admin notification (non-blocking)
-    const adminEmail = 'admin@weareone.co.ke'; // Fixed admin email
+    const adminEmail = 'weareone0624@gmail.com'; // Admin email for notifications
     
     console.log('📧 Attempting to send admin notification email...');
     console.log('📧 Admin email:', adminEmail);
@@ -182,8 +187,8 @@ async function registerForEvent(req, res) {
         <p><strong>Email:</strong> ${email}</p>
         <p><strong>Phone:</strong> ${phone}</p>
         <p><strong>Experience (expectation):</strong> ${experience || 'N/A'}</p>
-        ${isFree ? `<p><strong>Ticket:</strong> Free</p>` : `<p><strong>Ticket:</strong> ${ticketType} (KES ${amount})</p>`}
-        ${!isFree ? `<p><strong>M-Pesa Code:</strong> ${mpesaCode}</p>` : ''}
+        ${isPaidEvent ? `<p><strong>Ticket:</strong> ${ticketType} (KES ${amount})</p>` : `<p><strong>Ticket:</strong> Free</p>`}
+        ${isPaidEvent ? `<p><strong>M-Pesa Code:</strong> ${mpesaCode}</p>` : ''}
         <p><strong>Accept Terms:</strong> ${acceptTerms ? 'Yes' : 'No'}</p>
         <p><strong>Accept Updates:</strong> ${acceptUpdates ? 'Yes' : 'No'}</p>
         <p><em>Registration ID: ${result.insertId}</em></p>
@@ -203,10 +208,10 @@ async function registerForEvent(req, res) {
     resend.emails.send({
       from: 'We Are One Events <events@weareone.co.ke>',
       to: [email], // Now can send to actual user email!
-      subject: isFree ? `Event Registration Confirmation` : `Ticket Request – Pending Verification`,
+      subject: isPaidEvent ? `Ticket Request – Pending Verification` : `Event Registration Confirmation`,
       html: `
         <p>Hi ${fullName},</p>
-        ${isFree ? `
+        ${isFreeEvent ? `
           <p>Thank you for registering for <strong>${eventId}</strong>. This is a free event—no payment is required.</p>
           <p>Your spot has been reserved. We look forward to seeing you!</p>
         ` : `

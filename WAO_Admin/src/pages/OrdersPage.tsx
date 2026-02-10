@@ -9,17 +9,21 @@ import OrderDetailModal from "@/components/OrderDetailModal";
 import { api } from "@/lib/api";
 import { ProtectedPage } from "@/components/ProtectedPage";
 
-// Helper function to safely format dates
+// Helper function to safely format dates in EAT timezone
 const formatDate = (dateString: any): string => {
   if (!dateString) return 'N/A';
   
   try {
-    const date = new Date(dateString);
+    // Parse the date string
+    let date = new Date(dateString);
+    
     // Check if date is valid
     if (isNaN(date.getTime())) {
       return 'Invalid Date';
     }
-    return date.toLocaleString('en-KE', {
+    
+    // Format in EAT timezone (Africa/Nairobi, UTC+3)
+    return date.toLocaleString('en-US', {
       timeZone: 'Africa/Nairobi',
       year: 'numeric',
       month: '2-digit',
@@ -27,7 +31,7 @@ const formatDate = (dateString: any): string => {
       hour: '2-digit',
       minute: '2-digit',
       hour12: true
-    });
+    }).replace(/(\d+)\/(\d+)\/(\d+),/, '$2/$1/$3,'); // Convert MM/DD/YYYY to DD/MM/YYYY
   } catch (error) {
     console.error('Date formatting error:', error);
     return 'Invalid Date';

@@ -57,7 +57,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 
-// Helper function to safely format dates
+// Helper function to safely format dates in EAT timezone
 const formatDate = (dateString: any): string => {
   if (!dateString) return 'N/A';
   
@@ -67,7 +67,16 @@ const formatDate = (dateString: any): string => {
     if (isNaN(date.getTime())) {
       return 'Invalid Date';
     }
-    return date.toLocaleString();
+    // Format in EAT timezone (Africa/Nairobi, UTC+3)
+    return date.toLocaleString('en-US', {
+      timeZone: 'Africa/Nairobi',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    }).replace(/(\d+)\/(\d+)\/(\d+),/, '$2/$1/$3'); // Convert MM/DD/YYYY to DD/MM/YYYY
   } catch (error) {
     console.error('Date formatting error:', error);
     return 'Invalid Date';
