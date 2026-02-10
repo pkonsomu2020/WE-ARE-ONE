@@ -184,14 +184,14 @@ const getAdminInfo = async (req, res, next) => {
     if (req.admin?.id) {
       const { data: adminProfile, error } = await supabase
         .from('admin_profiles')
-        .select('full_name, email, phone_number')
+        .select('id, full_name, email, phone_number')
         .eq('user_id', req.admin.id)
         .single();
       
       if (!error && adminProfile) {
         req.adminEmail = adminProfile.email;
         req.adminName = adminProfile.full_name; // Use actual admin name
-        req.adminProfileId = req.admin.id;
+        req.adminProfileId = adminProfile.id; // Use admin_profiles.id, not user_id
       } else {
         // Fallback: try to get from admin_users table
         const { data: adminUser, error: userError } = await supabase
@@ -203,11 +203,11 @@ const getAdminInfo = async (req, res, next) => {
         if (!userError && adminUser) {
           req.adminEmail = adminUser.email;
           req.adminName = adminUser.full_name; // Use actual admin name
-          req.adminProfileId = req.admin.id;
+          req.adminProfileId = null; // No profile ID available in fallback
         } else {
           req.adminEmail = `admin-${req.admin.id}@weareone.co.ke`;
           req.adminName = `Admin ${req.admin.id}`;
-          req.adminProfileId = req.admin.id;
+          req.adminProfileId = null;
         }
       }
     } else {
@@ -460,8 +460,8 @@ router.post('/upload-multiple', upload.array('files', 10), async (req, res) => {
           category_id: categoryId,
           uploaded_by: req.adminEmail || 'admin@weareone.co.ke',
           uploaded_by_email: req.adminEmail || 'admin@weareone.co.ke',
-          uploaded_by_name: 'Admin User',
-          uploaded_by_profile_id: req.admin?.id || null
+          uploaded_by_name: req.adminName || 'Admin User',
+          uploaded_by_profile_id: req.adminProfileId || null
         })
         .select();
 
