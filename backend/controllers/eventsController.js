@@ -21,6 +21,18 @@ async function registerForEvent(req, res) {
       amount,
       isFree
     } = req.body;
+    
+    // DEBUG: Log received payload
+    console.log('📥 RECEIVED REGISTRATION PAYLOAD:');
+    console.log('   eventId:', eventId);
+    console.log('   fullName:', fullName);
+    console.log('   email:', email);
+    console.log('   phone:', phone);
+    console.log('   ticketType:', ticketType);
+    console.log('   amount:', amount, '(type:', typeof amount, ')');
+    console.log('   mpesaCode:', mpesaCode, '(type:', typeof mpesaCode, ')');
+    console.log('   isFree:', isFree, '(type:', typeof isFree, ')');
+    console.log('   Full body keys:', Object.keys(req.body));
 
     if (!eventId || !fullName || !email || !phone || !acceptTerms) {
       return res.status(400).json({
