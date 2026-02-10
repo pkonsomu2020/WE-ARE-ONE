@@ -481,6 +481,24 @@ router.post('/upload-multiple', upload.array('files', 10), async (req, res) => {
       });
     }
 
+    // Log activity to admin_activity_log
+    try {
+      const activityLogService = require('../services/activityLogService');
+      
+      if (req.adminProfileId && filesData.length > 0) {
+        await activityLogService.logActivity({
+          adminProfileId: req.adminProfileId,
+          action: 'document_upload',
+          description: `${req.adminName || 'Admin'} uploaded ${filesData.length} documents`,
+          ipAddress: req.ip || req.headers['x-forwarded-for']?.split(',')[0] || 'unknown',
+          userAgent: req.headers['user-agent'] || 'unknown'
+        });
+        console.log('✅ Activity logged for multiple document upload');
+      }
+    } catch (activityError) {
+      console.error('⚠️ Failed to log activity (non-blocking):', activityError.message);
+    }
+
     res.json({
       success: true,
       message: `${filesData.length} files uploaded successfully`,
@@ -1038,6 +1056,24 @@ router.get('/download/:id', async (req, res) => {
 
     if (updateError) {
       console.warn('Failed to update download count:', updateError.message);
+    }
+
+    // Log activity to admin_activity_log
+    try {
+      const activityLogService = require('../services/activityLogService');
+      
+      if (req.adminProfileId) {
+        await activityLogService.logActivity({
+          adminProfileId: req.adminProfileId,
+          action: 'document_download',
+          description: `${req.adminName || 'Admin'} downloaded document: ${file.original_name}`,
+          ipAddress: req.ip || req.headers['x-forwarded-for']?.split(',')[0] || 'unknown',
+          userAgent: req.headers['user-agent'] || 'unknown'
+        });
+        console.log('✅ Activity logged for document download');
+      }
+    } catch (activityError) {
+      console.error('⚠️ Failed to log activity (non-blocking):', activityError.message);
     }
 
     // Set appropriate headers

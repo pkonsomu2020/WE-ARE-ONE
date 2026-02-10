@@ -876,6 +876,40 @@ const updateEvent = async (req, res) => {
       }
     }
 
+    // Log activity to admin_activity_log
+    try {
+      const activityLogService = require('../services/activityLogService');
+      
+      // Get admin profile ID and name
+      let adminProfileId = null;
+      let adminName = 'Admin';
+      if (req.adminId) {
+        const { data: adminProfile, error: profileError } = await supabase
+          .from('admin_profiles')
+          .select('id, full_name')
+          .eq('user_id', req.adminId)
+          .single();
+        
+        if (!profileError && adminProfile) {
+          adminProfileId = adminProfile.id;
+          adminName = adminProfile.full_name ? adminProfile.full_name.split(' ')[0] : 'Admin';
+        }
+      }
+      
+      if (adminProfileId) {
+        await activityLogService.logActivity({
+          adminProfileId: adminProfileId,
+          action: 'event_updated',
+          description: `${adminName} updated event: ${title || existingEvent.title}`,
+          ipAddress: req.ip || req.headers['x-forwarded-for']?.split(',')[0] || 'unknown',
+          userAgent: req.headers['user-agent'] || 'unknown'
+        });
+        console.log('✅ Activity logged for event update');
+      }
+    } catch (activityError) {
+      console.error('⚠️ Failed to log activity (non-blocking):', activityError.message);
+    }
+
     res.json({
       success: true,
       message: 'Event updated successfully'
