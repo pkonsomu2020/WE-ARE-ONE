@@ -39,8 +39,18 @@ async function registerForEvent(req, res) {
     // If mpesaCode and amount are provided, it's a paid event
     const isPaidEvent = mpesaCode && amount != null && amount > 0;
     const isFreeEvent = isFree === true || !isPaidEvent;
+    
+    // DEBUG: Log payment detection
+    console.log('🔍 PAYMENT DETECTION DEBUG:');
+    console.log('   mpesaCode:', mpesaCode);
+    console.log('   amount:', amount);
+    console.log('   isFree flag:', isFree);
+    console.log('   isPaidEvent:', isPaidEvent);
+    console.log('   isFreeEvent:', isFreeEvent);
+    console.log('   Will insert payment?', isPaidEvent ? 'YES' : 'NO');
 
     if (isPaidEvent) {
+      console.log('✅ PAID EVENT DETECTED - Will insert into event_payments table');
       // Validate expected amount
       if (!ticketType) {
         return res.status(400).json({ success: false, message: 'ticketType is required for paid events' });
@@ -103,14 +113,30 @@ async function registerForEvent(req, res) {
       // Manual verification workflow: store payment as pending for admin review
       const [existingPayments] = await pool.execute('SELECT id FROM event_payments WHERE mpesa_code = ?', [mpesaCode]);
       if (existingPayments.length > 0) {
+        console.log('⚠️ M-pesa code already exists:', mpesaCode);
         return res.status(400).json({ success: false, message: 'This M-Pesa code has already been submitted.' });
       }
       
-      await pool.execute(
+      console.log('💾 INSERTING PAYMENT INTO DATABASE:');
+      console.log('   Event ID:', eventId);
+      console.log('   Full Name:', fullName);
+      console.log('   Email:', email);
+      console.log('   Phone:', phone);
+      console.log('   Ticket Type:', ticketType);
+      console.log('   Amount:', expectedAmount);
+      console.log('   M-pesa Code:', mpesaCode);
+      console.log('   Status: pending_verification');
+      
+      const insertResult = await pool.execute(
         `INSERT INTO event_payments (event_id, full_name, email, phone, ticket_type, amount, mpesa_code, status)
          VALUES (?, ?, ?, ?, ?, ?, ?, 'pending_verification')`,
         [eventId, fullName, email, phone, ticketType, expectedAmount, mpesaCode]
       );
+      
+      console.log('✅ PAYMENT INSERTED SUCCESSFULLY');
+      console.log('   Insert result:', insertResult);
+    } else {
+      console.log('⚠️ FREE EVENT - Skipping payment insert');
     }
 
     console.log('📝 Attempting to insert event registration...');
