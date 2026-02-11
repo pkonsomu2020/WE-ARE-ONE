@@ -205,7 +205,7 @@ async function registerForEvent(req, res) {
       throw new Error(`Database insert failed: ${dbError.message}`);
     }
 
-    // Ticket number allocation will occur after admin marks payment as paid
+    // Ticket number will be generated when admin marks payment as paid
 
     // Send admin notification (non-blocking)
     const adminEmail = 'weareone0624@gmail.com'; // Admin email for notifications

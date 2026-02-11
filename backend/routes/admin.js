@@ -550,6 +550,17 @@ router.put('/event-payments/:id', async (req, res) => {
 
     let ticketNumber = null;
     if (status === 'paid') {
+      console.log('🎫 Payment marked as PAID - Generating ticket number...');
+      console.log('🎫 Payment details:', {
+        id: payment.id,
+        event_id: payment.event_id,
+        email: payment.email,
+        full_name: payment.full_name,
+        ticket_type: payment.ticket_type,
+        amount: payment.amount,
+        mpesa_code: payment.mpesa_code
+      });
+      
       // Generate ticket like WAO-516679-65
       const generateTicket = () => {
         const six = Math.floor(Math.random() * 900000) + 100000; // 100000-999999
@@ -560,6 +571,8 @@ router.put('/event-payments/:id', async (req, res) => {
       // Ensure uniqueness with a few retries
       for (let i = 0; i < 5; i++) {
         const candidate = generateTicket();
+        console.log(`🎫 Attempt ${i + 1}/5: Trying ticket number ${candidate}`);
+        
         try {
           const { data, error } = await supabase
             .from('event_tickets')
@@ -575,20 +588,33 @@ router.put('/event-payments/:id', async (req, res) => {
             .select();
           
           if (error) {
+            console.error('❌ Ticket insert error:', error);
             // On duplicate key, try again; otherwise throw
             if (!error.message.includes('duplicate') && !error.message.includes('unique')) {
+              console.error('❌ Non-duplicate error, throwing:', error.message);
               throw error;
             }
+            console.log('⚠️ Duplicate ticket number, retrying...');
           } else {
             ticketNumber = candidate;
+            console.log('✅ TICKET GENERATED SUCCESSFULLY:', ticketNumber);
+            console.log('✅ Ticket data:', data);
             break;
           }
         } catch (err) {
-          console.error('Ticket creation error:', err);
+          console.error('❌ Ticket creation error (attempt ' + (i + 1) + '):', err);
+          console.error('❌ Error details:', err.message);
+          console.error('❌ Error stack:', err.stack);
           if (i === 4) { // Last attempt
-            throw new Error('Could not allocate unique ticket number');
+            console.error('❌ FAILED TO GENERATE TICKET after 5 attempts');
+            // Don't throw - send email without ticket number
+            ticketNumber = null;
           }
         }
+      }
+      
+      if (!ticketNumber) {
+        console.error('⚠️ WARNING: Payment marked as paid but ticket generation failed!');
       }
     }
 
