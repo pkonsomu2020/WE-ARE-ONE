@@ -17,7 +17,7 @@ const upcomingEvents = [
     id: 'game-night-utawala',
     title: 'WAO Game Night',
     subtitle: '24-Hour Gaming Marathon',
-    date: 'FRI 21ST - SAT 22ND FEB',
+    date: 'SAT 21ST - SUN 22ND FEB',
     time: '11:00 AM - 11:00 AM',
     venue: 'La Mana City, Utawala',
     price: 'KES 750',

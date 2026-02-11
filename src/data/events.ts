@@ -17,7 +17,7 @@ export const events: EventItem[] = [
     id: 'game-night-utawala',
     title: 'WAO Game Night',
     image: '/EVENTS/WAO_GameNight_2026.jpeg',
-    date: 'FRI 21ST FEB - SAT 22ND FEB, 2026 11:00AM - 11:00AM',
+    date: 'SAT 21ST FEB - SUN 22ND FEB, 2026 11:00AM - 11:00AM',
     location: 'La Mana City, Utawala',
     price: 'KES 750',
     description:
