@@ -245,55 +245,67 @@ const OrdersPage = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Order #</TableHead>
-                  <TableHead>Event</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>M-pesa Code</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredOrders.map((order) => (
-                  <TableRow key={order.id} className="hover:bg-muted/50">
-                    <TableCell className="font-medium">{order.id}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="font-medium text-sm">{order.eventId || 'N/A'}</span>
-                        {order.ticketType && (
-                          <span className="text-xs text-muted-foreground">{order.ticketType}</span>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>{order.name}</TableCell>
-                    <TableCell className="text-muted-foreground">{order.email}</TableCell>
-                    <TableCell className="font-mono text-sm">{order.mpesaCode}</TableCell>
-                    <TableCell>
-                      <Badge className={getStatusColor(order.status)}>
-                        {order.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{order.date}</TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        onClick={() => setSelectedOrder(order)}
-                        size="sm"
-                        className="bg-primary hover:bg-primary/90"
-                      >
-                        <Eye className="w-4 h-4 mr-1" />
-                        View
-                      </Button>
-                    </TableCell>
+          <div className="rounded-md border">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[60px]">Order</TableHead>
+                    <TableHead className="w-[140px]">Event</TableHead>
+                    <TableHead className="w-[120px]">Name</TableHead>
+                    <TableHead className="w-[180px]">Email</TableHead>
+                    <TableHead className="w-[110px]">M-pesa Code</TableHead>
+                    <TableHead className="w-[90px]">Status</TableHead>
+                    <TableHead className="w-[130px]">Date</TableHead>
+                    <TableHead className="w-[80px] text-right">Action</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filteredOrders.map((order) => (
+                    <TableRow key={order.id} className="hover:bg-muted/50">
+                      <TableCell className="font-medium text-sm">{order.id}</TableCell>
+                      <TableCell className="max-w-[140px]">
+                        <div className="flex flex-col">
+                          <span className="font-medium text-xs truncate" title={order.eventId || 'N/A'}>
+                            {order.eventId || 'N/A'}
+                          </span>
+                          {order.ticketType && (
+                            <span className="text-[10px] text-muted-foreground truncate" title={order.ticketType}>
+                              {order.ticketType}
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm max-w-[120px]">
+                        <span className="truncate block" title={order.name}>{order.name}</span>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground max-w-[180px]">
+                        <span className="truncate block" title={order.email}>{order.email}</span>
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">{order.mpesaCode}</TableCell>
+                      <TableCell>
+                        <Badge className={`${getStatusColor(order.status)} text-[10px] px-2 py-0.5`}>
+                          {order.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                        {order.date}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          onClick={() => setSelectedOrder(order)}
+                          size="sm"
+                          className="bg-primary hover:bg-primary/90 h-8 px-3"
+                        >
+                          <Eye className="w-3.5 h-3.5 mr-1" />
+                          <span className="text-xs">View</span>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </div>
 
           {filteredOrders.length === 0 && (
