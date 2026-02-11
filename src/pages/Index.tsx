@@ -12,22 +12,45 @@ import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { MessageCircle } from 'lucide-react';
 
-const nextEvent = {
-  title: 'WAO Game Night',
-  date: 'Friday 21st - Saturday 22nd Feb | 11:00am - 11:00am',
-  venue: 'La Mana City, Utawala',
-  image: '/EVENTS/WAO_GameNight_2026.jpeg',
-  // Set the event start date/time for countdown (ISO format)
-  startDate: new Date('2026-02-21T11:00:00'),
-};
+const upcomingEvents = [
+  {
+    id: 'game-night-utawala',
+    title: 'WAO Game Night',
+    subtitle: '24-Hour Gaming Marathon',
+    date: 'FRI 21ST - SAT 22ND FEB',
+    time: '11:00 AM - 11:00 AM',
+    venue: 'La Mana City, Utawala',
+    price: 'KES 750',
+    image: '/EVENTS/WAO_GameNight_2026.jpeg',
+    startDate: new Date('2026-02-21T11:00:00'),
+    color: 'from-purple-600 to-pink-600',
+    icon: '🎮',
+    highlights: ['24-Hour Gaming', 'Food & Drinks', 'Prizes & Giveaways', 'Community Bonding']
+  },
+  {
+    id: 'eldoret-picnic-kenmosa',
+    title: 'Eldoret Picnic',
+    subtitle: 'Fun Day at Kenmosa Resort',
+    date: 'SAT 28TH FEB',
+    time: '10:00 AM',
+    venue: 'Kenmosa Resort, Eldoret',
+    price: 'KES 150',
+    image: '/EVENTS/WAO_Eldoret_KENMOSA.jpeg',
+    startDate: new Date('2026-02-28T10:00:00'),
+    color: 'from-green-600 to-teal-600',
+    icon: '🌳',
+    highlights: ['Outdoor Activities', 'Delicious Food', 'Nature Walks', 'Team Building']
+  }
+];
 
 const UpcomingEventSection: React.FC = () => {
+  const [activeEvent, setActiveEvent] = useState(0);
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
   useEffect(() => {
     const updateCountdown = () => {
       const now = new Date();
-      const diff = nextEvent.startDate.getTime() - now.getTime();
+      const diff = upcomingEvents[activeEvent].startDate.getTime() - now.getTime();
       if (diff > 0) {
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
         const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
@@ -41,52 +64,166 @@ const UpcomingEventSection: React.FC = () => {
     updateCountdown();
     const timer = setInterval(updateCountdown, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [activeEvent]);
+
+  const currentEvent = upcomingEvents[activeEvent];
 
   return (
-    <section className="w-full bg-gray-50 py-12 px-4 flex flex-col items-center justify-center">
-      <div className="max-w-5xl w-full bg-white rounded-lg shadow flex flex-col md:flex-row overflow-hidden">
-        {/* Left: Info & Countdown */}
-        <div className="md:w-1/2 flex flex-col justify-center items-center p-8 bg-ngo-orange text-white">
-          <div className="mb-6 text-center">
-            <div className="uppercase tracking-widest text-sm mb-2">Upcoming Event</div>
-                <div className="text-4xl md:text-5xl font-extrabold mb-2 text-white">WAO Game Night</div>
-                <div className="text-xl mb-1 text-white font-semibold">Friday 21st - Saturday 22nd Feb | 11:00am - 11:00am</div>
-                <div className="text-lg mb-4 text-white">La Mana City, Utawala</div>
+    <section className="w-full bg-gradient-to-br from-gray-50 to-gray-100 py-16 px-4">
+      <div className="max-w-7xl mx-auto">
+        {/* Section Header */}
+        <div className="text-center mb-12">
+          <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-4">
+            Upcoming Events
+          </h2>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            Join us for exciting community events! Connect, have fun, and build lasting friendships.
+          </p>
+        </div>
+
+        {/* Event Tabs */}
+        <div className="flex justify-center gap-4 mb-8">
+          {upcomingEvents.map((event, index) => (
+            <button
+              key={event.id}
+              onClick={() => setActiveEvent(index)}
+              className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
+                activeEvent === index
+                  ? 'bg-ngo-orange text-white shadow-lg scale-105'
+                  : 'bg-white text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <span className="text-2xl mr-2">{event.icon}</span>
+              {event.title}
+            </button>
+          ))}
+        </div>
+
+        {/* Main Event Card */}
+        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
+          <div className="grid md:grid-cols-2 gap-0">
+            {/* Left: Event Details */}
+            <div className={`bg-gradient-to-br ${currentEvent.color} text-white p-8 md:p-12 flex flex-col justify-between`}>
+              <div>
+                <div className="inline-block bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-semibold mb-4">
+                  🎉 UPCOMING EVENT
+                </div>
+                <h3 className="text-4xl md:text-5xl font-extrabold mb-2">
+                  {currentEvent.title}
+                </h3>
+                <p className="text-xl md:text-2xl font-light mb-6 opacity-90">
+                  {currentEvent.subtitle}
+                </p>
+
+                {/* Event Info */}
+                <div className="space-y-4 mb-8">
+                  <div className="flex items-start gap-3">
+                    <span className="text-2xl">📅</span>
+                    <div>
+                      <p className="font-semibold text-lg">{currentEvent.date}</p>
+                      <p className="text-sm opacity-90">{currentEvent.time}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="text-2xl">📍</span>
+                    <p className="font-semibold text-lg">{currentEvent.venue}</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="text-2xl">💰</span>
+                    <p className="font-semibold text-2xl">{currentEvent.price}</p>
+                  </div>
+                </div>
+
+                {/* Highlights */}
+                <div className="mb-8">
+                  <p className="font-semibold text-lg mb-3">Event Highlights:</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {currentEvent.highlights.map((highlight, idx) => (
+                      <div key={idx} className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2">
+                        <span className="text-lg">✓</span>
+                        <span className="text-sm font-medium">{highlight}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* CTA Button */}
                 <Link
-                  to="/events/game-night-utawala"
-                  className="inline-block mt-4 px-8 py-3 bg-white text-ngo-orange font-bold text-lg rounded shadow hover:bg-orange-100 transition"
+                  to={`/events/${currentEvent.id}`}
+                  className="inline-block w-full text-center px-8 py-4 bg-white text-gray-900 font-bold text-lg rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
                 >
-                  Join Now
+                  Register Now →
                 </Link>
-          </div>
-          <div className="flex space-x-2 sm:space-x-4 md:space-x-6 lg:space-x-8 mt-10">
-            <div className="flex flex-col items-center">
-              <div className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white">{String(timeLeft.days).padStart(2, '0')}</div>
-              <div className="text-xs sm:text-sm md:text-base lg:text-lg font-bold mt-1 tracking-wide">DAYS</div>
+              </div>
+
+              {/* Countdown Timer */}
+              <div className="mt-8 pt-8 border-t border-white/20">
+                <p className="text-center text-sm font-semibold mb-4 opacity-90">EVENT STARTS IN</p>
+                <div className="grid grid-cols-4 gap-2">
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center">
+                    <div className="text-3xl md:text-4xl font-extrabold">{String(timeLeft.days).padStart(2, '0')}</div>
+                    <div className="text-xs font-semibold mt-1 opacity-90">DAYS</div>
+                  </div>
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center">
+                    <div className="text-3xl md:text-4xl font-extrabold">{String(timeLeft.hours).padStart(2, '0')}</div>
+                    <div className="text-xs font-semibold mt-1 opacity-90">HOURS</div>
+                  </div>
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center">
+                    <div className="text-3xl md:text-4xl font-extrabold">{String(timeLeft.minutes).padStart(2, '0')}</div>
+                    <div className="text-xs font-semibold mt-1 opacity-90">MINS</div>
+                  </div>
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center">
+                    <div className="text-3xl md:text-4xl font-extrabold">{String(timeLeft.seconds).padStart(2, '0')}</div>
+                    <div className="text-xs font-semibold mt-1 opacity-90">SECS</div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="flex flex-col items-center">
-              <div className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white">{String(timeLeft.hours).padStart(2, '0')}</div>
-              <div className="text-xs sm:text-sm md:text-base lg:text-lg font-bold mt-1 tracking-wide">HOURS</div>
-            </div>
-            <div className="flex flex-col items-center">
-              <div className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white">{String(timeLeft.minutes).padStart(2, '0')}</div>
-              <div className="text-xs sm:text-sm md:text-base lg:text-lg font-bold mt-1 tracking-wide">MINUTES</div>
-            </div>
-            <div className="flex flex-col items-center">
-              <div className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white">{String(timeLeft.seconds).padStart(2, '0')}</div>
-              <div className="text-xs sm:text-sm md:text-base lg:text-lg font-bold mt-1 tracking-wide">SECONDS</div>
+
+            {/* Right: Event Poster */}
+            <div className="relative bg-gradient-to-br from-gray-100 to-gray-200 p-8 flex items-center justify-center">
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-ngo-orange/20 to-transparent rounded-2xl blur-2xl"></div>
+                <img
+                  src={currentEvent.image}
+                  alt={currentEvent.title}
+                  className="relative w-full h-auto max-h-[600px] object-contain rounded-2xl shadow-2xl transform hover:scale-105 transition-transform duration-300"
+                />
+              </div>
             </div>
           </div>
         </div>
-        {/* Right: Poster */}
-        <div className="md:w-1/2 flex items-center justify-center bg-orange-50 p-8">
-          <img
-            src={nextEvent.image}
-            alt={nextEvent.title}
-            className="w-full h-96 object-contain rounded-lg shadow-lg"
-            style={{ maxWidth: '400px' }}
-          />
+
+        {/* Quick Event Cards */}
+        <div className="grid md:grid-cols-2 gap-6 mt-8">
+          {upcomingEvents.map((event, index) => (
+            <div
+              key={event.id}
+              className={`bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer ${
+                activeEvent === index ? 'ring-4 ring-ngo-orange' : ''
+              }`}
+              onClick={() => setActiveEvent(index)}
+            >
+              <div className="flex items-center gap-4 p-6">
+                <div className={`w-20 h-20 rounded-xl bg-gradient-to-br ${event.color} flex items-center justify-center text-4xl flex-shrink-0`}>
+                  {event.icon}
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-bold text-xl text-gray-900 mb-1">{event.title}</h4>
+                  <p className="text-sm text-gray-600 mb-2">{event.date} • {event.venue}</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-lg font-bold text-ngo-orange">{event.price}</span>
+                    <Link
+                      to={`/events/${event.id}`}
+                      className="text-sm font-semibold text-ngo-orange hover:underline"
+                    >
+                      View Details →
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </section>
