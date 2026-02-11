@@ -244,61 +244,61 @@ const OrdersPage = () => {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-2">
           <div className="rounded-md border">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[60px]">Order</TableHead>
-                    <TableHead className="w-[140px]">Event</TableHead>
-                    <TableHead className="w-[120px]">Name</TableHead>
-                    <TableHead className="w-[180px]">Email</TableHead>
-                    <TableHead className="w-[110px]">M-pesa Code</TableHead>
-                    <TableHead className="w-[90px]">Status</TableHead>
-                    <TableHead className="w-[130px]">Date</TableHead>
-                    <TableHead className="w-[80px] text-right">Action</TableHead>
+                  <TableRow className="text-xs">
+                    <TableHead className="w-[50px] px-2 py-2">Order #</TableHead>
+                    <TableHead className="w-[130px] px-2 py-2">Event</TableHead>
+                    <TableHead className="w-[100px] px-2 py-2">Name</TableHead>
+                    <TableHead className="w-[160px] px-2 py-2">Email</TableHead>
+                    <TableHead className="w-[100px] px-2 py-2">M-pesa Code</TableHead>
+                    <TableHead className="w-[70px] px-2 py-2">Status</TableHead>
+                    <TableHead className="w-[110px] px-2 py-2">Date</TableHead>
+                    <TableHead className="w-[70px] px-2 py-2 text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredOrders.map((order) => (
                     <TableRow key={order.id} className="hover:bg-muted/50">
-                      <TableCell className="font-medium text-sm">{order.id}</TableCell>
-                      <TableCell className="max-w-[140px]">
-                        <div className="flex flex-col">
-                          <span className="font-medium text-xs truncate" title={order.eventId || 'N/A'}>
+                      <TableCell className="font-medium text-xs px-2 py-2">{order.id}</TableCell>
+                      <TableCell className="px-2 py-2">
+                        <div className="flex flex-col gap-0.5 max-w-[130px]">
+                          <span className="font-medium text-[11px] truncate leading-tight" title={order.eventId || 'N/A'}>
                             {order.eventId || 'N/A'}
                           </span>
                           {order.ticketType && (
-                            <span className="text-[10px] text-muted-foreground truncate" title={order.ticketType}>
+                            <span className="text-[9px] text-muted-foreground truncate leading-tight" title={order.ticketType}>
                               {order.ticketType}
                             </span>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-sm max-w-[120px]">
+                      <TableCell className="text-[11px] px-2 py-2 max-w-[100px]">
                         <span className="truncate block" title={order.name}>{order.name}</span>
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground max-w-[180px]">
+                      <TableCell className="text-[10px] text-muted-foreground px-2 py-2 max-w-[160px]">
                         <span className="truncate block" title={order.email}>{order.email}</span>
                       </TableCell>
-                      <TableCell className="font-mono text-xs">{order.mpesaCode}</TableCell>
-                      <TableCell>
-                        <Badge className={`${getStatusColor(order.status)} text-[10px] px-2 py-0.5`}>
+                      <TableCell className="font-mono text-[10px] px-2 py-2">{order.mpesaCode}</TableCell>
+                      <TableCell className="px-2 py-2">
+                        <Badge className={`${getStatusColor(order.status)} text-[9px] px-1.5 py-0 leading-tight`}>
                           {order.status}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                      <TableCell className="text-[10px] text-muted-foreground px-2 py-2 whitespace-nowrap">
                         {order.date}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right px-2 py-2">
                         <Button
                           onClick={() => setSelectedOrder(order)}
                           size="sm"
-                          className="bg-primary hover:bg-primary/90 h-8 px-3"
+                          className="bg-primary hover:bg-primary/90 h-7 px-2 text-[10px]"
                         >
-                          <Eye className="w-3.5 h-3.5 mr-1" />
-                          <span className="text-xs">View</span>
+                          <Eye className="w-3 h-3 mr-0.5" />
+                          View
                         </Button>
                       </TableCell>
                     </TableRow>

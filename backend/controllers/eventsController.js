@@ -92,6 +92,10 @@ async function registerForEvent(req, res) {
         'standard': 150
       };
       
+      const gameNightPricing = {
+        'standard': 750
+      };
+      
       // Normalize ticket type for comparison
       const normalizedTicketType = String(ticketType).toLowerCase().trim();
       
@@ -101,6 +105,8 @@ async function registerForEvent(req, res) {
         expectedAmount = movieNightPricing[normalizedTicketType] || parseInt(amount, 10);
       } else if (normalizedEventId === 'eldoret-picnic-kenmosa') {
         expectedAmount = eldoretPicnicPricing[normalizedTicketType] || parseInt(amount, 10);
+      } else if (normalizedEventId === 'game-night-utawala') {
+        expectedAmount = gameNightPricing[normalizedTicketType] || parseInt(amount, 10);
       } else {
         // For unknown events, fall back to the provided amount
         expectedAmount = parseInt(amount, 10);

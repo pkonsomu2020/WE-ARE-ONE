@@ -14,6 +14,22 @@ export interface EventItem {
 
 export const events: EventItem[] = [
   {
+    id: 'game-night-utawala',
+    title: 'WAO Game Night',
+    image: '/EVENTS/WAO_GameNight_2026.jpeg',
+    date: 'FRI 21ST FEB - SAT 22ND FEB, 2026 11:00AM - 11:00AM',
+    location: 'La Mana City, Utawala',
+    price: 'KES 750',
+    description:
+      'Join us for an epic 24-hour Game Night at La Mana City in Utawala! Experience non-stop gaming, connect with fellow gamers, enjoy great food, and build lasting friendships in this exciting gaming marathon.',
+    host: 'WE ARE ONE',
+    tickets: [
+      { name: 'Standard', price: 'KES 750', status: 'Available' }
+    ],
+    photos: ['/EVENTS/WAO_GameNight_2026.jpeg'],
+    mapEmbed: 'https://www.google.com/maps?q=La+Mana+City+Utawala&output=embed',
+  },
+  {
     id: 'eldoret-picnic-kenmosa',
     title: 'We Are One Eldoret Picnic',
     image: '/EVENTS/WAO_Eldoret_KENMOSA.jpeg',
