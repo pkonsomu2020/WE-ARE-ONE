@@ -21,13 +21,20 @@ const validateAndFilterEmails = (recipients) => {
       return;
     }
     
-    // For now, we'll try to send to all valid emails
-    // Resend will handle domain verification errors
+    // Check for non-ASCII characters (Resend requirement)
+    // eslint-disable-next-line no-control-regex
+    const asciiRegex = /^[\x00-\x7F]*$/;
+    if (!asciiRegex.test(email)) {
+      console.log(`⚠️ Skipping email with non-ASCII characters: ${email}`);
+      invalidEmails.push({ ...recipient, reason: 'Contains non-ASCII characters' });
+      return;
+    }
+    
     validEmails.push(recipient);
   });
   
   if (invalidEmails.length > 0) {
-    console.log(`⚠️ Skipping ${invalidEmails.length} invalid emails:`, invalidEmails.map(e => e.email));
+    console.log(`⚠️ Skipping ${invalidEmails.length} invalid emails:`, invalidEmails.map(e => `${e.email} (${e.reason})`));
   }
   
   return { validEmails, invalidEmails };
