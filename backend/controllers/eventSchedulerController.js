@@ -581,11 +581,10 @@ const createEvent = async (req, res) => {
       // For organization events, send to BOTH admins AND regular users
       console.log('📧 Organization Event: Sending to admins AND users');
       
-      // Get all regular users from the users table
+      // Get all regular users from the users table (no email_verified filter)
       const { data: regularUsers, error: usersError } = await supabase
         .from('users')
-        .select('id, email, full_name')
-        .eq('email_verified', true); // Only send to verified users
+        .select('id, email, full_name');
       
       if (usersError) {
         console.error('Error fetching regular users:', usersError);
