@@ -54,20 +54,6 @@ const upcomingEvents = [
     color: 'from-blue-600 to-cyan-600',
     icon: '🌊',
     highlights: ['Lakeside Fun', 'Networking', 'Activities', 'Food']
-  },
-  {
-    id: 'game-night-utawala',
-    title: 'WAO Game Night',
-    subtitle: '24-Hour Gaming Marathon',
-    date: 'SAT 21ST - SUN 22ND FEB',
-    time: '11:00 AM - 11:00 AM',
-    venue: 'La Mana City, Utawala',
-    price: 'KES 750',
-    image: '/EVENTS/WAO_GameNight_2026.jpeg',
-    startDate: new Date('2026-02-21T11:00:00'),
-    color: 'from-indigo-600 to-purple-600',
-    icon: '🎮',
-    highlights: ['24-Hour Gaming', 'Food & Drinks', 'Prizes', 'Community']
   }
 ];
 
