@@ -14,6 +14,54 @@ export interface EventItem {
 
 export const events: EventItem[] = [
   {
+    id: 'prom-night-githegi',
+    title: 'WAO Prom Night',
+    image: '/EVENTS/WAO PROM NIGHT SAT 28TH MARCH 2026.png',
+    date: 'SAT 28TH MARCH, 2026',
+    location: 'Githegi Bay and Boat Resort',
+    price: 'KES 1000',
+    description:
+      'Join us for an elegant Prom Night at Githegi Bay and Boat Resort! Dress to impress, dance the night away, enjoy great music, delicious food, and create unforgettable memories with the WAO community.',
+    host: 'WE ARE ONE',
+    tickets: [
+      { name: 'Standard', price: 'KES 1000', status: 'Available' }
+    ],
+    photos: ['/EVENTS/WAO PROM NIGHT SAT 28TH MARCH 2026.png'],
+    mapEmbed: 'https://www.google.com/maps?q=Githegi+Bay+and+Boat+Resort&output=embed',
+  },
+  {
+    id: 'kisumu-meetup-valley-view',
+    title: 'WAO Kisumu Meetup',
+    image: '/EVENTS/WAO_KISUMU MEETUP_VALLEY VIEW RESORT SAT 28TH MARCH.png',
+    date: 'SAT 28TH MARCH, 2026',
+    location: 'Valley View Resort, Kiboswa',
+    price: 'KES 150',
+    description:
+      'Connect with the WAO community in Kisumu! Join us at Valley View Resort for a day of fun activities, networking, great food, and building lasting friendships in a beautiful lakeside setting.',
+    host: 'WE ARE ONE',
+    tickets: [
+      { name: 'Standard', price: 'KES 150', status: 'Available' }
+    ],
+    photos: ['/EVENTS/WAO_KISUMU MEETUP_VALLEY VIEW RESORT SAT 28TH MARCH.png'],
+    mapEmbed: 'https://www.google.com/maps?q=Valley+View+Resort+Kiboswa+Kisumu&output=embed',
+  },
+  {
+    id: 'wrc-safari-rally-naivasha',
+    title: 'WAO WRC Safari Rally',
+    image: '/EVENTS/WAO_WRC SAFARI RALLY 14TH AND 15TH MARCH 2026.png',
+    date: 'SAT 14TH - SUN 15TH MARCH, 2026',
+    location: 'Naivasha',
+    price: 'KES 1800',
+    description:
+      'Experience the thrill of the WRC Safari Rally with WAO! Join us for an exciting 2-day adventure in Naivasha, watch world-class rally action, camp under the stars, and bond with fellow motorsport enthusiasts.',
+    host: 'WE ARE ONE',
+    tickets: [
+      { name: 'Standard', price: 'KES 1800', status: 'Available' }
+    ],
+    photos: ['/EVENTS/WAO_WRC SAFARI RALLY 14TH AND 15TH MARCH 2026.png'],
+    mapEmbed: 'https://www.google.com/maps?q=Naivasha+Kenya&output=embed',
+  },
+  {
     id: 'game-night-utawala',
     title: 'WAO Game Night',
     image: '/EVENTS/WAO_GameNight_2026.jpeg',

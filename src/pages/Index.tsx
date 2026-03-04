@@ -14,6 +14,48 @@ import { MessageCircle } from 'lucide-react';
 
 const upcomingEvents = [
   {
+    id: 'wrc-safari-rally-naivasha',
+    title: 'WRC Safari Rally',
+    subtitle: '2-Day Rally Adventure',
+    date: 'SAT 14TH - SUN 15TH MAR',
+    time: 'Full Weekend',
+    venue: 'Naivasha',
+    price: 'KES 1,800',
+    image: '/EVENTS/WAO_WRC SAFARI RALLY 14TH AND 15TH MARCH 2026.png',
+    startDate: new Date('2026-03-14T08:00:00'),
+    color: 'from-red-600 to-orange-600',
+    icon: '🏎️',
+    highlights: ['Rally Action', 'Camping', 'Motorsport', 'Adventure']
+  },
+  {
+    id: 'prom-night-githegi',
+    title: 'WAO Prom Night',
+    subtitle: 'Elegant Evening Celebration',
+    date: 'SAT 28TH MAR',
+    time: 'Evening',
+    venue: 'Githegi Bay & Boat Resort',
+    price: 'KES 1,000',
+    image: '/EVENTS/WAO PROM NIGHT SAT 28TH MARCH 2026.png',
+    startDate: new Date('2026-03-28T18:00:00'),
+    color: 'from-purple-600 to-pink-600',
+    icon: '💃',
+    highlights: ['Elegant Dress', 'Dancing', 'Music', 'Dinner']
+  },
+  {
+    id: 'kisumu-meetup-valley-view',
+    title: 'Kisumu Meetup',
+    subtitle: 'Lakeside Community Gathering',
+    date: 'SAT 28TH MAR',
+    time: '10:00 AM',
+    venue: 'Valley View Resort, Kiboswa',
+    price: 'KES 150',
+    image: '/EVENTS/WAO_KISUMU MEETUP_VALLEY VIEW RESORT SAT 28TH MARCH.png',
+    startDate: new Date('2026-03-28T10:00:00'),
+    color: 'from-blue-600 to-cyan-600',
+    icon: '🌊',
+    highlights: ['Lakeside Fun', 'Networking', 'Activities', 'Food']
+  },
+  {
     id: 'game-night-utawala',
     title: 'WAO Game Night',
     subtitle: '24-Hour Gaming Marathon',
@@ -23,23 +65,9 @@ const upcomingEvents = [
     price: 'KES 750',
     image: '/EVENTS/WAO_GameNight_2026.jpeg',
     startDate: new Date('2026-02-21T11:00:00'),
-    color: 'from-purple-600 to-pink-600',
+    color: 'from-indigo-600 to-purple-600',
     icon: '🎮',
-    highlights: ['24-Hour Gaming', 'Food & Drinks', 'Prizes & Giveaways', 'Community Bonding']
-  },
-  {
-    id: 'eldoret-picnic-kenmosa',
-    title: 'Eldoret Picnic',
-    subtitle: 'Fun Day at Kenmosa Resort',
-    date: 'SAT 28TH FEB',
-    time: '10:00 AM',
-    venue: 'Kenmosa Resort, Eldoret',
-    price: 'KES 150',
-    image: '/EVENTS/WAO_Eldoret_KENMOSA.jpeg',
-    startDate: new Date('2026-02-28T10:00:00'),
-    color: 'from-green-600 to-teal-600',
-    icon: '🌳',
-    highlights: ['Outdoor Activities', 'Delicious Food', 'Nature Walks', 'Team Building']
+    highlights: ['24-Hour Gaming', 'Food & Drinks', 'Prizes', 'Community']
   }
 ];
 

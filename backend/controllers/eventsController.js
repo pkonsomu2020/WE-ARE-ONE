@@ -96,6 +96,18 @@ async function registerForEvent(req, res) {
         'standard': 750
       };
       
+      const promNightPricing = {
+        'standard': 1000
+      };
+      
+      const kisumuMeetupPricing = {
+        'standard': 150
+      };
+      
+      const wrcSafariRallyPricing = {
+        'standard': 1800
+      };
+      
       // Normalize ticket type for comparison
       const normalizedTicketType = String(ticketType).toLowerCase().trim();
       
@@ -107,6 +119,12 @@ async function registerForEvent(req, res) {
         expectedAmount = eldoretPicnicPricing[normalizedTicketType] || parseInt(amount, 10);
       } else if (normalizedEventId === 'game-night-utawala') {
         expectedAmount = gameNightPricing[normalizedTicketType] || parseInt(amount, 10);
+      } else if (normalizedEventId === 'prom-night-githegi') {
+        expectedAmount = promNightPricing[normalizedTicketType] || parseInt(amount, 10);
+      } else if (normalizedEventId === 'kisumu-meetup-valley-view') {
+        expectedAmount = kisumuMeetupPricing[normalizedTicketType] || parseInt(amount, 10);
+      } else if (normalizedEventId === 'wrc-safari-rally-naivasha') {
+        expectedAmount = wrcSafariRallyPricing[normalizedTicketType] || parseInt(amount, 10);
       } else {
         // For unknown events, fall back to the provided amount
         expectedAmount = parseInt(amount, 10);
