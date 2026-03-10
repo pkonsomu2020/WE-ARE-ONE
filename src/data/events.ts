@@ -14,6 +14,22 @@ export interface EventItem {
 
 export const events: EventItem[] = [
   {
+    id: 'eldoret-game-night-pioneer',
+    title: 'WAO Eldoret Game Night',
+    image: '/EVENTS/WAO_ELDORET GAME NIGHT_SAT 21ST MARCH 2026.png',
+    date: 'SAT 21ST MARCH, 2026',
+    location: 'Pioneer, Eldoret',
+    price: 'KES 500',
+    description:
+      'Join us for an exciting Game Night in Eldoret at Pioneer! Arrive at 4pm and enjoy gaming, fun activities, and great company until 11am the next day. Connect with fellow gamers and create lasting memories with the WAO community.',
+    host: 'WE ARE ONE',
+    tickets: [
+      { name: 'Standard', price: 'KES 500', status: 'Available' }
+    ],
+    photos: ['/EVENTS/WAO_ELDORET GAME NIGHT_SAT 21ST MARCH 2026.png'],
+    mapEmbed: 'https://www.google.com/maps?q=Pioneer+Eldoret&output=embed',
+  },
+  {
     id: 'prom-night-githegi',
     title: 'WAO Prom Night',
     image: '/EVENTS/WAO PROM NIGHT SAT 28TH MARCH 2026.png',

@@ -108,6 +108,10 @@ async function registerForEvent(req, res) {
         'standard': 1800
       };
       
+      const eldoretGameNightPricing = {
+        'standard': 500
+      };
+      
       // Normalize ticket type for comparison
       const normalizedTicketType = String(ticketType).toLowerCase().trim();
       
@@ -125,6 +129,8 @@ async function registerForEvent(req, res) {
         expectedAmount = kisumuMeetupPricing[normalizedTicketType] || parseInt(amount, 10);
       } else if (normalizedEventId === 'wrc-safari-rally-naivasha') {
         expectedAmount = wrcSafariRallyPricing[normalizedTicketType] || parseInt(amount, 10);
+      } else if (normalizedEventId === 'eldoret-game-night-pioneer') {
+        expectedAmount = eldoretGameNightPricing[normalizedTicketType] || parseInt(amount, 10);
       } else {
         // For unknown events, fall back to the provided amount
         expectedAmount = parseInt(amount, 10);

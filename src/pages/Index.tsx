@@ -28,6 +28,20 @@ const upcomingEvents = [
     highlights: ['Rally Action', 'Camping', 'Motorsport', 'Adventure']
   },
   {
+    id: 'eldoret-game-night-pioneer',
+    title: 'Eldoret Game Night',
+    subtitle: 'Overnight Gaming Marathon',
+    date: 'SAT 21ST MAR',
+    time: '4:00 PM - 11:00 AM',
+    venue: 'Pioneer, Eldoret',
+    price: 'KES 500',
+    image: '/EVENTS/WAO_ELDORET GAME NIGHT_SAT 21ST MARCH 2026.png',
+    startDate: new Date('2026-03-21T16:00:00'),
+    color: 'from-green-600 to-teal-600',
+    icon: '🎮',
+    highlights: ['Gaming', 'Overnight Fun', 'Competitions', 'Prizes']
+  },
+  {
     id: 'prom-night-githegi',
     title: 'WAO Prom Night',
     subtitle: 'Elegant Evening Celebration',
