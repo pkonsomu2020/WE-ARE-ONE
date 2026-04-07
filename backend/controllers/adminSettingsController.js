@@ -10,6 +10,7 @@ require('dotenv').config();
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Get admin profile
+// Get admin profile
 const getAdminProfile = async (req, res) => {
   try {
     const adminId = req.adminId || req.admin?.id;
@@ -117,24 +118,44 @@ const updateAdminProfile = async (req, res) => {
       });
     }
 
-    // Update admin_profiles table if exists
+    // Update admin_profiles table if exists, or create if missing
     try {
       const { data: existingProfiles, error: checkError } = await supabase
         .from('admin_profiles')
         .select('id')
         .eq('email', email);
 
-      if (!checkError && existingProfiles && existingProfiles.length > 0) {
-        const { error: profileUpdateError } = await supabase
-          .from('admin_profiles')
-          .update({ 
-            full_name: fullName, 
-            phone_number: phone || '' 
-          })
-          .eq('email', email);
+      if (!checkError) {
+        if (existingProfiles && existingProfiles.length > 0) {
+          // Update existing profile
+          const { error: profileUpdateError } = await supabase
+            .from('admin_profiles')
+            .update({ 
+              full_name: fullName, 
+              phone_number: phone || '' 
+            })
+            .eq('email', email);
 
-        if (profileUpdateError) {
-          console.warn('Error updating admin profile (non-blocking):', profileUpdateError);
+          if (profileUpdateError) {
+            console.warn('Error updating admin profile (non-blocking):', profileUpdateError);
+          }
+        } else {
+          // Create missing profile row
+          const { error: profileInsertError } = await supabase
+            .from('admin_profiles')
+            .insert({
+              user_id: adminId,
+              full_name: fullName,
+              email: email,
+              phone_number: phone || '',
+              role: 'Admin',
+              status: 'active',
+              email_notifications: true
+            });
+
+          if (profileInsertError) {
+            console.warn('Error creating admin profile (non-blocking):', profileInsertError);
+          }
         }
       }
     } catch (profileError) {

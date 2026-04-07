@@ -97,14 +97,11 @@ const authenticateAdmin = async (req, res, next) => {
 
   // Fallback to admin key
   if (adminKey && adminKey === process.env.ADMIN_API_KEY) {
-    // For API key auth, set a default super admin
-    req.admin = { 
-      id: 1,
-      email: 'admin@weareone.co.ke',
-      role: 'Super Admin', 
-      method: 'api_key' 
-    };
-    return next();
+    // For API key auth, we don't know which admin — return 401 to force JWT login
+    return res.status(401).json({
+      success: false,
+      message: 'Admin authentication required. Please log in with your credentials.'
+    });
   }
 
   return res.status(401).json({
