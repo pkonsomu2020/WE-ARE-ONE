@@ -82,6 +82,11 @@ const resend = new Resend(process.env.RESEND_API_KEY);
         full_name: 'Peter Onsomu',
         email: 'pkonsomu2021@gmail.com',
         password_hash: '$2a$12$F7e8TyLuRbvVN5o7jJJt9.U5zYchbHNHYmsvf0FbV6iLSjHtQ6d5q'
+      },
+      {
+        full_name: 'Leroy Geno Ouma',
+        email: 'leroyouma3@gmail.com',
+        password_hash: '$2a$12$2EGNg3p6KeZCyoO.WG8US.gS1SM6sgTWnRNpCZseiJUxmuBFxpQzG'
       }
     ];
 
@@ -218,6 +223,11 @@ router.post('/auth/seed-admins', async (req, res) => {
         full_name: 'Peter Onsomu',
         email: 'pkonsomu2021@gmail.com',
         password_hash: '$2a$12$F7e8TyLuRbvVN5o7jJJt9.U5zYchbHNHYmsvf0FbV6iLSjHtQ6d5q'
+      },
+      {
+        full_name: 'Leroy Geno Ouma',
+        email: 'leroyouma3@gmail.com',
+        password_hash: '$2a$12$2EGNg3p6KeZCyoO.WG8US.gS1SM6sgTWnRNpCZseiJUxmuBFxpQzG'
       }
     ];
 
