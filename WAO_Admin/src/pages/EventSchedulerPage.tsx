@@ -312,11 +312,21 @@ const EventSchedulerPage = () => {
       return [];
     }
     
-    const dateString = date.toISOString().split('T')[0];
+    // Use local date parts to avoid UTC offset shifting the comparison date
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const dateString = `${year}-${month}-${day}`;
+
     return eventList.filter(event => {
       if (!event || !event.start) return false;
       try {
-        return event.start.split('T')[0] === dateString;
+        // Parse the event start date in local time to get the correct date string
+        const eventDate = new Date(event.start);
+        const eYear = eventDate.getFullYear();
+        const eMonth = String(eventDate.getMonth() + 1).padStart(2, '0');
+        const eDay = String(eventDate.getDate()).padStart(2, '0');
+        return `${eYear}-${eMonth}-${eDay}` === dateString;
       } catch (error) {
         console.error('Error filtering event by date:', event, error);
         return false;
@@ -336,7 +346,11 @@ const EventSchedulerPage = () => {
       return;
     }
     
-    const dateString = date.toISOString().split('T')[0];
+    // Use local date parts to avoid UTC offset shifting the date
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const dateString = `${year}-${month}-${day}`;
     setNewEvent({ ...newEvent, date: dateString });
     setShowEventForm(true);
   };
@@ -550,12 +564,18 @@ const EventSchedulerPage = () => {
     const endDate = new Date(event.end);
     const endTime = endDate.toTimeString().slice(0, 5); // HH:MM format
     
+    // Use local date parts to avoid UTC offset shifting the date
+    const year = eventDate.getFullYear();
+    const month = String(eventDate.getMonth() + 1).padStart(2, '0');
+    const day = String(eventDate.getDate()).padStart(2, '0');
+    const localDateString = `${year}-${month}-${day}`;
+
     setEditingEvent(event);
     setNewEvent({
       title: event.title,
       type: event.type,
       description: event.description || '',
-      date: eventDate.toISOString().split('T')[0],
+      date: localDateString,
       startTime: startTime,
       endTime: endTime,
       location: event.location || '',
@@ -1014,10 +1034,14 @@ const EventSchedulerPage = () => {
                     {dayEvents.slice(0, 2).map(event => (
                       <div
                         key={event.id}
-                        className={`text-xs p-1 rounded border ${getEventTypeColor(event.type)} truncate ${
+                        className={`text-xs p-1 rounded border ${getEventTypeColor(event.type)} truncate cursor-pointer hover:opacity-80 ${
                           isPast ? 'opacity-50' : ''
                         }`}
                         title={event.title}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleViewEvent(event);
+                        }}
                       >
                         {formatTimeString(event.start)} {event.title}
                       </div>
