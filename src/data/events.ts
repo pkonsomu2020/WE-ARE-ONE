@@ -14,6 +14,38 @@ export interface EventItem {
 
 export const events: EventItem[] = [
   {
+    id: 'mombasa-hangout-nguuni',
+    title: 'WAO Mombasa Hangout',
+    image: '/EVENTS/WAO_MOMBASA HANGOUT SAT 25TH APRIL 2026.png',
+    date: 'SAT 25TH APRIL, 2026',
+    location: 'Nguuni Sanctuary, Off Kiembeni Road',
+    price: 'KES 500',
+    description:
+      'Join us for an exciting Mombasa Hangout at Nguuni Sanctuary! Enjoy a day of nature, fun activities, great company, and build lasting friendships with the WAO community in a beautiful coastal setting.',
+    host: 'WE ARE ONE',
+    tickets: [
+      { name: 'Standard', price: 'KES 500', status: 'Available' }
+    ],
+    photos: ['/EVENTS/WAO_MOMBASA HANGOUT SAT 25TH APRIL 2026.png'],
+    mapEmbed: 'https://www.google.com/maps?q=Nguuni+Sanctuary+Kiembeni+Mombasa&output=embed',
+  },
+  {
+    id: 'nairobi-hangout-uhuru-park',
+    title: 'WAO Nairobi Hangout',
+    image: '/EVENTS/WAO_NAIROBI HANGOUT_UHURU PARK_SUN 26TH APRIL 2026.png',
+    date: 'SUN 26TH APRIL, 2026',
+    location: 'Uhuru Park, Nairobi',
+    price: 'KES 100',
+    description:
+      'Join us for a fun-filled Nairobi Hangout at Uhuru Park! Connect with the WAO community, enjoy outdoor activities, and create unforgettable memories in the heart of Nairobi.',
+    host: 'WE ARE ONE',
+    tickets: [
+      { name: 'Standard', price: 'KES 100', status: 'Available' }
+    ],
+    photos: ['/EVENTS/WAO_NAIROBI HANGOUT_UHURU PARK_SUN 26TH APRIL 2026.png'],
+    mapEmbed: 'https://www.google.com/maps?q=Uhuru+Park+Nairobi&output=embed',
+  },
+  {
     id: 'eldoret-game-night-pioneer',
     title: 'WAO Eldoret Game Night',
     image: '/EVENTS/WAO_ELDORET GAME NIGHT_SAT 21ST MARCH 2026.png',

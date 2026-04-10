@@ -14,60 +14,32 @@ import { MessageCircle } from 'lucide-react';
 
 const upcomingEvents = [
   {
-    id: 'wrc-safari-rally-naivasha',
-    title: 'WRC Safari Rally',
-    subtitle: '2-Day Rally Adventure',
-    date: 'SAT 14TH - SUN 15TH MAR',
-    time: 'Full Weekend',
-    venue: 'Naivasha',
-    price: 'KES 1,800',
-    image: '/EVENTS/WAO_WRC SAFARI RALLY 14TH AND 15TH MARCH 2026.png',
-    startDate: new Date('2026-03-14T08:00:00'),
-    color: 'from-red-600 to-orange-600',
-    icon: '🏎️',
-    highlights: ['Rally Action', 'Camping', 'Motorsport', 'Adventure']
-  },
-  {
-    id: 'eldoret-game-night-pioneer',
-    title: 'Eldoret Game Night',
-    subtitle: 'Overnight Gaming Marathon',
-    date: 'SAT 21ST MAR',
-    time: '4:00 PM - 11:00 AM',
-    venue: 'Pioneer, Eldoret',
+    id: 'mombasa-hangout-nguuni',
+    title: 'Mombasa Hangout',
+    subtitle: 'Nature & Community Day',
+    date: 'SAT 25TH APR',
+    time: '9:00 AM - 5:00 PM',
+    venue: 'Nguuni Sanctuary, Kiembeni',
     price: 'KES 500',
-    image: '/EVENTS/WAO_ELDORET GAME NIGHT_SAT 21ST MARCH 2026.png',
-    startDate: new Date('2026-03-21T16:00:00'),
-    color: 'from-green-600 to-teal-600',
-    icon: '🎮',
-    highlights: ['Gaming', 'Overnight Fun', 'Competitions', 'Prizes']
+    image: '/EVENTS/WAO_MOMBASA HANGOUT SAT 25TH APRIL 2026.png',
+    startDate: new Date('2026-04-25T09:00:00'),
+    color: 'from-teal-600 to-green-600',
+    icon: '🌿',
+    highlights: ['Nature Walk', 'Community Fun', 'Activities', 'Coastal Vibes']
   },
   {
-    id: 'prom-night-githegi',
-    title: 'WAO Prom Night',
-    subtitle: 'Elegant Evening Celebration',
-    date: 'SAT 28TH MAR',
-    time: 'Evening',
-    venue: 'Githegi Bay & Boat Resort',
-    price: 'KES 1,000',
-    image: '/EVENTS/WAO PROM NIGHT SAT 28TH MARCH 2026.png',
-    startDate: new Date('2026-03-28T18:00:00'),
-    color: 'from-purple-600 to-pink-600',
-    icon: '💃',
-    highlights: ['Elegant Dress', 'Dancing', 'Music', 'Dinner']
-  },
-  {
-    id: 'kisumu-meetup-valley-view',
-    title: 'Kisumu Meetup',
-    subtitle: 'Lakeside Community Gathering',
-    date: 'SAT 28TH MAR',
-    time: '10:00 AM',
-    venue: 'Valley View Resort, Kiboswa',
-    price: 'KES 150',
-    image: '/EVENTS/WAO_KISUMU MEETUP_VALLEY VIEW RESORT SAT 28TH MARCH.png',
-    startDate: new Date('2026-03-28T10:00:00'),
-    color: 'from-blue-600 to-cyan-600',
-    icon: '🌊',
-    highlights: ['Lakeside Fun', 'Networking', 'Activities', 'Food']
+    id: 'nairobi-hangout-uhuru-park',
+    title: 'Nairobi Hangout',
+    subtitle: 'City Park Community Meetup',
+    date: 'SUN 26TH APR',
+    time: '11:00 AM - 4:00 PM',
+    venue: 'Uhuru Park, Nairobi',
+    price: 'KES 100',
+    image: '/EVENTS/WAO_NAIROBI HANGOUT_UHURU PARK_SUN 26TH APRIL 2026.png',
+    startDate: new Date('2026-04-26T11:00:00'),
+    color: 'from-orange-500 to-yellow-500',
+    icon: '🌳',
+    highlights: ['Outdoor Fun', 'Networking', 'Games', 'City Vibes']
   }
 ];
 
