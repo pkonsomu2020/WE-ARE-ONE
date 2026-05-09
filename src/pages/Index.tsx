@@ -123,20 +123,20 @@ const UpcomingEventSection: React.FC = () => {
           </p>
         </div>
 
-        {/* Event Tabs */}
-        <div className="flex justify-center gap-4 mb-8">
+        {/* Event Tabs - Mobile Optimized */}
+        <div className="flex overflow-x-auto gap-2 md:gap-4 mb-8 pb-2 scrollbar-hide snap-x snap-mandatory">
           {upcomingEvents.map((event, index) => (
             <button
               key={event.id}
               onClick={() => setActiveEvent(index)}
-              className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
+              className={`flex-shrink-0 snap-center px-3 py-2 md:px-6 md:py-3 rounded-lg font-semibold transition-all duration-300 ${
                 activeEvent === index
                   ? 'bg-ngo-orange text-white shadow-lg scale-105'
                   : 'bg-white text-gray-700 hover:bg-gray-100'
               }`}
             >
-              <span className="text-2xl mr-2">{event.icon}</span>
-              {event.title}
+              <span className="text-xl md:text-2xl mr-1 md:mr-2">{event.icon}</span>
+              <span className="text-xs md:text-base whitespace-nowrap">{event.title}</span>
             </button>
           ))}
         </div>
@@ -145,45 +145,45 @@ const UpcomingEventSection: React.FC = () => {
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
           <div className="grid md:grid-cols-2 gap-0">
             {/* Left: Event Details */}
-            <div className={`bg-gradient-to-br ${currentEvent.color} text-white p-8 md:p-12 flex flex-col justify-between`}>
+            <div className={`bg-gradient-to-br ${currentEvent.color} text-white p-4 sm:p-6 md:p-8 lg:p-12 flex flex-col justify-between`}>
               <div>
-                <div className="inline-block bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-semibold mb-4">
+                <div className="inline-block bg-white/20 backdrop-blur-sm px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-semibold mb-3 md:mb-4">
                   🎉 UPCOMING EVENT
                 </div>
-                <h3 className="text-4xl md:text-5xl font-extrabold mb-2">
+                <h3 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold mb-2">
                   {currentEvent.title}
                 </h3>
-                <p className="text-xl md:text-2xl font-light mb-6 opacity-90">
+                <p className="text-base sm:text-lg md:text-xl lg:text-2xl font-light mb-4 md:mb-6 opacity-90">
                   {currentEvent.subtitle}
                 </p>
 
                 {/* Event Info */}
-                <div className="space-y-4 mb-8">
-                  <div className="flex items-start gap-3">
-                    <span className="text-2xl">📅</span>
+                <div className="space-y-3 md:space-y-4 mb-6 md:mb-8">
+                  <div className="flex items-start gap-2 md:gap-3">
+                    <span className="text-xl md:text-2xl">📅</span>
                     <div>
-                      <p className="font-semibold text-lg">{currentEvent.date}</p>
-                      <p className="text-sm opacity-90">{currentEvent.time}</p>
+                      <p className="font-semibold text-sm sm:text-base md:text-lg">{currentEvent.date}</p>
+                      <p className="text-xs md:text-sm opacity-90">{currentEvent.time}</p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <span className="text-2xl">📍</span>
-                    <p className="font-semibold text-lg">{currentEvent.venue}</p>
+                  <div className="flex items-start gap-2 md:gap-3">
+                    <span className="text-xl md:text-2xl">📍</span>
+                    <p className="font-semibold text-sm sm:text-base md:text-lg">{currentEvent.venue}</p>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <span className="text-2xl">💰</span>
-                    <p className="font-semibold text-2xl">{currentEvent.price}</p>
+                  <div className="flex items-start gap-2 md:gap-3">
+                    <span className="text-xl md:text-2xl">💰</span>
+                    <p className="font-semibold text-lg sm:text-xl md:text-2xl">{currentEvent.price}</p>
                   </div>
                 </div>
 
                 {/* Highlights */}
-                <div className="mb-8">
-                  <p className="font-semibold text-lg mb-3">Event Highlights:</p>
-                  <div className="grid grid-cols-2 gap-3">
+                <div className="mb-6 md:mb-8">
+                  <p className="font-semibold text-sm md:text-lg mb-2 md:mb-3">Event Highlights:</p>
+                  <div className="grid grid-cols-2 gap-2 md:gap-3">
                     {currentEvent.highlights.map((highlight, idx) => (
-                      <div key={idx} className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2">
-                        <span className="text-lg">✓</span>
-                        <span className="text-sm font-medium">{highlight}</span>
+                      <div key={idx} className="flex items-center gap-1.5 md:gap-2 bg-white/10 backdrop-blur-sm rounded-lg px-2 py-1.5 md:px-3 md:py-2">
+                        <span className="text-sm md:text-lg">✓</span>
+                        <span className="text-xs md:text-sm font-medium">{highlight}</span>
                       </div>
                     ))}
                   </div>
@@ -192,72 +192,73 @@ const UpcomingEventSection: React.FC = () => {
                 {/* CTA Button */}
                 <Link
                   to={`/events/${currentEvent.id}`}
-                  className="inline-block w-full text-center px-8 py-4 bg-white text-gray-900 font-bold text-lg rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
+                  className="inline-block w-full text-center px-6 py-3 md:px-8 md:py-4 bg-white text-gray-900 font-bold text-base md:text-lg rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
                 >
                   Register Now →
                 </Link>
               </div>
 
               {/* Countdown Timer */}
-              <div className="mt-8 pt-8 border-t border-white/20">
-                <p className="text-center text-sm font-semibold mb-4 opacity-90">EVENT STARTS IN</p>
-                <div className="grid grid-cols-4 gap-2">
-                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center">
-                    <div className="text-3xl md:text-4xl font-extrabold">{String(timeLeft.days).padStart(2, '0')}</div>
-                    <div className="text-xs font-semibold mt-1 opacity-90">DAYS</div>
+              <div className="mt-6 md:mt-8 pt-6 md:pt-8 border-t border-white/20">
+                <p className="text-center text-xs md:text-sm font-semibold mb-3 md:mb-4 opacity-90">EVENT STARTS IN</p>
+                <div className="grid grid-cols-4 gap-1.5 md:gap-2">
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2 md:p-3 text-center">
+                    <div className="text-2xl sm:text-3xl md:text-4xl font-extrabold">{String(timeLeft.days).padStart(2, '0')}</div>
+                    <div className="text-[10px] md:text-xs font-semibold mt-1 opacity-90">DAYS</div>
                   </div>
-                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center">
-                    <div className="text-3xl md:text-4xl font-extrabold">{String(timeLeft.hours).padStart(2, '0')}</div>
-                    <div className="text-xs font-semibold mt-1 opacity-90">HOURS</div>
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2 md:p-3 text-center">
+                    <div className="text-2xl sm:text-3xl md:text-4xl font-extrabold">{String(timeLeft.hours).padStart(2, '0')}</div>
+                    <div className="text-[10px] md:text-xs font-semibold mt-1 opacity-90">HOURS</div>
                   </div>
-                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center">
-                    <div className="text-3xl md:text-4xl font-extrabold">{String(timeLeft.minutes).padStart(2, '0')}</div>
-                    <div className="text-xs font-semibold mt-1 opacity-90">MINS</div>
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2 md:p-3 text-center">
+                    <div className="text-2xl sm:text-3xl md:text-4xl font-extrabold">{String(timeLeft.minutes).padStart(2, '0')}</div>
+                    <div className="text-[10px] md:text-xs font-semibold mt-1 opacity-90">MINS</div>
                   </div>
-                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center">
-                    <div className="text-3xl md:text-4xl font-extrabold">{String(timeLeft.seconds).padStart(2, '0')}</div>
-                    <div className="text-xs font-semibold mt-1 opacity-90">SECS</div>
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2 md:p-3 text-center">
+                    <div className="text-2xl sm:text-3xl md:text-4xl font-extrabold">{String(timeLeft.seconds).padStart(2, '0')}</div>
+                    <div className="text-[10px] md:text-xs font-semibold mt-1 opacity-90">SECS</div>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Right: Event Poster */}
-            <div className="relative bg-gradient-to-br from-gray-100 to-gray-200 p-8 flex items-center justify-center">
-              <div className="relative">
+            <div className="relative bg-gradient-to-br from-gray-100 to-gray-200 p-4 md:p-8 flex items-center justify-center min-h-[300px] md:min-h-[500px]">
+              <div className="relative w-full">
                 <div className="absolute inset-0 bg-gradient-to-br from-ngo-orange/20 to-transparent rounded-2xl blur-2xl"></div>
                 <img
                   src={currentEvent.image}
                   alt={currentEvent.title}
-                  className="relative w-full h-auto max-h-[600px] object-contain rounded-2xl shadow-2xl transform hover:scale-105 transition-transform duration-300"
+                  className="relative w-full h-auto max-h-[400px] md:max-h-[600px] object-contain rounded-2xl shadow-2xl transform hover:scale-105 transition-transform duration-300"
                 />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Quick Event Cards */}
-        <div className="grid md:grid-cols-2 gap-6 mt-8">
+        {/* Quick Event Cards - Mobile Optimized */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 md:gap-6 mt-6 md:mt-8">
           {upcomingEvents.map((event, index) => (
             <div
               key={event.id}
               className={`bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer ${
-                activeEvent === index ? 'ring-4 ring-ngo-orange' : ''
+                activeEvent === index ? 'ring-2 md:ring-4 ring-ngo-orange' : ''
               }`}
               onClick={() => setActiveEvent(index)}
             >
-              <div className="flex items-center gap-4 p-6">
-                <div className={`w-20 h-20 rounded-xl bg-gradient-to-br ${event.color} flex items-center justify-center text-4xl flex-shrink-0`}>
+              <div className="flex items-center gap-3 md:gap-4 p-4 md:p-6">
+                <div className={`w-16 h-16 md:w-20 md:h-20 rounded-xl bg-gradient-to-br ${event.color} flex items-center justify-center text-3xl md:text-4xl flex-shrink-0`}>
                   {event.icon}
                 </div>
-                <div className="flex-1">
-                  <h4 className="font-bold text-xl text-gray-900 mb-1">{event.title}</h4>
-                  <p className="text-sm text-gray-600 mb-2">{event.date} • {event.venue}</p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-lg font-bold text-ngo-orange">{event.price}</span>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-bold text-base md:text-xl text-gray-900 mb-1 truncate">{event.title}</h4>
+                  <p className="text-xs md:text-sm text-gray-600 mb-2 truncate">{event.date} • {event.venue}</p>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-base md:text-lg font-bold text-ngo-orange">{event.price}</span>
                     <Link
                       to={`/events/${event.id}`}
-                      className="text-sm font-semibold text-ngo-orange hover:underline"
+                      className="text-xs md:text-sm font-semibold text-ngo-orange hover:underline whitespace-nowrap"
+                      onClick={(e) => e.stopPropagation()}
                     >
                       View Details →
                     </Link>
