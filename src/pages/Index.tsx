@@ -11,85 +11,48 @@ import BackToTop from '@/components/BackToTop';
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { MessageCircle } from 'lucide-react';
+import { getUpcomingEvents } from '@/data/events';
 
-const upcomingEvents = [
-  {
-    id: 'kisumu-game-night-may',
-    title: 'Kisumu Game Night',
-    subtitle: '2-Day Gaming Marathon',
-    date: 'SAT 16TH - SUN 17TH MAY',
-    time: '3:00 PM - Next Day',
-    venue: 'Milimani, Kisumu',
-    price: 'KES 800',
-    image: '/EVENTS/WAO_KISUMU_GAME NIGHT_SAT 16TH - SUN 17TH MAY 2026.png',
-    startDate: new Date('2026-05-16T15:00:00'),
-    color: 'from-purple-600 to-pink-600',
-    icon: '🎮',
-    highlights: ['Non-Stop Gaming', 'Community Fun', 'Great Food', 'Epic Prizes']
-  },
-  {
-    id: 'nakuru-potluck-hangout-may',
-    title: 'Nakuru Potluck',
-    subtitle: 'Food & Fellowship',
-    date: 'SAT 16TH MAY',
-    time: 'All Day',
-    venue: 'BnB Mawangaa, Nakuru',
-    price: 'KES 1000',
-    image: '/EVENTS/WAO NAKURU POTLUCK MEETUP HANGOUT SAT 16TH MAY 2026.png',
-    startDate: new Date('2026-05-16T10:00:00'),
-    color: 'from-green-600 to-teal-600',
-    icon: '🍽️',
-    highlights: ['Potluck Feast', 'Community Bonding', 'Great Venue', 'Fun Activities']
-  },
-  {
-    id: 'mothers-club-event-may',
-    title: 'Mothers Club Event',
-    subtitle: 'Celebrating Motherhood',
-    date: 'SUN 24TH MAY',
-    time: 'From 12:00 PM',
-    venue: 'Uhuru Park, Nairobi',
-    price: 'KES 350',
-    image: '/EVENTS/WAO MOTHERS CLUB EVENT SUNDAY MAY 24TH 2026.png',
-    startDate: new Date('2026-05-24T12:00:00'),
-    color: 'from-pink-500 to-rose-500',
-    icon: '👩‍👧‍👦',
-    highlights: ['Mother Celebration', 'Family Fun', 'Activities', 'Community Love']
-  },
-  {
-    id: 'eldoret-picnic-hangout-may',
-    title: 'Eldoret Picnic',
-    subtitle: 'Potluck & Nature',
-    date: 'WED 27TH MAY',
-    time: 'From 10:00 AM',
-    venue: 'Kenmosa Village, Eldoret',
-    price: 'KES 300',
-    image: '/EVENTS/WAO ELDORET PICNIC HANGOUT 27TH MAY 2026.png',
-    startDate: new Date('2026-05-27T10:00:00'),
-    color: 'from-yellow-500 to-orange-500',
-    icon: '🧺',
-    highlights: ['Outdoor Picnic', 'Potluck Food', 'Nature Walk', 'Community Time']
-  },
-  {
-    id: 'karura-meetup-may',
-    title: 'Karura Meetup',
-    subtitle: 'May We Bloom',
-    date: 'SAT 30TH MAY',
-    time: 'All Day',
-    venue: 'Karura Forest, Nairobi',
-    price: 'TBD',
-    image: '/EVENTS/WAO NAIROBI MEETUP KARURA SAT 30TH MAY 2026.png',
-    startDate: new Date('2026-05-30T09:00:00'),
-    color: 'from-emerald-600 to-green-600',
-    icon: '🌳',
-    highlights: ['Nature Walk', 'Forest Vibes', 'Networking', 'Bloom Together']
-  }
-];
+// Map of event id → homepage display config (icon, color, highlights, subtitle, time)
+const eventDisplayConfig: Record<string, { icon: string; color: string; highlights: string[]; subtitle: string; time: string }> = {
+  'kisumu-game-night-may':      { icon: '🎮', color: 'from-purple-600 to-pink-600',   subtitle: '2-Day Gaming Marathon',    time: '3:00 PM - Next Day',  highlights: ['Non-Stop Gaming', 'Community Fun', 'Great Food', 'Epic Prizes'] },
+  'nakuru-potluck-hangout-may': { icon: '🍽️', color: 'from-green-600 to-teal-600',    subtitle: 'Food & Fellowship',        time: 'All Day',             highlights: ['Potluck Feast', 'Community Bonding', 'Great Venue', 'Fun Activities'] },
+  'mothers-club-event-may':     { icon: '👩‍👧‍👦', color: 'from-pink-500 to-rose-500',    subtitle: 'Celebrating Motherhood',   time: 'From 12:00 PM',       highlights: ['Mother Celebration', 'Family Fun', 'Activities', 'Community Love'] },
+  'eldoret-picnic-hangout-may': { icon: '🧺', color: 'from-yellow-500 to-orange-500', subtitle: 'Potluck & Nature',          time: 'From 10:00 AM',       highlights: ['Outdoor Picnic', 'Potluck Food', 'Nature Walk', 'Community Time'] },
+  'karura-meetup-may':          { icon: '🌳', color: 'from-emerald-600 to-green-600', subtitle: 'May We Bloom',              time: 'All Day',             highlights: ['Nature Walk', 'Forest Vibes', 'Networking', 'Bloom Together'] },
+};
+
+const DEFAULT_CONFIG = { icon: '🎉', color: 'from-ngo-orange to-orange-400', highlights: ['Community Fun', 'Networking', 'Activities', 'Great Vibes'], subtitle: 'WAO Community Event', time: 'All Day' };
+
+// Build upcoming events dynamically — past events are automatically excluded
+const upcomingEvents = getUpcomingEvents().map((e) => {
+  const cfg = eventDisplayConfig[e.id] ?? DEFAULT_CONFIG;
+  return {
+    id: e.id,
+    title: e.title,
+    subtitle: cfg.subtitle,
+    date: e.date,
+    time: cfg.time,
+    venue: e.location,
+    price: e.price,
+    image: e.image,
+    startDate: e.endDate ? new Date(e.endDate) : new Date(),
+    color: cfg.color,
+    icon: cfg.icon,
+    highlights: cfg.highlights,
+  };
+});
 
 const UpcomingEventSection: React.FC = () => {
   const [activeEvent, setActiveEvent] = useState(0);
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+  const [imgLoaded, setImgLoaded] = useState(false);
+
+  // Reset image loaded state when active event changes
+  useEffect(() => { setImgLoaded(false); }, [activeEvent]);
 
   useEffect(() => {
+    if (upcomingEvents.length === 0) return;
     const updateCountdown = () => {
       const now = new Date();
       const diff = upcomingEvents[activeEvent].startDate.getTime() - now.getTime();
@@ -108,7 +71,22 @@ const UpcomingEventSection: React.FC = () => {
     return () => clearInterval(timer);
   }, [activeEvent]);
 
-  const currentEvent = upcomingEvents[activeEvent];
+  // No upcoming events — show a friendly message
+  if (upcomingEvents.length === 0) {
+    return (
+      <section className="w-full bg-gradient-to-br from-gray-50 to-gray-100 py-16 px-4">
+        <div className="max-w-7xl mx-auto text-center">
+          <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-4">Upcoming Events</h2>
+          <p className="text-lg text-gray-600 mb-6">Stay tuned — new events are being planned. Check back soon!</p>
+          <Link to="/events" className="inline-block px-8 py-4 bg-ngo-orange text-white font-bold rounded-xl hover:bg-orange-600 transition">
+            View Past Events →
+          </Link>
+        </div>
+      </section>
+    );
+  }
+
+  const currentEvent = upcomingEvents[Math.min(activeEvent, upcomingEvents.length - 1)];
 
   return (
     <section className="w-full bg-gradient-to-br from-gray-50 to-gray-100 py-16 px-4">
@@ -226,10 +204,17 @@ const UpcomingEventSection: React.FC = () => {
             <div className="relative bg-gradient-to-br from-gray-100 to-gray-200 p-4 md:p-8 flex items-center justify-center min-h-[300px] md:min-h-[500px]">
               <div className="relative w-full">
                 <div className="absolute inset-0 bg-gradient-to-br from-ngo-orange/20 to-transparent rounded-2xl blur-2xl"></div>
+                {/* Skeleton placeholder shown while image loads */}
+                {!imgLoaded && (
+                  <div className="w-full rounded-2xl bg-gray-300 animate-pulse" style={{ aspectRatio: '3/4', maxHeight: '600px' }} />
+                )}
                 <img
                   src={currentEvent.image}
                   alt={currentEvent.title}
-                  className="relative w-full h-auto max-h-[400px] md:max-h-[600px] object-contain rounded-2xl shadow-2xl transform hover:scale-105 transition-transform duration-300"
+                  loading="lazy"
+                  decoding="async"
+                  onLoad={() => setImgLoaded(true)}
+                  className={`relative w-full h-auto max-h-[400px] md:max-h-[600px] object-contain rounded-2xl shadow-2xl transform hover:scale-105 transition-all duration-300 ${imgLoaded ? 'opacity-100' : 'opacity-0 absolute'}`}
                 />
               </div>
             </div>
