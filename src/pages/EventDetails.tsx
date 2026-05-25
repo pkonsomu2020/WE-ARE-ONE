@@ -228,6 +228,7 @@ const EventDetails: React.FC = () => {
               <img
                 src={event.image}
                 alt={event.title}
+                loading="lazy"
                 className="w-full h-full object-contain rounded"
                 style={{ maxHeight: '420px' }}
               />
@@ -248,7 +249,7 @@ const EventDetails: React.FC = () => {
               <h2 className="text-lg font-semibold mb-1">Photos</h2>
               <div className="flex space-x-2 mb-4">
                 {event.photos.map((photo, idx) => (
-                  <img key={idx} src={photo} alt="Event" className="w-20 h-16 object-cover rounded" />
+                  <img key={idx} src={photo} alt="Event" loading="lazy" className="w-20 h-16 object-cover rounded" />
                 ))}
               </div>
               <h2 className="text-lg font-semibold mb-1">Location</h2>
