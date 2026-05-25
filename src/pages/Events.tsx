@@ -5,6 +5,8 @@ import Footer from '@/components/Footer';
 import { events as staticEvents } from '@/data/events';
 import { api } from '@/lib/api';
 import BackToTop from '@/components/BackToTop';
+import { LazyLoadImage } from 'react-lazy-load-image-component';
+import 'react-lazy-load-image-component/src/effects/blur.css';
 
 interface EventItem {
   id: string;
@@ -23,7 +25,6 @@ interface EventItem {
 
 /** Card with lazy-loaded image and skeleton placeholder */
 const EventCard: React.FC<{ event: EventItem }> = ({ event }) => {
-  const [loaded, setLoaded] = useState(false);
   const [errored, setErrored] = useState(false);
 
   return (
@@ -33,17 +34,13 @@ const EventCard: React.FC<{ event: EventItem }> = ({ event }) => {
     >
       {/* Image container with fixed aspect ratio */}
       <div className="relative h-56 w-full bg-gray-200 overflow-hidden">
-        {!loaded && !errored && (
-          <div className="absolute inset-0 bg-gray-200 animate-pulse" />
-        )}
-        <img
+        <LazyLoadImage
           src={errored ? '/placeholder.svg' : event.image}
           alt={event.title}
-          loading="lazy"
-          decoding="async"
-          onLoad={() => setLoaded(true)}
-          onError={() => { setErrored(true); setLoaded(true); }}
-          className={`h-56 w-full object-cover transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
+          effect="blur"
+          onError={() => setErrored(true)}
+          className="h-56 w-full object-cover"
+          wrapperClassName="w-full h-full block"
         />
       </div>
 

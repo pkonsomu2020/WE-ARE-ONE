@@ -12,6 +12,8 @@ import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { MessageCircle } from 'lucide-react';
 import { getUpcomingEvents } from '@/data/events';
+import { LazyLoadImage } from 'react-lazy-load-image-component';
+import 'react-lazy-load-image-component/src/effects/blur.css';
 
 // Map of event id → homepage display config (icon, color, highlights, subtitle, time)
 const eventDisplayConfig: Record<string, { icon: string; color: string; highlights: string[]; subtitle: string; time: string }> = {
@@ -49,7 +51,7 @@ const UpcomingEventSection: React.FC = () => {
   const [imgLoaded, setImgLoaded] = useState(false);
 
   // Reset image loaded state when active event changes
-  useEffect(() => { setImgLoaded(false); }, [activeEvent]);
+  // useEffect(() => { setImgLoaded(false); }, [activeEvent]);
 
   useEffect(() => {
     if (upcomingEvents.length === 0) return;
@@ -204,17 +206,13 @@ const UpcomingEventSection: React.FC = () => {
             <div className="relative bg-gradient-to-br from-gray-100 to-gray-200 p-4 md:p-8 flex items-center justify-center min-h-[300px] md:min-h-[500px]">
               <div className="relative w-full">
                 <div className="absolute inset-0 bg-gradient-to-br from-ngo-orange/20 to-transparent rounded-2xl blur-2xl"></div>
-                {/* Skeleton placeholder shown while image loads */}
-                {!imgLoaded && (
-                  <div className="w-full rounded-2xl bg-gray-300 animate-pulse" style={{ aspectRatio: '3/4', maxHeight: '600px' }} />
-                )}
-                <img
+                {/* Skeleton placeholder handled by LazyLoadImage blur effect */}
+                <LazyLoadImage
                   src={currentEvent.image}
                   alt={currentEvent.title}
-                  loading="lazy"
-                  decoding="async"
-                  onLoad={() => setImgLoaded(true)}
-                  className={`relative w-full h-auto max-h-[400px] md:max-h-[600px] object-contain rounded-2xl shadow-2xl transform hover:scale-105 transition-all duration-300 ${imgLoaded ? 'opacity-100' : 'opacity-0 absolute'}`}
+                  effect="blur"
+                  className="relative w-full h-auto max-h-[400px] md:max-h-[600px] object-contain rounded-2xl shadow-2xl transform hover:scale-105 transition-all duration-300"
+                  wrapperClassName="w-full h-full block"
                 />
               </div>
             </div>

@@ -6,6 +6,8 @@ import { getEventById } from '@/data/events';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
 import BackToTop from '@/components/BackToTop';
+import { LazyLoadImage } from 'react-lazy-load-image-component';
+import 'react-lazy-load-image-component/src/effects/blur.css';
 
 const EventDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -225,12 +227,13 @@ const EventDetails: React.FC = () => {
           {/* Left: Event Image & Info */}
           <div className="md:col-span-2">
             <div className="w-full bg-gray-100 rounded mb-6 flex items-center justify-center" style={{ minHeight: '300px', maxHeight: '420px' }}>
-              <img
+              <LazyLoadImage
                 src={event.image}
                 alt={event.title}
-                loading="lazy"
+                effect="blur"
                 className="w-full h-full object-contain rounded"
                 style={{ maxHeight: '420px' }}
+                wrapperClassName="w-full h-full flex items-center justify-center"
               />
             </div>
             <h1 className="text-3xl font-bold mb-2">{event.title}</h1>
@@ -249,7 +252,7 @@ const EventDetails: React.FC = () => {
               <h2 className="text-lg font-semibold mb-1">Photos</h2>
               <div className="flex space-x-2 mb-4">
                 {event.photos.map((photo, idx) => (
-                  <img key={idx} src={photo} alt="Event" loading="lazy" className="w-20 h-16 object-cover rounded" />
+                  <LazyLoadImage key={idx} src={photo} alt="Event" effect="blur" className="w-20 h-16 object-cover rounded" wrapperClassName="inline-block w-20 h-16" />
                 ))}
               </div>
               <h2 className="text-lg font-semibold mb-1">Location</h2>
