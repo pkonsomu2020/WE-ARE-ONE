@@ -76,7 +76,7 @@ const UpcomingEventSection: React.FC = () => {
   // No upcoming events — show a friendly message
   if (upcomingEvents.length === 0) {
     return (
-      <section className="w-full bg-gradient-to-br from-gray-50 to-gray-100 py-16 px-4">
+      <section className="w-full bg-gradient-to-br from-gray-50 to-gray-100 dark:from-background dark:to-gray-900 py-16 px-4">
         <div className="max-w-7xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-4">Upcoming Events</h2>
           <p className="text-lg text-gray-600 mb-6">Stay tuned — new events are being planned. Check back soon!</p>
@@ -91,7 +91,7 @@ const UpcomingEventSection: React.FC = () => {
   const currentEvent = upcomingEvents[Math.min(activeEvent, upcomingEvents.length - 1)];
 
   return (
-    <section className="w-full bg-gradient-to-br from-gray-50 to-gray-100 py-16 px-4">
+    <section className="w-full bg-gradient-to-br from-gray-50 to-gray-100 dark:from-background dark:to-gray-900 py-16 px-4">
       <div className="max-w-7xl mx-auto">
         {/* Section Header */}
         <div className="text-center mb-12">
@@ -112,7 +112,7 @@ const UpcomingEventSection: React.FC = () => {
               className={`flex-shrink-0 snap-center px-3 py-2 md:px-6 md:py-3 rounded-lg font-semibold transition-all duration-300 ${
                 activeEvent === index
                   ? 'bg-ngo-orange text-white shadow-lg scale-105'
-                  : 'bg-white text-gray-700 hover:bg-gray-100'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
             >
               <span className="text-xl md:text-2xl mr-1 md:mr-2">{event.icon}</span>
@@ -122,7 +122,7 @@ const UpcomingEventSection: React.FC = () => {
         </div>
 
         {/* Main Event Card */}
-        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden">
           <div className="grid md:grid-cols-2 gap-0">
             {/* Left: Event Details */}
             <div className={`bg-gradient-to-br ${currentEvent.color} text-white p-4 sm:p-6 md:p-8 lg:p-12 flex flex-col justify-between`}>
@@ -203,7 +203,7 @@ const UpcomingEventSection: React.FC = () => {
             </div>
 
             {/* Right: Event Poster */}
-            <div className="relative bg-gradient-to-br from-gray-100 to-gray-200 p-4 md:p-8 flex items-center justify-center min-h-[300px] md:min-h-[500px]">
+            <div className="relative bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 p-4 md:p-8 flex items-center justify-center min-h-[300px] md:min-h-[500px]">
               <div className="relative w-full">
                 <div className="absolute inset-0 bg-gradient-to-br from-ngo-orange/20 to-transparent rounded-2xl blur-2xl"></div>
                 {/* Skeleton placeholder handled by LazyLoadImage blur effect */}
@@ -224,7 +224,7 @@ const UpcomingEventSection: React.FC = () => {
           {upcomingEvents.map((event, index) => (
             <div
               key={event.id}
-              className={`bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer ${
+              className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer ${
                 activeEvent === index ? 'ring-2 md:ring-4 ring-ngo-orange' : ''
               }`}
               onClick={() => setActiveEvent(index)}
@@ -346,7 +346,7 @@ const Index = () => {
       <ImpactSection />
       <CommunitySection />
       {/* WAO Constitution Section */}
-      <section id="constitution" className="w-full bg-gray-50 py-20 px-4">
+      <section id="constitution" className="w-full bg-gray-50 dark:bg-gray-900 py-20 px-4">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-4xl lg:text-5xl font-bold mb-8 text-center">
             WAO <span className="text-ngo-orange">Constitution</span>
@@ -354,7 +354,7 @@ const Index = () => {
           <p className="text-lg text-gray-700 text-center mb-8 max-w-3xl mx-auto">
             Read the official constitution of We Are One (WAO). You can view it below or open it in a new tab.
           </p>
-          <div className="bg-white rounded-lg shadow overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
             <div className="relative">
               {/* Primary PDF viewer using object tag */}
               <object
@@ -372,7 +372,7 @@ const Index = () => {
                   loading="lazy"
                 >
                   {/* Final fallback for browsers that don't support either */}
-                  <div className="flex items-center justify-center bg-gray-100 p-8" style={{ height: '80vh' }}>
+                  <div className="flex items-center justify-center bg-gray-100 dark:bg-gray-900 p-8" style={{ height: '80vh' }}>
                     <div className="text-center">
                       <div className="text-6xl mb-4">📄</div>
                       <h3 className="text-xl font-bold mb-4">PDF Viewer Not Supported</h3>

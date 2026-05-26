@@ -42,7 +42,7 @@ const MissionSection = () => {
           {missions.map((mission, index) => (
             <div 
               key={index} 
-              className="bg-white rounded-3xl p-8 shadow-lg hover:shadow-xl transition-shadow duration-300 hover:-translate-y-2 transform transition-transform"
+              className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-lg hover:shadow-xl transition-shadow duration-300 hover:-translate-y-2 transform transition-transform"
             >
               <div className="bg-ngo-orange rounded-2xl w-16 h-16 flex items-center justify-center mb-6">
                 <mission.icon className="w-8 h-8 text-white" />
@@ -54,7 +54,7 @@ const MissionSection = () => {
         </div>
 
         {/* Additional mission statement */}
-        <div className="mt-16 bg-white rounded-3xl p-8 lg:p-12 shadow-lg">
+        <div className="mt-16 bg-white dark:bg-gray-800 rounded-3xl p-8 lg:p-12 shadow-lg">
           <div className="text-center">
             <h3 className="text-3xl font-bold mb-6 text-gray-800">
               Supporting Every Step of Your Journey

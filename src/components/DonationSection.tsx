@@ -138,7 +138,7 @@ const DonationSection = () => {
   ];
 
   return (
-    <section id="donate" className="py-20 bg-gradient-to-br from-orange-50 to-white">
+    <section id="donate" className="py-20 bg-gradient-to-br from-orange-50 to-white dark:from-gray-900 dark:to-background">
       <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-16">
@@ -151,7 +151,7 @@ const DonationSection = () => {
             </p>
           </div>
 
-          <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl overflow-hidden">
             <div className="p-8 lg:p-12">
               <h3 className="text-3xl font-bold text-center mb-8 text-gray-800">
                 Choose Your Impact Level
@@ -239,7 +239,7 @@ const DonationSection = () => {
               </div>
             </div>
 
-            <div className="bg-gray-50 p-8">
+            <div className="bg-gray-50 dark:bg-gray-900 p-8">
               <h4 className="text-2xl font-bold text-center mb-6 text-gray-800">
                 How Your Donation Helps
               </h4>
