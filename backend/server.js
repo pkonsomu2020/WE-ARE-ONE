@@ -6,6 +6,7 @@ const rateLimit = require('express-rate-limit');
 const paydRoutes = require('./routes/payd');
 const authRoutes = require('./routes/auth');
 const paypalRoutes = require('./routes/paypal');
+const megapayRoutes = require('./routes/megapay');
 const moodRoutes = require('./routes/mood');
 const journalRoutes = require('./routes/journal');
 const settingsRoutes = require('./routes/settings');
@@ -230,6 +231,7 @@ app.get('/api/warmup', async (req, res) => {
 // ✅ API routes
 app.use('/api/payd', paydRoutes);
 app.use('/api/paypal', paypalRoutes);
+app.use('/api/megapay', megapayRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/mood', moodRoutes);
 app.use('/api/journal', journalRoutes);

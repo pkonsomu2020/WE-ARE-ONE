@@ -19,6 +19,7 @@ const DonationSection = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'paypal' | 'mpesa' | null>(null);
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
+  const [phoneNumber, setPhoneNumber] = useState('');
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -49,10 +50,18 @@ const DonationSection = () => {
       let redirectField = '';
 
       if (paymentMethod === 'mpesa') {
-        // Redirect to Lipia Online payment link for MPesa
-        window.open('https://lipia-online.vercel.app/link/weareone', '_blank');
-        setIsLoading(false);
-        return;
+        if (!phoneNumber) {
+          toast({ title: 'Phone Number Required', description: 'Please enter your M-Pesa phone number.', variant: 'destructive' });
+          setIsLoading(false);
+          return;
+        }
+        apiUrl = `${apiBaseUrl}/megapay/stkpush`;
+        body = {
+          amount: amount,
+          msisdn: phoneNumber,
+          reference: 'WAO Donation'
+        };
+        // We handle M-Pesa response below separately
       } else {
         apiUrl = `${apiBaseUrl}/paypal/create-payment`;
         body = {
@@ -73,8 +82,17 @@ const DonationSection = () => {
 
       const data = await response.json();
 
-      if (response.ok && data.success && data[redirectField]) {
-        window.location.href = data[redirectField];
+      if (response.ok && data.success) {
+        if (paymentMethod === 'paypal' && data[redirectField]) {
+          window.location.href = data[redirectField];
+        } else if (paymentMethod === 'mpesa') {
+          toast({
+            title: 'STK Push Sent',
+            description: 'Please check your phone to enter your M-Pesa PIN.',
+            variant: 'default',
+          });
+          setIsLoading(false);
+        }
       } else {
         throw new Error(data.message || 'Payment initiation failed');
       }
@@ -175,6 +193,22 @@ const DonationSection = () => {
                   <DollarSign className="w-5 h-5 mr-2" /> PayPal
                 </Button>
               </div>
+
+              {/* M-Pesa Phone Number Input */}
+              {paymentMethod === 'mpesa' && (
+                <div className="mb-6 flex justify-center">
+                  <div className="w-full max-w-sm">
+                    <label className="block text-sm font-medium mb-2 text-gray-700 text-left">M-Pesa Phone Number</label>
+                    <input
+                      type="text"
+                      className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-ngo-orange"
+                      placeholder="e.g. 2547XXXXXXXX or 07XXXXXXXX"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
 
               <div className="text-center mt-8">
                 <Button
