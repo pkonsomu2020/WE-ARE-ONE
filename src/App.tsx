@@ -25,7 +25,7 @@ import Analytics from "@/components/Analytics";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <ThemeProvider defaultTheme="system" storageKey="wao-theme">
+  <ThemeProvider defaultTheme="light" storageKey="wao-theme" attribute="class">
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
       <TooltipProvider>

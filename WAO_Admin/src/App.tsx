@@ -43,7 +43,7 @@ const App = () => {
   };
 
   return (
-    <ThemeProvider defaultTheme="system" storageKey="wao-admin-theme">
+    <ThemeProvider defaultTheme="light" storageKey="wao-admin-theme" attribute="class">
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <NotificationProvider>

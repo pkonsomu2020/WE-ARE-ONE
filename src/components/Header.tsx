@@ -233,7 +233,7 @@ const Header = () => {
                   }
                 />
               )}
-              <div className="flex items-center justify-start py-2">
+              <div className="py-2 w-full">
                 <ThemeToggle />
               </div>
               
