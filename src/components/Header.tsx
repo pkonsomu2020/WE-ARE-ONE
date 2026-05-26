@@ -6,6 +6,7 @@ import AuthDialog from './AuthDialog';
 import UserProfile from './UserProfile';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { ThemeToggle } from './ThemeToggle';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -45,7 +46,7 @@ const Header = () => {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white shadow-lg">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-background shadow-lg border-b dark:border-gray-800">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <div className="flex-shrink-0">
@@ -61,7 +62,7 @@ const Header = () => {
             <button 
               onClick={() => scrollToSection('home')}
               disabled={isNavigating}
-              className={`px-3 py-2 rounded transition-colors ${location.pathname === '/' ? 'bg-ngo-orange text-white' : 'text-gray-600 hover:text-ngo-orange'} bg-transparent border-none cursor-pointer ${
+              className={`px-3 py-2 rounded transition-colors ${location.pathname === '/' ? 'bg-ngo-orange text-white' : 'text-gray-600 dark:text-gray-300 hover:text-ngo-orange'} bg-transparent border-none cursor-pointer ${
                 isNavigating ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
@@ -70,7 +71,7 @@ const Header = () => {
             <button 
               onClick={() => scrollToSection('about')}
               disabled={isNavigating}
-              className={`text-gray-600 hover:text-ngo-orange transition-colors bg-transparent border-none cursor-pointer ${
+              className={`text-gray-600 dark:text-gray-300 hover:text-ngo-orange transition-colors bg-transparent border-none cursor-pointer ${
                 isNavigating ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
@@ -79,7 +80,7 @@ const Header = () => {
             <button 
               onClick={() => scrollToSection('mission')}
               disabled={isNavigating}
-              className={`text-gray-600 hover:text-ngo-orange transition-colors bg-transparent border-none cursor-pointer ${
+              className={`text-gray-600 dark:text-gray-300 hover:text-ngo-orange transition-colors bg-transparent border-none cursor-pointer ${
                 isNavigating ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
@@ -88,7 +89,7 @@ const Header = () => {
             <button 
               onClick={() => scrollToSection('impact')}
               disabled={isNavigating}
-              className={`text-gray-600 hover:text-ngo-orange transition-colors bg-transparent border-none cursor-pointer ${
+              className={`text-gray-600 dark:text-gray-300 hover:text-ngo-orange transition-colors bg-transparent border-none cursor-pointer ${
                 isNavigating ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
@@ -97,7 +98,7 @@ const Header = () => {
             <button 
               onClick={() => scrollToSection('community')}
               disabled={isNavigating}
-              className={`text-gray-600 hover:text-ngo-orange transition-colors bg-transparent border-none cursor-pointer ${
+              className={`text-gray-600 dark:text-gray-300 hover:text-ngo-orange transition-colors bg-transparent border-none cursor-pointer ${
                 isNavigating ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
@@ -105,13 +106,13 @@ const Header = () => {
             </button>
             <Link
               to="/events"
-              className={`px-3 py-2 rounded transition-colors ${location.pathname.startsWith('/events') ? 'bg-ngo-orange text-white' : 'text-gray-600 hover:text-ngo-orange'}`}
+              className={`px-3 py-2 rounded transition-colors ${location.pathname.startsWith('/events') ? 'bg-ngo-orange text-white' : 'text-gray-600 dark:text-gray-300 hover:text-ngo-orange'}`}
             >
               Events
             </Link>
             <Link
               to="/therapy"
-              className={`px-3 py-2 rounded transition-colors ${location.pathname === '/therapy' ? 'bg-ngo-orange text-white' : 'text-gray-600 hover:text-ngo-orange'}`}
+              className={`px-3 py-2 rounded transition-colors ${location.pathname === '/therapy' ? 'bg-ngo-orange text-white' : 'text-gray-600 dark:text-gray-300 hover:text-ngo-orange'}`}
             >
               Therapy
             </Link>
@@ -131,6 +132,7 @@ const Header = () => {
                 }
               />
             )}
+            <ThemeToggle />
             
             <button 
               onClick={() => scrollToSection('donate')}
@@ -146,7 +148,7 @@ const Header = () => {
           {/* Mobile Menu Button */}
           <button
             onClick={toggleMenu}
-            className="md:hidden p-2 text-gray-600 hover:text-ngo-orange"
+            className="md:hidden p-2 text-gray-600 dark:text-gray-300 hover:text-ngo-orange"
           >
             {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
@@ -159,7 +161,7 @@ const Header = () => {
               <button 
                 onClick={() => scrollToSection('home')}
                 disabled={isNavigating}
-                className={`px-3 py-2 rounded transition-colors ${location.pathname === '/' ? 'bg-ngo-orange text-white' : 'text-gray-600 hover:text-ngo-orange'} text-left bg-transparent border-none cursor-pointer ${
+                className={`px-3 py-2 rounded transition-colors ${location.pathname === '/' ? 'bg-ngo-orange text-white' : 'text-gray-600 dark:text-gray-300 hover:text-ngo-orange'} text-left bg-transparent border-none cursor-pointer ${
                   isNavigating ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
@@ -168,7 +170,7 @@ const Header = () => {
               <button 
                 onClick={() => scrollToSection('about')}
                 disabled={isNavigating}
-                className={`text-gray-600 hover:text-ngo-orange transition-colors text-left bg-transparent border-none cursor-pointer ${
+                className={`text-gray-600 dark:text-gray-300 hover:text-ngo-orange transition-colors text-left bg-transparent border-none cursor-pointer ${
                   isNavigating ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
@@ -177,7 +179,7 @@ const Header = () => {
               <button 
                 onClick={() => scrollToSection('mission')}
                 disabled={isNavigating}
-                className={`text-gray-600 hover:text-ngo-orange transition-colors text-left bg-transparent border-none cursor-pointer ${
+                className={`text-gray-600 dark:text-gray-300 hover:text-ngo-orange transition-colors text-left bg-transparent border-none cursor-pointer ${
                   isNavigating ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
@@ -186,7 +188,7 @@ const Header = () => {
               <button 
                 onClick={() => scrollToSection('impact')}
                 disabled={isNavigating}
-                className={`text-gray-600 hover:text-ngo-orange transition-colors text-left bg-transparent border-none cursor-pointer ${
+                className={`text-gray-600 dark:text-gray-300 hover:text-ngo-orange transition-colors text-left bg-transparent border-none cursor-pointer ${
                   isNavigating ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
@@ -195,7 +197,7 @@ const Header = () => {
               <button 
                 onClick={() => scrollToSection('community')}
                 disabled={isNavigating}
-                className={`text-gray-600 hover:text-ngo-orange transition-colors text-left bg-transparent border-none cursor-pointer ${
+                className={`text-gray-600 dark:text-gray-300 hover:text-ngo-orange transition-colors text-left bg-transparent border-none cursor-pointer ${
                   isNavigating ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
@@ -203,13 +205,13 @@ const Header = () => {
               </button>
               <Link
                 to="/events"
-                className={`px-3 py-2 rounded transition-colors ${location.pathname.startsWith('/events') ? 'bg-ngo-orange text-white' : 'text-gray-600 hover:text-ngo-orange'}`}
+                className={`px-3 py-2 rounded transition-colors ${location.pathname.startsWith('/events') ? 'bg-ngo-orange text-white' : 'text-gray-600 dark:text-gray-300 hover:text-ngo-orange'}`}
               >
                 Events
               </Link>
               <Link
                 to="/therapy"
-                className={`px-3 py-2 rounded transition-colors ${location.pathname === '/therapy' ? 'bg-ngo-orange text-white' : 'text-gray-600 hover:text-ngo-orange'}`}
+                className={`px-3 py-2 rounded transition-colors ${location.pathname === '/therapy' ? 'bg-ngo-orange text-white' : 'text-gray-600 dark:text-gray-300 hover:text-ngo-orange'}`}
               >
                 Therapy
               </Link>
@@ -231,6 +233,9 @@ const Header = () => {
                   }
                 />
               )}
+              <div className="flex items-center justify-start py-2">
+                <ThemeToggle />
+              </div>
               
               <button 
                 onClick={() => scrollToSection('donate')}

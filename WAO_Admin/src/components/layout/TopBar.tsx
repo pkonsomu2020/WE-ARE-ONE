@@ -13,6 +13,7 @@ import {
 import NotificationDropdown from '@/components/notifications/NotificationDropdown';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { api } from '@/lib/api';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface TopBarProps {
   onMenuClick: () => void;
@@ -49,7 +50,7 @@ const TopBar = ({ onMenuClick, onLogout, isMobile = false }: TopBarProps) => {
   }, [lastActivity]);
 
   return (
-    <div className="sticky top-0 z-40 flex h-14 sm:h-16 shrink-0 items-center gap-x-2 sm:gap-x-4 border-b border-gray-200 bg-white px-3 sm:px-4 shadow-sm lg:px-8">
+    <div className="sticky top-0 z-40 flex h-14 sm:h-16 shrink-0 items-center gap-x-2 sm:gap-x-4 border-b border-gray-200 dark:border-gray-800 bg-background px-3 sm:px-4 shadow-sm lg:px-8">
       {/* Mobile menu button */}
       <Button
         variant="ghost"
@@ -67,7 +68,7 @@ const TopBar = ({ onMenuClick, onLogout, isMobile = false }: TopBarProps) => {
       <div className="flex flex-1 gap-x-2 sm:gap-x-4 self-stretch lg:gap-x-6">
         <div className="flex items-center">
           <div>
-            <h2 className="text-base sm:text-lg font-semibold text-gray-900">
+            <h2 className="text-base sm:text-lg font-semibold text-foreground">
               {isMobile ? 'WAO Admin' : 'We Are One Admin Portal'}
             </h2>
             <div className="hidden text-xs text-gray-500 sm:flex sm:items-center sm:gap-2">
@@ -79,6 +80,7 @@ const TopBar = ({ onMenuClick, onLogout, isMobile = false }: TopBarProps) => {
         
         {/* Right side items */}
         <div className="ml-auto flex items-center gap-x-2 sm:gap-x-4 lg:gap-x-6">
+          <ThemeToggle />
           {/* Notifications */}
           <NotificationDropdown />
 

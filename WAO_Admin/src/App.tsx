@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -42,6 +43,7 @@ const App = () => {
   };
 
   return (
+    <ThemeProvider defaultTheme="system" storageKey="wao-admin-theme">
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <NotificationProvider>
@@ -73,6 +75,7 @@ const App = () => {
         </NotificationProvider>
       </TooltipProvider>
     </QueryClientProvider>
+    </ThemeProvider>
   );
 };
 
