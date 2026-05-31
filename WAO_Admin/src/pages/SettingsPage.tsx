@@ -103,7 +103,7 @@ const SettingsPage = () => {
     siteName: 'We Are One Admin Portal',
     siteUrl: (import.meta.env.VITE_ADMIN_URL as string) || 'https://admin.weareone.co.ke',
     mainWebsiteUrl: (import.meta.env.VITE_MAIN_WEBSITE_URL as string) || 'https://weareone.co.ke',
-    apiUrl: (import.meta.env.VITE_API_BASE_URL as string) || 'https://we-are-one-api.onrender.com',
+    apiUrl: (import.meta.env.VITE_API_BASE_URL as string) || 'https://we-are-one-hwsr.onrender.com',
     organizationEmail: 'admin@weareone.co.ke',
     supportEmail: 'support@weareone.co.ke',
     darkMode: false,

@@ -105,7 +105,7 @@ type TrendDatum = {
   events_created: number;
 };
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string) || 'https://we-are-one-api.onrender.com';
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string) || 'https://we-are-one-hwsr.onrender.com';
 
 const AdminAnalyticsPage = () => {
   const [metrics, setMetrics] = useState<AdminMetrics[]>([]);
